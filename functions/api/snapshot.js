@@ -9,9 +9,9 @@ export async function onRequest(context) {
 
   const today = new Date().toISOString().split('T')[0];
   
-  // Bumped to v10 to force a fresh run
+  // Bumped to v11 to force a fresh run
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}-v10`; 
+  cacheUrl.pathname = `/snapshot-${today}-v11`; 
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
@@ -23,11 +23,9 @@ export async function onRequest(context) {
   const fixturesUrl = `https://v3.football.api-sports.io/fixtures?date=${today}`;
 
   try {
-    // --- UPDATED HEADERS FOR API-FOOTBALL ---
     const response = await fetch(fixturesUrl, {
       headers: { 
         "x-apisports-key": apiKey,
-        "x-rapidapi-host": "v3.football.api-sports.io",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
       },
     });
@@ -49,23 +47,35 @@ export async function onRequest(context) {
       (match) => match.league.id === 39 || match.league.id === 140
     );
 
+    // --- OPTIMIZATION: Wait 6 seconds to respect the 10 req/min limit ---
+    // We only need to do this if we actually have matches to process
     if (filteredMatches.length > 0) {
+      // Wait 6 seconds before the first odds call
+      await new Promise(resolve => setTimeout(resolve, 6000));
+
       for (let i = 0; i < filteredMatches.length; i++) {
         let match = filteredMatches[i];
         const fixtureId = match.fixture.id;
         
         const oddsUrl = `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`;
         
-        // --- UPDATED HEADERS FOR ODDS ---
         const oddsResponse = await fetch(oddsUrl, {
           headers: { 
             "x-apisports-key": apiKey,
-            "x-rapidapi-host": "v3.football.api-sports.io",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
           },
         });
         const oddsData = await oddsResponse.json();
         
+        // If we hit the rate limit again on odds, log it but don't crash
+        if (oddsData.errors && Object.keys(oddsData.errors).length > 0) {
+           filteredMatches[i].odds = null;
+           filteredMatches[i].ai_analysis = "Odds rate limited, try again later.";
+           // Wait another 6 seconds before the next one
+           await new Promise(resolve => setTimeout(resolve, 6000));
+           continue;
+        }
+
         let matchWinnerOdds = null;
         if (oddsData.response && oddsData.response.length > 0) {
           const bookmakerData = oddsData.response[0];
@@ -76,7 +86,7 @@ export async function onRequest(context) {
         }
         filteredMatches[i].odds = matchWinnerOdds;
 
-        // --- AI ANALYSIS (With Cloudflare AI Gateway Authorization) ---
+        // --- AI ANALYSIS ---
         if (groqKey && env.CF_AIG_TOKEN) {
           const homeTeam = match.teams.home.name;
           const awayTeam = match.teams.away.name;
@@ -121,6 +131,11 @@ export async function onRequest(context) {
           } catch (err) {
             filteredMatches[i].ai_analysis = "AI network fetch failed.";
           }
+        }
+
+        // If there are more matches, wait 6 seconds before the next odds call
+        if (i < filteredMatches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 6000));
         }
       }
     }
