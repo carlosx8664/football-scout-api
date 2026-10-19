@@ -1,5 +1,4 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 export async function onRequest(context) {
@@ -17,19 +16,27 @@ export async function onRequest(context) {
     );
   }
 
+  // ?refresh=1   -> ignore the cached day snapshot (per-match cache still saves API calls)
+  // ?refresh=all -> ignore every cache (spends API quota)
   const url = new URL(request.url);
-  const forceRefresh = url.searchParams.get("refresh") === "1";
-  const today = new Date().toISOString().split("T")[0];
+  const refresh = url.searchParams.get("refresh");
+  const skipSnapshotCache = refresh === "1" || refresh === "all";
+  const skipMatchCache = refresh === "all";
 
-  // Cache key (bump the version suffix if you ever need to invalidate everything)
-  const cacheUrl = new URL(request.url);
-  cacheUrl.search = "";
-  cacheUrl.pathname = `/snapshot-${today}-v12`;
-  const cacheKey = new Request(cacheUrl.toString());
+  const today = new Date().toISOString().split("T")[0];
   const cache = caches.default;
 
-  if (!forceRefresh) {
-    const cachedResponse = await cache.match(cacheKey);
+  const makeKey = (path) => {
+    const u = new URL(request.url);
+    u.search = "";
+    u.pathname = path;
+    return new Request(u.toString());
+  };
+  const snapshotKey = makeKey(`/snapshot-${today}-v12`);
+  const matchKey = (id) => makeKey(`/match-${today}-${id}-v1`);
+
+  if (!skipSnapshotCache) {
+    const cachedResponse = await cache.match(snapshotKey);
     if (cachedResponse) return cachedResponse;
   }
 
@@ -37,6 +44,30 @@ export async function onRequest(context) {
     "x-apisports-key": apiKey,
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
   };
+
+  // Fetch odds for one fixture. Retries once after a pause on a per-minute rate limit.
+  async function fetchOdds(fixtureId) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(
+        `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`,
+        { headers: apiHeaders }
+      );
+      const json = await res.json();
+
+      if (json.errors && Object.keys(json.errors).length > 0) {
+        const detail = JSON.stringify(json.errors);
+        const dailyLimit =
+          "requests" in json.errors || /day/i.test(detail);
+        if (attempt === 0 && !dailyLimit) {
+          await sleep(15000); // wait out the per-minute window, then retry once
+          continue;
+        }
+        return { error: detail };
+      }
+      return { json };
+    }
+    return { error: "Unknown odds error" };
+  }
 
   try {
     const response = await fetch(
@@ -51,7 +82,6 @@ export async function onRequest(context) {
         { status: 400, headers: JSON_HEADERS }
       );
     }
-
     if (!data.response) {
       return new Response(
         JSON.stringify({ error: "API returned no 'response' field" }),
@@ -62,54 +92,64 @@ export async function onRequest(context) {
     const requestsRemaining =
       response.headers.get("x-ratelimit-requests-remaining") || "Unknown";
 
-    const filteredMatches = data.response.filter(
-      (match) => match.league.id === 39 || match.league.id === 140
+    const matches = data.response.filter(
+      (m) => m.league.id === 39 || m.league.id === 140
     );
 
-    // Only cache the result if everything succeeded
     let cacheable = true;
 
-    // ---------- 1) ODDS (sequential, spaced to respect 10 req/min) ----------
-    for (let i = 0; i < filteredMatches.length; i++) {
-      const match = filteredMatches[i];
+    // ---------- 0) Reuse per-match results cached earlier today ----------
+    if (!skipMatchCache) {
+      await Promise.all(
+        matches.map(async (m) => {
+          const hit = await cache.match(matchKey(m.fixture.id));
+          if (hit) {
+            const saved = await hit.json();
+            m.odds = saved.odds;
+            m.ai_analysis = saved.ai_analysis;
+            m._done = true;
+          }
+        })
+      );
+    }
+
+    // ---------- 1) ODDS (sequential, spaced for the per-minute limit) ----------
+    for (const m of matches) {
+      if (m._done) continue;
       await sleep(6000);
 
-      const oddsResponse = await fetch(
-        `https://v3.football.api-sports.io/odds?fixture=${match.fixture.id}`,
-        { headers: apiHeaders }
-      );
-      const oddsData = await oddsResponse.json();
-
-      if (oddsData.errors && Object.keys(oddsData.errors).length > 0) {
-        match.odds = null;
-        match.ai_analysis = "Odds rate limited, try again later.";
-        match._skipAI = true;
+      const result = await fetchOdds(m.fixture.id);
+      if (result.error) {
+        m.odds = null;
+        m.ai_analysis = "Odds unavailable: " + result.error;
+        m._skipAI = true;
         cacheable = false;
         continue;
       }
 
       let matchWinnerOdds = null;
-      if (oddsData.response && oddsData.response.length > 0) {
-        const bookmakers = oddsData.response[0].bookmakers;
+      const resp = result.json.response;
+      if (resp && resp.length > 0) {
+        const bookmakers = resp[0].bookmakers;
         if (bookmakers && bookmakers.length > 0) {
           const bet = bookmakers[0].bets.find((b) => b.id === 1);
           if (bet) matchWinnerOdds = bet.values;
         }
       }
-      match.odds = matchWinnerOdds;
+      m.odds = matchWinnerOdds;
     }
 
-    // ---------- 2) AI ANALYSIS (parallel, goes through AI Gateway) ----------
+    // ---------- 2) AI ANALYSIS (parallel, via AI Gateway) ----------
+    const needsAI = matches.filter((m) => !m._done && !m._skipAI);
+
     if (groqKey && aigToken && accountId) {
       const groqUrl = `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/groq/chat/completions`;
 
       await Promise.all(
-        filteredMatches.map(async (match) => {
-          if (match._skipAI) return;
-
-          const homeTeam = match.teams.home.name;
-          const awayTeam = match.teams.away.name;
-          const odds = match.odds;
+        needsAI.map(async (m) => {
+          const homeTeam = m.teams.home.name;
+          const awayTeam = m.teams.away.name;
+          const odds = m.odds;
 
           let oddsText = "Odds are not yet available for this match.";
           if (odds && odds.length >= 3) {
@@ -140,15 +180,17 @@ export async function onRequest(context) {
               groqData = JSON.parse(groqText);
             } catch (_) {}
 
-            if (groqData && groqData.choices && groqData.choices[0]) {
-              match.ai_analysis = groqData.choices[0].message.content;
+            const content = groqData?.choices?.[0]?.message?.content;
+            if (content) {
+              m.ai_analysis = content;
+              m._aiOk = true;
             } else {
               cacheable = false;
-              match.ai_analysis = `AI error (HTTP ${groqResponse.status}) via gateway "${gatewayId}": ${groqText.slice(0, 300)}`;
+              m.ai_analysis = `AI error (HTTP ${groqResponse.status}) via gateway "${gatewayId}": ${groqText.slice(0, 300)}`;
             }
           } catch (err) {
             cacheable = false;
-            match.ai_analysis = "AI network fetch failed: " + err.message;
+            m.ai_analysis = "AI network fetch failed: " + err.message;
           }
         })
       );
@@ -158,21 +200,41 @@ export async function onRequest(context) {
         !aigToken && "CF_AIG_TOKEN",
         !accountId && "CF_ACCOUNT_ID",
       ].filter(Boolean);
-      filteredMatches.forEach((m) => {
+      needsAI.forEach((m) => {
         m.ai_analysis = `AI skipped: missing variable(s) ${missing.join(", ")}`;
       });
       cacheable = false;
     }
 
-    // Clean up internal flag before sending
-    filteredMatches.forEach((m) => delete m._skipAI);
+    // ---------- 3) Cache each fully successful match on its own ----------
+    // (a match with no odds yet is NOT cached, so odds can appear later)
+    for (const m of matches) {
+      if (!m._done && m.odds && m._aiOk) {
+        context.waitUntil(
+          cache.put(
+            matchKey(m.fixture.id),
+            new Response(
+              JSON.stringify({ odds: m.odds, ai_analysis: m.ai_analysis }),
+              { headers: { ...JSON_HEADERS, "Cache-Control": "public, max-age=43200" } }
+            )
+          )
+        );
+      }
+      if (!m.odds) cacheable = false;
+    }
+
+    matches.forEach((m) => {
+      delete m._done;
+      delete m._skipAI;
+      delete m._aiOk;
+    });
 
     const finalData = {
       status: "success",
       date: today,
       quota_remaining: requestsRemaining,
-      match_count: filteredMatches.length,
-      matches: filteredMatches,
+      match_count: matches.length,
+      matches,
     };
 
     const newResponse = new Response(JSON.stringify(finalData), {
@@ -183,7 +245,7 @@ export async function onRequest(context) {
     });
 
     if (cacheable) {
-      context.waitUntil(cache.put(cacheKey, newResponse.clone()));
+      context.waitUntil(cache.put(snapshotKey, newResponse.clone()));
     }
 
     return newResponse;
