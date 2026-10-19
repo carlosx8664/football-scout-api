@@ -127,9 +127,10 @@ export async function onRequest(context) {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "llama-3.1-8b-instant",
+                model: "openai/gpt-oss-20b",
                 messages: [{ role: "user", content: prompt }],
-                max_tokens: 100,
+                reasoning_effort: "low",
+                max_tokens: 600,
               }),
             });
 
