@@ -21,7 +21,7 @@ interface Match {
     away: { name: string; logo: string };
   };
   odds: Odd[] | null;
-  ai_analysis?: string; // <-- Added for the AI News analysis
+  ai_analysis?: string;
 }
 
 interface SnapshotData {
@@ -40,9 +40,14 @@ function App() {
   useEffect(() => {
     // Fetch from your Cloudflare Pages Function
     fetch('/api/snapshot')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch data');
-        return res.json();
+      .then(async (res) => {
+        const data = await res.json();
+        
+        // If the backend throws an error, display it instead of hiding it
+        if (!res.ok) {
+          throw new Error(data.message || data.error || 'Failed to fetch data');
+        }
+        return data;
       })
       .then((data: SnapshotData) => {
         setData(data);

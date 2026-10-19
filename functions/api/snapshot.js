@@ -9,9 +9,9 @@ export async function onRequest(context) {
 
   const today = new Date().toISOString().split('T')[0];
   
-  // Bumped to v5 to force a fresh run
+  // Bumped to v6 to force a fresh run
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}-v5`; 
+  cacheUrl.pathname = `/snapshot-${today}-v6`; 
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
@@ -30,7 +30,6 @@ export async function onRequest(context) {
     const data = await response.json();
 
     // --- ERROR CHECK ---
-    // If API-Football gives us an error array, we throw it so we can see it!
     if (data.errors && Object.keys(data.errors).length > 0) {
       return new Response(JSON.stringify({ 
         status: "error",
@@ -41,14 +40,13 @@ export async function onRequest(context) {
     }
 
     if (!data.response) {
-       return new Response(JSON.stringify({ error: "API returned no 'response' field", raw: data }), { status: 500 });
+       return new Response(JSON.stringify({ error: "API returned no 'response' field" }), { status: 500 });
     }
 
     let filteredMatches = data.response.filter(
       (match) => match.league.id === 39 || match.league.id === 140
     );
 
-    // ... (rest of the code remains the same, including the AI analysis) ...
     if (filteredMatches.length > 0) {
       for (let i = 0; i < filteredMatches.length; i++) {
         let match = filteredMatches[i];
@@ -70,6 +68,7 @@ export async function onRequest(context) {
         }
         filteredMatches[i].odds = matchWinnerOdds;
 
+        // --- AI ANALYSIS (Safe Fetch) ---
         if (groqKey) {
           const homeTeam = match.teams.home.name;
           const awayTeam = match.teams.away.name;
@@ -97,14 +96,22 @@ export async function onRequest(context) {
               })
             });
             
-            const groqData = await groqResponse.json();
-            if (groqData.choices && groqData.choices[0]) {
-              filteredMatches[i].ai_analysis = groqData.choices[0].message.content;
-            } else {
-              filteredMatches[i].ai_analysis = "AI failed: " + JSON.stringify(groqData);
+            // Read as text first to prevent JSON parsing crash
+            const groqText = await groqResponse.text();
+            
+            try {
+                const groqData = JSON.parse(groqText);
+                if (groqData.choices && groqData.choices[0]) {
+                  filteredMatches[i].ai_analysis = groqData.choices[0].message.content;
+                } else {
+                  filteredMatches[i].ai_analysis = "AI Error Response: " + groqText;
+                }
+            } catch (parseError) {
+                filteredMatches[i].ai_analysis = "Invalid AI format: " + groqText;
             }
+            
           } catch (err) {
-            filteredMatches[i].ai_analysis = "AI fetch failed.";
+            filteredMatches[i].ai_analysis = "AI network fetch failed.";
           }
         }
       }
