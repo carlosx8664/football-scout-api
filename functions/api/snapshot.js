@@ -9,9 +9,9 @@ export async function onRequest(context) {
 
   const today = new Date().toISOString().split('T')[0];
   
-  // Bumped to v6 to force a fresh run
+  // Bumped to v9 to force a fresh run and clear the 401 error cache
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}-v6`; 
+  cacheUrl.pathname = `/snapshot-${today}-v9`; 
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
@@ -68,8 +68,8 @@ export async function onRequest(context) {
         }
         filteredMatches[i].odds = matchWinnerOdds;
 
-        // --- AI ANALYSIS (Safe Fetch) ---
-        if (groqKey) {
+        // --- AI ANALYSIS (With Cloudflare AI Gateway Authorization) ---
+        if (groqKey && env.CF_AIG_TOKEN) {
           const homeTeam = match.teams.home.name;
           const awayTeam = match.teams.away.name;
           
@@ -87,6 +87,7 @@ export async function onRequest(context) {
               method: "POST",
               headers: {
                 "Authorization": `Bearer ${groqKey}`,
+                "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, // <-- NEW AUTHENTICATION TOKEN
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
