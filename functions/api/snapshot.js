@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-  const { env } = context;
+  const { env, request } = context;
   const apiKey = env.API_FOOTBALL_KEY;
   const groqKey = env.GROQ_API_KEY;
 
@@ -7,7 +7,24 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: "API key not found." }), { status: 500 });
   }
 
+  // --- 1. SETUP CACHE ---
+  // We create a unique cache key for today (e.g., "https://cache.internal/snapshot-2026-10-19")
+  // This guarantees we don't serve yesterday's matches today.
   const today = new Date().toISOString().split('T')[0];
+  const cacheUrl = new URL(request.url);
+  cacheUrl.pathname = `/snapshot-${today}`;
+  const cacheKey = new Request(cacheUrl.toString(), request);
+  const cache = caches.default;
+
+  // --- 2. CHECK CACHE ---
+  let cachedResponse = await cache.match(cacheKey);
+  if (cachedResponse) {
+    console.log("Serving from Cloudflare Cache - 0 API requests used");
+    return cachedResponse;
+  }
+
+  // --- 3. FETCH FRESH DATA (If not in cache) ---
+  console.log("Fetching fresh data from API-Football");
   const fixturesUrl = `https://v3.football.api-sports.io/fixtures?date=${today}`;
 
   try {
@@ -25,7 +42,7 @@ export async function onRequest(context) {
         let match = filteredMatches[i];
         const fixtureId = match.fixture.id;
         
-        // --- FETCH ODDS ---
+        // Fetch Odds
         const oddsUrl = `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`;
         const oddsResponse = await fetch(oddsUrl, {
           headers: { "x-apisports-key": apiKey },
@@ -42,8 +59,7 @@ export async function onRequest(context) {
         }
         filteredMatches[i].odds = matchWinnerOdds;
 
-        // --- AI NEWS ANALYSIS (Using Groq) ---
-        // We only do this if we have the Groq key and if odds exist
+        // AI Analysis via Cloudflare AI Gateway
         if (groqKey && matchWinnerOdds) {
           const homeTeam = match.teams.home.name;
           const awayTeam = match.teams.away.name;
@@ -54,25 +70,33 @@ export async function onRequest(context) {
           Based on your general knowledge of these teams' current form, injuries, and historical matchups, write a 2-sentence summary of why the bookmakers have priced the match this way. Keep it punchy and factual.`;
 
           try {
-            const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            // Notice the URL: we use the AI Gateway, and we removed /openai/v1
+            const groqUrl = `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_GATEWAY_ID}/groq/chat/completions`;
+
+            const groqResponse = await fetch(groqUrl, {
               method: "POST",
               headers: {
                 "Authorization": `Bearer ${groqKey}`,
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                model: "llama3-8b-8192", // Fast, free model
+                model: "llama3-8b-8192",
                 messages: [{ role: "user", content: prompt }],
                 max_tokens: 100
               })
             });
+            
             const groqData = await groqResponse.json();
             
-            // Attach the AI analysis to the match data
-            filteredMatches[i].ai_analysis = groqData.choices[0].message.content;
+            if (groqData.choices && groqData.choices[0]) {
+              filteredMatches[i].ai_analysis = groqData.choices[0].message.content;
+            } else {
+              console.log("Groq Error Response:", groqData);
+              filteredMatches[i].ai_analysis = "AI analysis unavailable right now.";
+            }
             
           } catch (err) {
-            console.log("AI Error:", err);
+            console.log("AI Fetch Error:", err);
             filteredMatches[i].ai_analysis = "AI analysis unavailable right now.";
           }
         }
@@ -81,16 +105,26 @@ export async function onRequest(context) {
 
     const requestsRemaining = response.headers.get("x-ratelimit-requests-remaining") || "Unknown";
 
-    return new Response(
-      JSON.stringify({
-        status: "success",
-        date: today,
-        quota_remaining: requestsRemaining,
-        match_count: filteredMatches.length,
-        matches: filteredMatches,
-      }),
-      { headers: { "Content-Type": "application/json" } }
-    );
+    // --- 4. BUILD RESPONSE ---
+    const finalData = {
+      status: "success",
+      date: today,
+      quota_remaining: requestsRemaining,
+      match_count: filteredMatches.length,
+      matches: filteredMatches,
+    };
+
+    const newResponse = new Response(JSON.stringify(finalData), {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    // --- 5. SAVE TO CACHE ---
+    // context.waitUntil allows the response to be sent to the user immediately, 
+    // while Cloudflare saves it to the cache in the background.
+    context.waitUntil(cache.put(cacheKey, newResponse.clone()));
+
+    return newResponse;
+
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
