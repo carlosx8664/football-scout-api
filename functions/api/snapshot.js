@@ -16,8 +16,6 @@ export async function onRequest(context) {
     );
   }
 
-  // ?refresh=1   -> ignore the cached day snapshot (per-match cache still saves API calls)
-  // ?refresh=all -> ignore every cache (spends API quota)
   const url = new URL(request.url);
   const refresh = url.searchParams.get("refresh");
   const skipSnapshotCache = refresh === "1" || refresh === "all";
@@ -32,7 +30,9 @@ export async function onRequest(context) {
     u.pathname = path;
     return new Request(u.toString());
   };
-  const snapshotKey = makeKey(`/snapshot-${today}-v12`);
+  
+  // Bumped to v13 to force a fresh build with the 10 leagues
+  const snapshotKey = makeKey(`/snapshot-${today}-v13`);
   const matchKey = (id) => makeKey(`/match-${today}-${id}-v1`);
 
   if (!skipSnapshotCache) {
@@ -45,7 +45,6 @@ export async function onRequest(context) {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
   };
 
-  // Fetch odds for one fixture. Retries once after a pause on a per-minute rate limit.
   async function fetchOdds(fixtureId) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const res = await fetch(
@@ -59,7 +58,7 @@ export async function onRequest(context) {
         const dailyLimit =
           "requests" in json.errors || /day/i.test(detail);
         if (attempt === 0 && !dailyLimit) {
-          await sleep(15000); // wait out the per-minute window, then retry once
+          await sleep(15000); 
           continue;
         }
         return { error: detail };
@@ -92,13 +91,15 @@ export async function onRequest(context) {
     const requestsRemaining =
       response.headers.get("x-ratelimit-requests-remaining") || "Unknown";
 
+    // The 10 target leagues
+    const targetLeagues = [39, 135, 78, 140, 61, 71, 94, 144, 88, 40];
+
     const matches = data.response.filter(
-      (m) => m.league.id === 39 || m.league.id === 140
+      (m) => targetLeagues.includes(m.league.id)
     );
 
     let cacheable = true;
 
-    // ---------- 0) Reuse per-match results cached earlier today ----------
     if (!skipMatchCache) {
       await Promise.all(
         matches.map(async (m) => {
@@ -113,7 +114,6 @@ export async function onRequest(context) {
       );
     }
 
-    // ---------- 1) ODDS (sequential, spaced for the per-minute limit) ----------
     for (const m of matches) {
       if (m._done) continue;
       await sleep(6000);
@@ -139,7 +139,6 @@ export async function onRequest(context) {
       m.odds = matchWinnerOdds;
     }
 
-    // ---------- 2) AI ANALYSIS (parallel, via AI Gateway) ----------
     const needsAI = matches.filter((m) => !m._done && !m._skipAI);
 
     if (groqKey && aigToken && accountId) {
@@ -167,7 +166,7 @@ export async function onRequest(context) {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "openai/gpt-oss-20b",
+                model: "openai/gpt-oss-20b", // Your chosen model
                 messages: [{ role: "user", content: prompt }],
                 reasoning_effort: "low",
                 max_tokens: 600,
@@ -206,8 +205,6 @@ export async function onRequest(context) {
       cacheable = false;
     }
 
-    // ---------- 3) Cache each fully successful match on its own ----------
-    // (a match with no odds yet is NOT cached, so odds can appear later)
     for (const m of matches) {
       if (!m._done && m.odds && m._aiOk) {
         context.waitUntil(
