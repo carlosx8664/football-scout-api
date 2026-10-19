@@ -1,122 +1,124 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// Define the shape of our data so TypeScript knows what to expect
+interface Odd {
+  value: string;
+  odd: string;
 }
 
-export default App
+interface Match {
+  fixture: {
+    id: number;
+    date: string;
+  };
+  league: {
+    name: string;
+    logo: string;
+  };
+  teams: {
+    home: { name: string; logo: string };
+    away: { name: string; logo: string };
+  };
+  odds: Odd[] | null;
+  ai_analysis?: string; // <-- Added for the AI News analysis
+}
+
+interface SnapshotData {
+  status: string;
+  date: string;
+  quota_remaining: string;
+  match_count: number;
+  matches: Match[];
+}
+
+function App() {
+  const [data, setData] = useState<SnapshotData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch from your Cloudflare Pages Function
+    fetch('/api/snapshot')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch data');
+        return res.json();
+      })
+      .then((data: SnapshotData) => {
+        setData(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="loader">Loading today's matches...</div>;
+  if (error) return <div className="error">Error: {error}</div>;
+  if (!data) return null;
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>⚽ Matchday Scout</h1>
+        <p>Date: {data.date} | API Quota Left: {data.quota_remaining}</p>
+      </header>
+
+      <main className="match-list">
+        {data.matches.length === 0 ? (
+          <p>No matches today for tracked leagues.</p>
+        ) : (
+          data.matches.map((match) => (
+            <div key={match.fixture.id} className="match-card">
+              
+              <div className="league-info">
+                <img src={match.league.logo} alt="league" width="20" />
+                <span>{match.league.name}</span>
+                <span className="time">
+                  {new Date(match.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              <div className="teams">
+                <div className="team">
+                  <img src={match.teams.home.logo} alt="home" width="40" />
+                  <span>{match.teams.home.name}</span>
+                </div>
+                <div className="vs">VS</div>
+                <div className="team">
+                  <img src={match.teams.away.logo} alt="away" width="40" />
+                  <span>{match.teams.away.name}</span>
+                </div>
+              </div>
+
+              <div className="odds-container">
+                {match.odds ? (
+                  match.odds.map((odd, index) => (
+                    <div key={index} className="odd-box">
+                      <span className="odd-label">{odd.value}</span>
+                      <span className="odd-value">{odd.odd}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="no-odds">Odds not available yet</p>
+                )}
+              </div>
+
+              {/* AI Analysis Block */}
+              {match.ai_analysis && (
+                <div className="ai-box">
+                  <strong>🤖 Scout Analysis:</strong>
+                  <p>{match.ai_analysis}</p>
+                </div>
+              )}
+
+            </div>
+          ))
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
