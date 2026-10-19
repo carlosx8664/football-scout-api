@@ -9,9 +9,9 @@ export async function onRequest(context) {
 
   const today = new Date().toISOString().split('T')[0];
   
-  // Bumped to v9 to force a fresh run and clear the 401 error cache
+  // Bumped to v10 to force a fresh run
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}-v9`; 
+  cacheUrl.pathname = `/snapshot-${today}-v10`; 
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
@@ -23,8 +23,13 @@ export async function onRequest(context) {
   const fixturesUrl = `https://v3.football.api-sports.io/fixtures?date=${today}`;
 
   try {
+    // --- UPDATED HEADERS FOR API-FOOTBALL ---
     const response = await fetch(fixturesUrl, {
-      headers: { "x-apisports-key": apiKey },
+      headers: { 
+        "x-apisports-key": apiKey,
+        "x-rapidapi-host": "v3.football.api-sports.io",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      },
     });
     
     const data = await response.json();
@@ -32,10 +37,7 @@ export async function onRequest(context) {
     // --- ERROR CHECK ---
     if (data.errors && Object.keys(data.errors).length > 0) {
       return new Response(JSON.stringify({ 
-        status: "error",
-        message: "API-Football Rejected the Request",
-        details: data.errors,
-        apiKeyUsed: apiKey ? "Key is present" : "Key is missing"
+        message: "API-Football Rejected: " + JSON.stringify(data.errors)
       }), { status: 400, headers: { "Content-Type": "application/json" } }); 
     }
 
@@ -53,8 +55,14 @@ export async function onRequest(context) {
         const fixtureId = match.fixture.id;
         
         const oddsUrl = `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`;
+        
+        // --- UPDATED HEADERS FOR ODDS ---
         const oddsResponse = await fetch(oddsUrl, {
-          headers: { "x-apisports-key": apiKey },
+          headers: { 
+            "x-apisports-key": apiKey,
+            "x-rapidapi-host": "v3.football.api-sports.io",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+          },
         });
         const oddsData = await oddsResponse.json();
         
@@ -87,7 +95,7 @@ export async function onRequest(context) {
               method: "POST",
               headers: {
                 "Authorization": `Bearer ${groqKey}`,
-                "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, // <-- NEW AUTHENTICATION TOKEN
+                "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, 
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
@@ -97,7 +105,6 @@ export async function onRequest(context) {
               })
             });
             
-            // Read as text first to prevent JSON parsing crash
             const groqText = await groqResponse.text();
             
             try {
