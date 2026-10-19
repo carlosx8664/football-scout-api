@@ -4,45 +4,56 @@ export async function onRequest(context) {
   const groqKey = env.GROQ_API_KEY;
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "API key not found." }), { status: 500 });
+    return new Response(JSON.stringify({ error: "API key not found in Cloudflare Variables." }), { status: 500 });
   }
 
-  // --- 1. SETUP CACHE ---
-  // We create a unique cache key for today (e.g., "https://cache.internal/snapshot-2026-10-19")
-  // This guarantees we don't serve yesterday's matches today.
   const today = new Date().toISOString().split('T')[0];
+  
+  // Bumped to v5 to force a fresh run
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}-v2`;
+  cacheUrl.pathname = `/snapshot-${today}-v5`; 
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
-  // --- 2. CHECK CACHE ---
   let cachedResponse = await cache.match(cacheKey);
   if (cachedResponse) {
-    console.log("Serving from Cloudflare Cache - 0 API requests used");
     return cachedResponse;
   }
 
-  // --- 3. FETCH FRESH DATA (If not in cache) ---
-  console.log("Fetching fresh data from API-Football");
   const fixturesUrl = `https://v3.football.api-sports.io/fixtures?date=${today}`;
 
   try {
     const response = await fetch(fixturesUrl, {
       headers: { "x-apisports-key": apiKey },
     });
+    
     const data = await response.json();
+
+    // --- ERROR CHECK ---
+    // If API-Football gives us an error array, we throw it so we can see it!
+    if (data.errors && Object.keys(data.errors).length > 0) {
+      return new Response(JSON.stringify({ 
+        status: "error",
+        message: "API-Football Rejected the Request",
+        details: data.errors,
+        apiKeyUsed: apiKey ? "Key is present" : "Key is missing"
+      }), { status: 400, headers: { "Content-Type": "application/json" } }); 
+    }
+
+    if (!data.response) {
+       return new Response(JSON.stringify({ error: "API returned no 'response' field", raw: data }), { status: 500 });
+    }
 
     let filteredMatches = data.response.filter(
       (match) => match.league.id === 39 || match.league.id === 140
     );
 
+    // ... (rest of the code remains the same, including the AI analysis) ...
     if (filteredMatches.length > 0) {
       for (let i = 0; i < filteredMatches.length; i++) {
         let match = filteredMatches[i];
         const fixtureId = match.fixture.id;
         
-        // Fetch Odds
         const oddsUrl = `https://v3.football.api-sports.io/odds?fixture=${fixtureId}`;
         const oddsResponse = await fetch(oddsUrl, {
           headers: { "x-apisports-key": apiKey },
@@ -59,18 +70,18 @@ export async function onRequest(context) {
         }
         filteredMatches[i].odds = matchWinnerOdds;
 
-        // AI Analysis via Cloudflare AI Gateway
-        if (groqKey && matchWinnerOdds) {
+        if (groqKey) {
           const homeTeam = match.teams.home.name;
           const awayTeam = match.teams.away.name;
-          const homeOdd = matchWinnerOdds[0].odd;
-          const awayOdd = matchWinnerOdds[2].odd;
+          
+          let oddsText = "Odds are not yet available for this match.";
+          if (matchWinnerOdds && matchWinnerOdds.length >= 3) {
+             oddsText = `The current odds are: ${homeTeam} to win: ${matchWinnerOdds[0].odd}, Draw: ${matchWinnerOdds[1].odd}, ${awayTeam} to win: ${matchWinnerOdds[2].odd}.`;
+          }
 
-          const prompt = `You are a football betting analyst. The match is ${homeTeam} vs ${awayTeam}. The odds are: ${homeTeam} to win: ${homeOdd}, ${awayTeam} to win: ${awayOdd}. 
-          Based on your general knowledge of these teams' current form, injuries, and historical matchups, write a 2-sentence summary of why the bookmakers have priced the match this way. Keep it punchy and factual.`;
+          const prompt = `You are a football betting analyst. The match is ${homeTeam} vs ${awayTeam}. ${oddsText} Based on your general knowledge, write a 2-sentence summary.`;
 
           try {
-            // Notice the URL: we use the AI Gateway, and we removed /openai/v1
             const groqUrl = `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.CF_GATEWAY_ID}/groq/chat/completions`;
 
             const groqResponse = await fetch(groqUrl, {
@@ -87,17 +98,13 @@ export async function onRequest(context) {
             });
             
             const groqData = await groqResponse.json();
-            
             if (groqData.choices && groqData.choices[0]) {
               filteredMatches[i].ai_analysis = groqData.choices[0].message.content;
             } else {
-              console.log("Groq Error Response:", groqData);
-              filteredMatches[i].ai_analysis = "AI analysis unavailable right now.";
+              filteredMatches[i].ai_analysis = "AI failed: " + JSON.stringify(groqData);
             }
-            
           } catch (err) {
-            console.log("AI Fetch Error:", err);
-            filteredMatches[i].ai_analysis = "AI analysis unavailable right now.";
+            filteredMatches[i].ai_analysis = "AI fetch failed.";
           }
         }
       }
@@ -105,7 +112,6 @@ export async function onRequest(context) {
 
     const requestsRemaining = response.headers.get("x-ratelimit-requests-remaining") || "Unknown";
 
-    // --- 4. BUILD RESPONSE ---
     const finalData = {
       status: "success",
       date: today,
@@ -118,9 +124,6 @@ export async function onRequest(context) {
       headers: { "Content-Type": "application/json" },
     });
 
-    // --- 5. SAVE TO CACHE ---
-    // context.waitUntil allows the response to be sent to the user immediately, 
-    // while Cloudflare saves it to the cache in the background.
     context.waitUntil(cache.put(cacheKey, newResponse.clone()));
 
     return newResponse;
