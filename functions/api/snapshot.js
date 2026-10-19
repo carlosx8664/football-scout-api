@@ -12,7 +12,7 @@ export async function onRequest(context) {
   // This guarantees we don't serve yesterday's matches today.
   const today = new Date().toISOString().split('T')[0];
   const cacheUrl = new URL(request.url);
-  cacheUrl.pathname = `/snapshot-${today}`;
+  cacheUrl.pathname = `/snapshot-${today}-v2`;
   const cacheKey = new Request(cacheUrl.toString(), request);
   const cache = caches.default;
 
