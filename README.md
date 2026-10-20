@@ -9,9 +9,9 @@ Data gathering is fully decoupled from page views:
 
 ```
 GitHub Actions (09:00, 13:00, 17:00, 21:00 UTC, or manual)
-  └─ scripts/sync.js
-       ├─ API-Football  → fixtures over a 7-day window (1 request)
-       │                  + odds for the same window (1 request)
+  └─ scripts/sync.js                      (free-plan friendly: ~9-20 requests/run)
+       ├─ API-Football  → one /fixtures?date= call per day (7-day window)
+       │                  + /odds?date= pages for the nearest 2 days
        ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
        └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
 
@@ -112,9 +112,11 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 {
   "status": "success",
   "date": "2026-10-20",
-  "window": { "from": "2026-10-20", "to": "2026-10-27" },
+  "window": { "from": "2026-10-20", "to": "2026-10-26" },
   "generated_at": "2026-10-20T13:00:12.000Z",
   "quota_remaining": "91",
+  "quota_exhausted": false,
+  "requests_used": 9,
   "match_count": 128,
   "odds_count": 96,
   "analysed_count": 96,
@@ -126,7 +128,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
     "peakCount": 44,
     "days": [{ "day": "2026-10-20", "count": 18 }]
   },
-  "odds_pages": { "total": 1, "fetched": 1 },
+  "odds_pages": { "fetched": 12, "available": 30 },
   "ai_concurrency": { "limit": 3, "peak": 3 },
   "matches": [
     {
@@ -156,25 +158,31 @@ friendly placeholder:
 
 ## Sync behaviour and quota safety
 
-- Window: `/fixtures?from=<today>&to=<today+7d>&season=<season>&timezone=UTC` filtered to the 15
-  tracked leagues. API-Football rejects `from`/`to` unless `season` (or `league`) and `timezone`
-  are also supplied. The season is derived from the window start (European seasons are named
-  after their starting year, so dates before July map to `year - 1`).
-- Odds: a **single** `/odds?from=<today>&to=<today+7d>&season=<season>&timezone=UTC` request
-  (no per-match loop, no 6s delay), matched back to fixtures by `fixture.id`. API-Football
-  paginates this endpoint 10 fixtures per page, so raise `ODDS_MAX_PAGES` if the log warns that
-  pages were left unfetched (each page is one request).
-- Grace period: matches that kicked off more than 4 hours ago are dropped before upload, so the
-  payload only holds live/upcoming fixtures.
-- DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`); the run reports the
-  observed peak concurrency.
+The API-Football **free plan** rejects `from`/`to` range queries for the current season
+(`{"plan":"Free plans do not have access to this season"}`), so the sync uses date-scoped calls:
+
+- Fixtures: one `/fixtures?date=<day>&timezone=UTC` request per day across the 7-day window
+  (7 requests), filtered to the 15 tracked leagues and deduped by `fixture.id`.
+- Odds: `/odds?date=<day>&timezone=UTC` for the nearest `ODDS_WINDOW_DAYS` (default 2) days,
+  matched back to fixtures by `fixture.id`. Each day is paginated by the API (10 fixtures per
+  page, ~15 pages/day across all competitions), so `ODDS_MAX_PAGES` (default 6) caps pages per
+  day and the log warns when coverage is truncated.
+- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 20) is enforced end to end — fixtures
+  first, then odds split across the odds days. With four runs/day that is ≤80 of the 100
+  requests/day allowance.
+- A daily-limit response stops further calls for that run, logs a warning, and still uploads
+  what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
+- Grace period: matches that kicked off more than 4 hours ago are dropped before upload.
+- DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`).
 - Metrics logged each run: total active matches, active days, average per active day, peak day,
   and a loud warning for any day above 75 matches:
   `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
 - Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
-- A rejected/daily-limit response fails loudly (the workflow goes red) instead of uploading junk.
 - `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
 - Cron is UTC: `0 9,13,17,21 * * *` → 09:00, 13:00, 17:00 and 21:00.
+
+If you upgrade to a paid plan, you can switch back to `from`/`to` + `season` range queries
+(1 fixtures request instead of 7) and raise `ODDS_MAX_PAGES`.
 
 ## Routes
 
