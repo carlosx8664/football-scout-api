@@ -70,17 +70,6 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 .error { color: #c20a0a; }
 
-/* --- Stale snapshot banner --- */
-.stale-banner {
-  background: var(--color-yellow-weak);
-  border-bottom: 1px solid var(--color-yellow);
-  padding: 10px 24px;
-  text-align: center;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--color-neutral-7);
-}
-
 /* --- Status notice (e.g. daily sync has not run yet) --- */
 .notice {
   max-width: 560px;

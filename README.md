@@ -1,16 +1,19 @@
 # football-scout-api
 
-A football scouting dashboard: today's fixtures from 10 major leagues, match-winner odds from
+A football scouting dashboard: upcoming fixtures across 15 competitions (top-5 European
+leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
+Champions League, EFL Cup, FA Cup, World Cup and Friendlies), match-winner odds from
 API-Football, and a short AI scouting note per match from DeepSeek.
 
 Data gathering is fully decoupled from page views:
 
 ```
-GitHub Actions (09:00 UTC, or manual)
+GitHub Actions (09:00, 13:00, 17:00, 21:00 UTC, or manual)
   └─ scripts/sync.js
-       ├─ API-Football  → fixtures (1 request) + odds (1 request per fixture, 6s apart)
-       ├─ DeepSeek      → 2-sentence analysis per fixture
-       └─ Cloudflare KV → snapshot-<YYYY-MM-DD>
+       ├─ API-Football  → fixtures over a 7-day window (1 request)
+       │                  + odds for the same window (1 request)
+       ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
+       └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
 
 Visitor → Pages Function → KV read (0 API-Football requests)
 ```
@@ -31,11 +34,11 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 ## Project layout
 
 ```
-shared/leagues.js              Single source of truth for the tracked leagues
-scripts/sync.js                Daily data sync (fixtures + odds + AI) → Cloudflare KV
-.github/workflows/daily-sync.yml   Cron at 09:00 UTC + manual workflow_dispatch
-functions/api/snapshot.js      GET /api/snapshot - reads the KV snapshot, never the APIs
-src/App.tsx                    Route switch, snapshot loading, league filter
+shared/leagues.js              Single source of truth for the 15 tracked leagues
+scripts/sync.js                Rolling 7-day sync (fixtures + odds + AI) → Cloudflare KV
+.github/workflows/daily-sync.yml   Cron at 09/13/17/21 UTC + manual workflow_dispatch
+functions/api/snapshot.js      GET /api/snapshot - reads snapshot-latest from KV, never the APIs
+src/App.tsx                    Route switch, snapshot loading, upcoming + league filters
 src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail (+ CSS)
 src/lib/                       Fetch helper and formatting utils
 src/types.ts                   Snapshot payload types
@@ -93,28 +96,38 @@ npm run dev       # Vite on :5173, proxies /api -> :8788
 To see real data locally, run the sync (above) or seed a snapshot into the local KV:
 
 ```bash
-npx wrangler kv key put --binding FOOTBALL_DATA "snapshot-$(date -u +%F)" --path snapshot.json --local
+npx wrangler kv key put --binding FOOTBALL_DATA "snapshot-latest" --path snapshot.json --local
 ```
 
-Without a snapshot the app shows *"Data for today is not ready yet. The daily sync runs at 9 AM."*
-(after the first sync it shows the most recent slate with a "showing the most recent slate"
-banner until today's data lands).
+Without a snapshot the app shows *"Today's matches are not available yet. The next sync will
+refresh them shortly."*
 
 Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 
 ## API
 
-`GET /api/snapshot` returns the stored payload verbatim:
+`GET /api/snapshot` reads `snapshot-latest` and returns the stored payload verbatim:
 
 ```jsonc
 {
   "status": "success",
   "date": "2026-10-20",
-  "generated_at": "2026-10-20T09:00:12.000Z",
+  "window": { "from": "2026-10-20", "to": "2026-10-27" },
+  "generated_at": "2026-10-20T13:00:12.000Z",
   "quota_remaining": "91",
-  "quota_exhausted": false,
-  "match_count": 12,
-  "analysed_count": 12,
+  "match_count": 128,
+  "odds_count": 96,
+  "analysed_count": 96,
+  "metrics": {
+    "total": 128,
+    "activeDays": 6,
+    "averagePerActiveDay": 21.3,
+    "peakDay": "2026-10-25",
+    "peakCount": 44,
+    "days": [{ "day": "2026-10-20", "count": 18 }]
+  },
+  "odds_pages": { "total": 1, "fetched": 1 },
+  "ai_concurrency": { "limit": 3, "peak": 3 },
   "matches": [
     {
       "fixture": { "id": 1234, "date": "2026-10-20T19:00:00+00:00" },
@@ -128,27 +141,14 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 }
 ```
 
-If `snapshot-<today>` is missing, the Function falls back to `snapshot-latest` (the previous
-run's payload) and flags it, so visitors see the last known slate instead of an empty page:
-
-```json
-{
-  "status": "success",
-  "date": "2026-10-19",
-  "stale": true,
-  "message": "Showing the most recent slate (2026-10-19). Today's sync runs at 9 AM.",
-  "match_count": 12,
-  "matches": ["..."]
-}
-```
-
-If neither key exists (first ever deploy), it returns HTTP 200 with a friendly placeholder:
+If `snapshot-latest` does not exist yet (first ever deploy), it returns HTTP 200 with a
+friendly placeholder:
 
 ```json
 {
   "status": "pending",
   "date": "2026-10-20",
-  "message": "Data for today is not ready yet. The daily sync runs at 9 AM.",
+  "message": "Today's matches are not available yet. The next sync will refresh them shortly.",
   "match_count": 0,
   "matches": []
 }
@@ -156,17 +156,22 @@ If neither key exists (first ever deploy), it returns HTTP 200 with a friendly p
 
 ## Sync behaviour and quota safety
 
-- Every run writes both `snapshot-<YYYY-MM-DD>` and `snapshot-latest`, so the fallback above is
-  always one day behind at most.
-- 1 fixtures request per run, then one odds request per fixture spaced `ODDS_DELAY_MS` apart
-  (default `6000`, sized for the free plan's 10 req/min and 100 req/day).
-- `MAX_ODDS_REQUESTS` (default `95`) caps a run so a rerun still fits in the daily allowance.
-- A daily-limit response stops the odds loop immediately and still uploads what was gathered
-  (the workflow logs a warning).
-- Failures are per fixture: a missing fixture's odds or AI text is recorded in `ai_analysis`
-  instead of failing the whole run.
+- Window: `/fixtures?from=<today>&to=<today+7d>` filtered to the 15 tracked leagues.
+- Odds: a **single** `/odds?from=<today>&to=<today+7d>` request (no per-match loop, no 6s delay),
+  matched back to fixtures by `fixture.id`. API-Football paginates this endpoint 10 fixtures per
+  page, so raise `ODDS_MAX_PAGES` if the log warns that pages were left unfetched (each page is
+  one request).
+- Grace period: matches that kicked off more than 4 hours ago are dropped before upload, so the
+  payload only holds live/upcoming fixtures.
+- DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`); the run reports the
+  observed peak concurrency.
+- Metrics logged each run: total active matches, active days, average per active day, peak day,
+  and a loud warning for any day above 75 matches:
+  `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
+- Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
+- A rejected/daily-limit response fails loudly (the workflow goes red) instead of uploading junk.
 - `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
-- Cron is UTC; `0 9 * * *` is 09:00 UTC.
+- Cron is UTC: `0 9,13,17,21 * * *` → 09:00, 13:00, 17:00 and 21:00.
 
 ## Routes
 

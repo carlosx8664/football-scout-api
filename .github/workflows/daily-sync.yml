@@ -2,8 +2,9 @@ name: Daily football sync
 
 on:
   schedule:
-    # 09:00 UTC every day. GitHub can start scheduled runs a few minutes late.
-    - cron: "0 9 * * *"
+    # Every four hours: 09:00, 13:00, 17:00 and 21:00 UTC. GitHub can start scheduled
+    # runs a few minutes late.
+    - cron: "0 9,13,17,21 * * *"
   workflow_dispatch:
     inputs:
       date:

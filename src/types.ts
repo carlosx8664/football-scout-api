@@ -29,8 +29,6 @@ export interface Match {
 export interface SnapshotData {
   status: "success" | "pending";
   date: string;
-  /** True when showing the most recent slate because today's sync has not run yet. */
-  stale?: boolean;
   message?: string;
   generated_at?: string;
   quota_remaining?: string;

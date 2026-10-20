@@ -27,6 +27,5 @@ DEEPSEEK_API_KEY=
 # CF_AIG_TOKEN=
 
 # Optional sync tuning (defaults shown).
-# ODDS_DELAY_MS=6000
-# MAX_ODDS_REQUESTS=95
 # AI_CONCURRENCY=3
+# ODDS_MAX_PAGES=1

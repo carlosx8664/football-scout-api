@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * Daily data sync.
+ * Rolling 7-day data sync.
  *
- * Gathers today's fixtures for the tracked leagues, enriches each fixture with
- * match-winner odds and a DeepSeek analysis, then stores the result in Cloudflare KV
- * under `snapshot-<YYYY-MM-DD>` (and `snapshot-latest` for the pre-sync fallback). The
- * site reads only from KV, so visitor traffic can never consume the API-Football quota.
+ * Fetches fixtures for the tracked leagues over a 7-day window, attaches match-winner odds
+ * from a single `/odds` request, keeps only matches that are still relevant (4-hour grace
+ * period), adds a DeepSeek analysis for matches with odds, then stores the result in
+ * Cloudflare KV under `snapshot-latest` (plus a dated copy). The site reads only from KV,
+ * so visitor traffic can never consume the API-Football quota.
  *
  * Usage:
  *   node scripts/sync.js                 # sync + upload to KV
@@ -22,15 +23,17 @@ import { LEAGUE_IDS } from "../shared/leagues.js";
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const DEEPSEEK_DIRECT_URL = "https://api.deepseek.com/chat/completions";
 const SNAPSHOT_KEY_PREFIX = "snapshot-";
-/** Mirrors the key the Pages Function falls back to before each day's sync. */
+/** Mirrors the key the Pages Function reads. */
 const LATEST_SNAPSHOT_KEY = "snapshot-latest";
 
 export const DEFAULTS = {
   model: "deepseek-flash",
-  // API-Football's free plan allows 100 requests/day; keep headroom for reruns.
-  oddsDelayMs: 6000,
-  maxOddsRequests: 95,
+  windowDays: 7,
+  gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
+  peakWarningThreshold: 75,
+  /** API-Football paginates /odds (10 fixtures per page); 1 keeps it to a single request. */
+  oddsMaxPages: 1,
   timeoutMs: 20000,
   retries: 2,
 };
@@ -78,23 +81,84 @@ async function withRetry(
 async function mapLimit(items, limit, task) {
   const size = Math.max(1, Math.min(limit, items.length));
   let cursor = 0;
+  let inFlight = 0;
+  let peak = 0;
+
   const worker = async () => {
     while (cursor < items.length) {
       const index = cursor;
       cursor += 1;
-      await task(items[index], index);
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      try {
+        await task(items[index], index);
+      } finally {
+        inFlight -= 1;
+      }
     }
   };
+
   await Promise.all(Array.from({ length: size }, worker));
+  return { peak };
 }
 
-export function pickMatchWinnerOdds(payload) {
-  const bookmakers = payload?.response?.[0]?.bookmakers ?? [];
+export function todayUtc(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}
+
+/**
+ * @param {string} date YYYY-MM-DD
+ * @param {number} days
+ * @returns {string} YYYY-MM-DD
+ */
+export function addDays(date, days) {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+/**
+ * Match-winner (bet id 1) prices from the first bookmaker that offers them.
+ * Takes a single entry of the `/odds` response.
+ */
+export function pickMatchWinnerOdds(entry) {
+  const bookmakers = entry?.bookmakers ?? [];
   for (const bookmaker of bookmakers) {
-    const bet = (bookmaker.bets ?? []).find((entry) => entry.id === 1);
+    const bet = (bookmaker.bets ?? []).find((candidate) => candidate.id === 1);
     if (bet?.values?.length) return bet.values;
   }
   return null;
+}
+
+/**
+ * Per-day match counts, average load and peak day for the synced window.
+ */
+export function dailyMetrics(matches) {
+  const counts = new Map();
+  for (const match of matches) {
+    const day = String(match?.fixture?.date ?? "").slice(0, 10);
+    if (!day) continue;
+    counts.set(day, (counts.get(day) ?? 0) + 1);
+  }
+
+  const days = [...counts.entries()]
+    .map(([day, count]) => ({ day, count }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+
+  const total = days.reduce((sum, entry) => sum + entry.count, 0);
+  const peak = days.reduce(
+    (best, entry) => (entry.count > best.count ? entry : best),
+    { day: null, count: 0 },
+  );
+
+  return {
+    total,
+    activeDays: days.length,
+    averagePerActiveDay: days.length ? total / days.length : 0,
+    peakDay: peak.day,
+    peakCount: peak.count,
+    days,
+  };
 }
 
 function buildPrompt({ homeTeam, awayTeam, odds }) {
@@ -120,10 +184,6 @@ function publicMatch(match) {
     odds: match.odds ?? null,
     ai_analysis: match.ai_analysis ?? null,
   };
-}
-
-export function todayUtc(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 export function createApiFootball({
@@ -160,7 +220,6 @@ export function createApiFootball({
           throw new Error(`API-Football HTTP ${response.status} for ${path}`);
         }
         if (response.status >= 400) {
-          // A 4xx will not succeed on retry (bad key, plan restriction, ...).
           throw permanentError(`API-Football HTTP ${response.status} for ${path}`);
         }
 
@@ -174,11 +233,12 @@ export function createApiFootball({
   }
 
   return {
-    fixturesByDate(date) {
-      return request("/fixtures", { date }, `fixtures ${date}`);
+    fixturesByRange(from, to) {
+      return request("/fixtures", { from, to }, `fixtures ${from}..${to}`);
     },
-    oddsForFixture(fixtureId) {
-      return request("/odds", { fixture: fixtureId }, `odds ${fixtureId}`);
+    oddsByRange(from, to, page = 1) {
+      const params = page > 1 ? { from, to, page } : { from, to };
+      return request("/odds", params, `odds ${from}..${to} page ${page}`);
     },
   };
 }
@@ -249,75 +309,111 @@ export function createDeepSeek({
   return { analyze, endpoint, model, viaGateway: useGateway };
 }
 
+async function fetchOddsWindow({ apiFootball, from, to, maxPages, log }) {
+  const oddsByFixture = new Map();
+
+  const ingest = (payload) => {
+    for (const entry of payload?.response ?? []) {
+      const fixtureId = entry?.fixture?.id;
+      if (fixtureId == null) continue;
+      const values = pickMatchWinnerOdds(entry);
+      if (values) oddsByFixture.set(fixtureId, values);
+    }
+  };
+
+  const first = await apiFootball.oddsByRange(from, to, 1);
+  ingest(first.payload);
+
+  const totalPages = Math.max(1, Number(first.payload?.paging?.total ?? 1) || 1);
+  const pagesToFetch = Math.min(Math.max(1, maxPages), totalPages);
+
+  if (totalPages > pagesToFetch) {
+    log(
+      `::warning::The odds window spans ${totalPages} API pages but only ${pagesToFetch} were fetched. ` +
+        "Raise ODDS_MAX_PAGES to cover more fixtures (each page is one request).",
+    );
+  } else if (totalPages > 1) {
+    log(`Odds window spans ${totalPages} pages; fetching all of them.`);
+  }
+
+  for (let page = 2; page <= pagesToFetch; page += 1) {
+    const next = await apiFootball.oddsByRange(from, to, page);
+    ingest(next.payload);
+  }
+
+  return { oddsByFixture, totalPages, fetchedPages: pagesToFetch };
+}
+
 export async function buildSnapshot({
   date,
   apiFootball,
   deepseek = null,
-  oddsDelayMs = DEFAULTS.oddsDelayMs,
-  maxOddsRequests = DEFAULTS.maxOddsRequests,
+  windowDays = DEFAULTS.windowDays,
+  gracePeriodMs = DEFAULTS.gracePeriodMs,
   aiConcurrency = DEFAULTS.aiConcurrency,
+  peakWarningThreshold = DEFAULTS.peakWarningThreshold,
+  oddsMaxPages = DEFAULTS.oddsMaxPages,
+  now = Date.now(),
   log = () => {},
 }) {
-  const { payload, remaining } = await apiFootball.fixturesByDate(date);
-  const fixtures = Array.isArray(payload.response) ? payload.response : [];
+  const from = date;
+  const to = addDays(date, windowDays);
 
-  const matches = fixtures
-    .filter((match) => LEAGUE_IDS.includes(match.league.id))
-    .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)))
-    // Shallow copies: enrichment mutates matches and callers may reuse the payload.
-    .map((match) => ({ ...match }));
+  const { payload: fixtures, remaining } = await apiFootball.fixturesByRange(from, to);
+  const allFixtures = Array.isArray(fixtures.response) ? fixtures.response : [];
+  const inTargetLeagues = allFixtures.filter((match) => LEAGUE_IDS.includes(match.league?.id));
 
   log(
-    `Found ${matches.length} fixtures across ${LEAGUE_IDS.length} leagues (quota left: ${remaining ?? "unknown"}).`,
+    `Fixtures ${from}..${to}: ${allFixtures.length} fetched, ${inTargetLeagues.length} in the ${LEAGUE_IDS.length} target leagues (quota left: ${remaining ?? "unknown"}).`,
   );
 
-  const oddsTargets = matches.slice(0, maxOddsRequests);
-  const skipped = matches.length - oddsTargets.length;
-  if (skipped > 0) {
-    log(
-      `::warning::Odds lookups capped at ${maxOddsRequests} per run; ${skipped} fixtures will ship without analysis.`,
-    );
-  }
+  const { oddsByFixture, totalPages, fetchedPages } = await fetchOddsWindow({
+    apiFootball,
+    from,
+    to,
+    maxPages: oddsMaxPages,
+    log,
+  });
 
-  let oddsFound = 0;
-  let quotaExhausted = false;
+  log(`Odds returned for ${oddsByFixture.size} fixtures (${fetchedPages}/${totalPages} pages).`);
 
-  for (const [index, match] of oddsTargets.entries()) {
-    if (index > 0) await sleep(oddsDelayMs);
+  const cutoff = now - gracePeriodMs;
+  const matches = inTargetLeagues
+    .map((match) => ({ ...match, odds: oddsByFixture.get(match.fixture?.id) ?? null }))
+    // Keep anything starting soon or that kicked off within the 4-hour grace period.
+    .filter((match) => new Date(match.fixture.date).getTime() > cutoff)
+    .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)));
 
-    try {
-      const { payload: oddsPayload } = await apiFootball.oddsForFixture(match.fixture.id);
-      match.odds = pickMatchWinnerOdds(oddsPayload);
-      if (match.odds) {
-        oddsFound += 1;
-        log(`  ${match.teams.home.name} vs ${match.teams.away.name}: 1X2 ${match.odds.map((o) => o.odd).join(" / ")}`);
-      } else {
-        match.ai_analysis = "Match-winner odds are not published for this fixture yet.";
-        log(`  ${match.teams.home.name} vs ${match.teams.away.name}: no odds published`);
-      }
-    } catch (error) {
-      match.odds = null;
-      match.ai_analysis = `Odds unavailable: ${error.message}`;
-      if (error instanceof QuotaError) {
-        quotaExhausted = true;
-        log(`::warning::${error.message}`);
-        log("Stopping the odds loop to preserve the remaining quota.");
-        break;
-      }
-      log(`  odds failed for fixture ${match.fixture.id}: ${error.message}`);
+  log(
+    `Keeping ${matches.length} matches after the ${Math.round(gracePeriodMs / 3600000)}h grace period (dropped ${inTargetLeagues.length - matches.length}).`,
+  );
+
+  const metrics = dailyMetrics(matches);
+  log(`Total active matches in the ${windowDays}-day window: ${metrics.total}`);
+  log(
+    `Active days: ${metrics.activeDays} | average per active day: ${metrics.averagePerActiveDay.toFixed(1)}`,
+  );
+  if (metrics.peakDay) log(`Peak day: ${metrics.peakDay} with ${metrics.peakCount} matches`);
+
+  for (const { day, count } of metrics.days) {
+    if (count > peakWarningThreshold) {
+      log(`⚠️ PEAK DAY WARNING: ${day} has ${count} matches. Manual review recommended.`);
     }
   }
 
-  const analysable = oddsTargets.filter((match) => match.odds);
+  const analysable = matches.filter((match) => match.odds);
+  let analysablePeak = 0;
 
-  if (!deepseek) {
+  if (analysable.length === 0) {
+    log("No matches with odds; skipping AI analysis.");
+  } else if (!deepseek) {
     analysable.forEach((match) => {
       match.ai_analysis = "AI analysis skipped: DEEPSEEK_API_KEY is not configured.";
     });
     log("::warning::DEEPSEEK_API_KEY is not set; skipping AI analysis.");
-  } else if (analysable.length > 0) {
-    log(`Requesting AI analysis for ${analysable.length} fixtures (${deepseek.model})...`);
-    await mapLimit(analysable, aiConcurrency, async (match) => {
+  } else {
+    log(`Requesting AI analysis for ${analysable.length} matches (${deepseek.model})...`);
+    const { peak } = await mapLimit(analysable, aiConcurrency, async (match) => {
       try {
         match.ai_analysis = await deepseek.analyze({
           homeTeam: match.teams.home.name,
@@ -330,19 +426,24 @@ export async function buildSnapshot({
         log(`  AI failed for ${match.teams.home.name} vs ${match.teams.away.name}: ${error.message}`);
       }
     });
+    analysablePeak = peak;
   }
 
   const analysedCount = analysable.filter((match) => match.aiOk).length;
-  log(`Odds: ${oddsFound}/${oddsTargets.length}. AI analyses: ${analysedCount}/${analysable.length}.`);
+  log(`AI analyses: ${analysedCount}/${analysable.length} (concurrency ${aiConcurrency}).`);
 
   return {
     status: "success",
     date,
+    window: { from, to },
     generated_at: new Date().toISOString(),
     quota_remaining: remaining ?? "Unknown",
-    quota_exhausted: quotaExhausted,
     match_count: matches.length,
+    odds_count: analysable.length,
     analysed_count: analysedCount,
+    metrics,
+    odds_pages: { total: totalPages, fetched: fetchedPages },
+    ai_concurrency: { limit: aiConcurrency, peak: analysablePeak },
     matches: matches.map(publicMatch),
   };
 }
@@ -365,7 +466,7 @@ export async function uploadToKv({ accountId, namespaceId, apiToken, key, snapsh
     throw new Error(`KV upload failed (HTTP ${response.status}): ${detail}`);
   }
 
-  log(`Uploaded ${key} to KV (${snapshot.matches.length} fixtures).`);
+  log(`Uploaded ${key} to KV (${snapshot.matches.length} matches).`);
   return response.data;
 }
 
@@ -381,6 +482,7 @@ export async function runSync({
   dryRun = false,
   outFile = null,
   date = (env.SYNC_DATE || "").trim() || todayUtc(),
+  now = Date.now(),
 } = {}) {
   const apiFootball = createApiFootball({ apiKey: required(env, "API_FOOTBALL_KEY"), log });
   const deepseekKey = (env.DEEPSEEK_API_KEY ?? "").trim();
@@ -395,15 +497,15 @@ export async function runSync({
       })
     : null;
 
-  log(`Syncing ${date}...`);
+  log(`Syncing ${date} + ${DEFAULTS.windowDays - 1} days...`);
 
   const snapshot = await buildSnapshot({
     date,
     apiFootball,
     deepseek,
-    oddsDelayMs: Number(env.ODDS_DELAY_MS ?? DEFAULTS.oddsDelayMs),
-    maxOddsRequests: Number(env.MAX_ODDS_REQUESTS ?? DEFAULTS.maxOddsRequests),
     aiConcurrency: Number(env.AI_CONCURRENCY ?? DEFAULTS.aiConcurrency),
+    oddsMaxPages: Number(env.ODDS_MAX_PAGES ?? DEFAULTS.oddsMaxPages),
+    now,
     log,
   });
 
@@ -415,7 +517,7 @@ export async function runSync({
   const key = `${SNAPSHOT_KEY_PREFIX}${date}`;
 
   if (dryRun) {
-    log(`Dry run: skipping the KV upload for ${key} and ${LATEST_SNAPSHOT_KEY}.`);
+    log(`Dry run: skipping the KV upload for ${LATEST_SNAPSHOT_KEY} and ${key}.`);
     return snapshot;
   }
 
@@ -427,9 +529,9 @@ export async function runSync({
     log,
   };
 
-  await uploadToKv({ ...target, key });
-  // Stable key so the site can show the last slate until today's sync lands.
   await uploadToKv({ ...target, key: LATEST_SNAPSHOT_KEY });
+  // Dated copy kept as an archive; the site only reads snapshot-latest.
+  await uploadToKv({ ...target, key });
 
   return snapshot;
 }
@@ -449,7 +551,7 @@ async function main() {
       "Usage: node scripts/sync.js [--dry-run] [--out <file>] [--date <YYYY-MM-DD>]\n\n" +
         "Required env: API_FOOTBALL_KEY, CF_ACCOUNT_ID, CF_KV_NAMESPACE_ID, CF_API_TOKEN\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL, CF_GATEWAY_ID, CF_AIG_TOKEN,\n" +
-        "              ODDS_DELAY_MS, MAX_ODDS_REQUESTS, AI_CONCURRENCY",
+        "              AI_CONCURRENCY, ODDS_MAX_PAGES, SYNC_DATE",
     );
     return;
   }

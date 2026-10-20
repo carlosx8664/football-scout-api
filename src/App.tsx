@@ -21,6 +21,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   // 0 = Home (all leagues), otherwise an API-Football league id.
   const [selectedLeague, setSelectedLeague] = useState(0);
+  // Kept in state so the upcoming filter is pure and refreshes as kickoffs pass.
+  const [now, setNow] = useState(() => Date.now());
   const matchId = currentMatchId();
 
   useEffect(() => {
@@ -38,6 +40,11 @@ function App() {
       });
 
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   if (loading) return <div className="loader">Loading today's matches...</div>;
@@ -60,11 +67,6 @@ function App() {
     return (
       <div className="app-container">
         <Header />
-        {data.stale && (
-          <div className="stale-banner" role="status">
-            {data.message}
-          </div>
-        )}
         <MatchDetail
           match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
           date={data.date}
@@ -73,20 +75,18 @@ function App() {
     );
   }
 
+  // Only show matches that have not started yet.
+  const upcomingMatches = data.matches.filter(
+    (match) => new Date(match.fixture.date).getTime() > now,
+  );
   const filteredMatches =
     selectedLeague === 0
-      ? data.matches
-      : data.matches.filter((match) => match.league.id === selectedLeague);
+      ? upcomingMatches
+      : upcomingMatches.filter((match) => match.league.id === selectedLeague);
 
   return (
     <div className="app-container">
       <Header />
-
-      {data.stale && (
-        <div className="stale-banner" role="status">
-          {data.message}
-        </div>
-      )}
 
       <div className="app-body">
         <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
