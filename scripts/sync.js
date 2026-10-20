@@ -234,10 +234,11 @@ export function createApiFootball({
 
   return {
     fixturesByRange(from, to) {
-      return request("/fixtures", { from, to }, `fixtures ${from}..${to}`);
+      // API-Football rejects from/to without an extra parameter (timezone or league).
+      return request("/fixtures", { from, to, timezone: "UTC" }, `fixtures ${from}..${to}`);
     },
     oddsByRange(from, to, page = 1) {
-      const params = page > 1 ? { from, to, page } : { from, to };
+      const params = page > 1 ? { from, to, timezone: "UTC", page } : { from, to, timezone: "UTC" };
       return request("/odds", params, `odds ${from}..${to} page ${page}`);
     },
   };
