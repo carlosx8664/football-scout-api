@@ -32,12 +32,16 @@ const LATEST_SNAPSHOT_KEY = "snapshot-latest";
 export const DEFAULTS = {
   model: "deepseek-flash",
   windowDays: 7,
-  /** Odds are only fetched for the nearest days; the rest are fixtures-only. */
+  /** Odds are fetched for today and tomorrow only. */
   oddsWindowDays: 2,
-  /** API-Football paginates /odds at 10 fixtures per page. */
-  oddsMaxPages: 6,
-  /** Hard cap on API-Football calls per run so 4 runs/day stay inside 100 requests. */
-  maxRequestsPerRun: 20,
+  /** API-Football paginates /odds at 10 fixtures per page; 8 covers a normal two-day slate. */
+  oddsMaxPages: 8,
+  /**
+   * Hard cap on API-Football calls per run. 7 fixture days + 8 + 8 odds pages = 23, which fits
+   * one run comfortably; with 5 runs/day (~115) the last run degrades gracefully on the
+   * 100 requests/day free-plan limit. Lower it (e.g. 20) to spread the allowance.
+   */
+  maxRequestsPerRun: 23,
   gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
   peakWarningThreshold: 75,
@@ -392,8 +396,8 @@ async function collectOdds({ apiFootball, days, pagesPerDay, stopOnQuota, log })
     pagesAvailable += totalPages;
     if (totalPages > fetched) {
       log(
-        `::warning::${day}: odds span ${totalPages} pages but only ${fetched} were fetched. ` +
-          "Raise ODDS_MAX_PAGES or MAX_REQUESTS_PER_RUN for wider odds coverage.",
+        `::warning::${day}: ${totalPages} odds pages are needed but only ${fetched} were fetched ` +
+          `(ODDS_MAX_PAGES=${pagesPerDay}). Raise ODDS_MAX_PAGES / MAX_REQUESTS_PER_RUN for full coverage.`,
       );
     }
   }
@@ -453,7 +457,8 @@ export async function buildSnapshot({
     requestsUsed += odds.requests;
     quotaExhausted = odds.quotaExhausted;
     log(
-      `Odds: ${odds.oddsByFixture.size} fixtures matched using ${odds.requests} request(s) over ${oddsDays.join(", ")} (${odds.pagesAvailable} pages available).`,
+      `Odds: ${odds.oddsByFixture.size} fixtures matched using ${odds.requests} request(s) over ${oddsDays.join(", ")} ` +
+        `(${odds.pagesAvailable} pages needed, cap ${pagesPerDay}/day).`,
     );
   }
 

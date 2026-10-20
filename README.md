@@ -8,10 +8,10 @@ API-Football, and a short AI scouting note per match from DeepSeek.
 Data gathering is fully decoupled from page views:
 
 ```
-GitHub Actions (09:00, 13:00, 17:00, 21:00 UTC, or manual)
-  └─ scripts/sync.js                      (free-plan friendly: ~9-20 requests/run)
+GitHub Actions (09:00, 12:00, 14:00, 16:00, 18:00 UTC, or manual)
+  └─ scripts/sync.js                      (free-plan friendly: ~23 requests/run)
        ├─ API-Football  → one /fixtures?date= call per day (7-day window)
-       │                  + /odds?date= pages for the nearest 2 days
+       │                  + /odds?date= pages for today and tomorrow (max 8/day)
        ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
        └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
 
@@ -163,13 +163,14 @@ The API-Football **free plan** rejects `from`/`to` range queries for the current
 
 - Fixtures: one `/fixtures?date=<day>&timezone=UTC` request per day across the 7-day window
   (7 requests), filtered to the 15 tracked leagues and deduped by `fixture.id`.
-- Odds: `/odds?date=<day>&timezone=UTC` for the nearest `ODDS_WINDOW_DAYS` (default 2) days,
-  matched back to fixtures by `fixture.id`. Each day is paginated by the API (10 fixtures per
-  page, ~15 pages/day across all competitions), so `ODDS_MAX_PAGES` (default 6) caps pages per
-  day and the log warns when coverage is truncated.
-- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 20) is enforced end to end — fixtures
-  first, then odds split across the odds days. With four runs/day that is ≤80 of the 100
-  requests/day allowance.
+- Odds: `/odds?date=<day>&timezone=UTC` for **today and tomorrow**, matched back to fixtures by
+  `fixture.id`. The API paginates this endpoint at 10 fixtures per page and reports the required
+  page count in `paging.total`; `ODDS_MAX_PAGES` (default **8**) caps pages per day, and the log
+  warns with the exact shortfall when a day needs more than the cap.
+- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 23 = 7 fixture days + 8 + 8 odds pages) is
+  enforced end to end. Five runs/day is ~115 requests against the free plan's 100/day, so the
+  last run of the day may hit the limit — it logs a warning and still publishes what it gathered.
+  Set `MAX_REQUESTS_PER_RUN=20` to spread the allowance, or upgrade for full coverage.
 - A daily-limit response stops further calls for that run, logs a warning, and still uploads
   what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
 - Grace period: matches that kicked off more than 4 hours ago are dropped before upload.
@@ -179,7 +180,9 @@ The API-Football **free plan** rejects `from`/`to` range queries for the current
   `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
 - Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
 - `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
-- Cron is UTC: `0 9,13,17,21 * * *` → 09:00, 13:00, 17:00 and 21:00.
+- Cron is UTC: `0 9,12,14,16,18 * * *` → 09:00, 12:00, 14:00, 16:00 and 18:00.
+- The site polls `/api/snapshot` every 15 minutes and refetches only when a match kicks off within
+  the next hour, so late odds/analysis land without any extra API-Football requests.
 
 If you upgrade to a paid plan, you can switch back to `from`/`to` + `season` range queries
 (1 fixtures request instead of 7) and raise `ODDS_MAX_PAGES`.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { leagueName } from "../shared/leagues.js";
 import Header from "./components/Header";
 import MainFeed from "./components/MainFeed";
@@ -6,6 +6,7 @@ import MatchDetail from "./components/MatchDetail";
 import RightSidebar from "./components/RightSidebar";
 import Sidebar from "./components/Sidebar";
 import { fetchSnapshot } from "./lib/api";
+import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
 import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
@@ -23,14 +24,20 @@ function App() {
   const [selectedLeague, setSelectedLeague] = useState(0);
   // Kept in state so the upcoming filter is pure and refreshes as kickoffs pass.
   const [now, setNow] = useState(() => Date.now());
+  const dataRef = useRef<SnapshotData | null>(null);
   const matchId = currentMatchId();
+
+  const applySnapshot = useCallback((snapshot: SnapshotData) => {
+    dataRef.current = snapshot;
+    setData(snapshot);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
 
     fetchSnapshot(controller.signal)
       .then((snapshot) => {
-        setData(snapshot);
+        applySnapshot(snapshot);
         setLoading(false);
       })
       .catch((err: Error) => {
@@ -40,12 +47,29 @@ function App() {
       });
 
     return () => controller.abort();
-  }, []);
+  }, [applySnapshot]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  // Near kickoff, pull the freshest snapshot from KV (no API-Football requests involved).
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = dataRef.current;
+      if (!current || current.status !== "success") return;
+      if (!hasMatchStartingSoon(current.matches, Date.now())) return;
+
+      fetchSnapshot()
+        .then(applySnapshot)
+        .catch(() => {
+          // A failed refresh keeps the last good snapshot on screen.
+        });
+    }, SNAPSHOT_REFRESH_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [applySnapshot]);
 
   if (loading) return <div className="loader">Loading today's matches...</div>;
   if (error) return <div className="error">Error: {error}</div>;
