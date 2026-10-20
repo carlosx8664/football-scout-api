@@ -1,0 +1,104 @@
+/* --- Design tokens --- */
+:root {
+  --color-brand: #d324fc;
+  --color-brand-4: #a100c4;
+  --color-brand-weak: #faf3fc;
+  --color-brand-weak-elevated: #c917fc0a;
+
+  --color-neutral-1: #fff;
+  --color-neutral-2: #fcfcfc; /* Main Background */
+  --color-neutral-3: #f5f5f5;
+  --color-neutral-4: #e4e4e4; /* Borders */
+  --color-neutral-5: #c9c9c9;
+  --color-neutral-6: #737373; /* Secondary Text */
+  --color-neutral-7: #1f1f1f; /* Primary Text */
+
+  --color-yellow: #f6d546;
+  --color-yellow-weak: #f6d54633;
+  --color-teal-2: #cbfaef;
+  --color-teal-4: #007767;
+
+  --height-nav: 4.375rem;
+  --max-width-desktop: 1440px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--color-neutral-2);
+  color: var(--color-neutral-7);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+/* --- App layout --- */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 340px;
+  gap: 32px;
+  width: 100%;
+  max-width: var(--max-width-desktop);
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* --- Shared odds tiles --- */
+.odd-label { font-size: 0.75rem; color: var(--color-neutral-6); font-weight: 500; }
+.odd-value { font-size: 1rem; color: var(--color-neutral-7); font-weight: 700; }
+
+/* --- Shared states --- */
+.loader, .error, .empty-state {
+  text-align: center;
+  padding: 40px;
+  font-size: 0.95rem;
+  color: var(--color-neutral-6);
+  font-weight: 500;
+}
+.error { color: #c20a0a; }
+
+/* --- Stale snapshot banner --- */
+.stale-banner {
+  background: var(--color-yellow-weak);
+  border-bottom: 1px solid var(--color-yellow);
+  padding: 10px 24px;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+}
+
+/* --- Status notice (e.g. daily sync has not run yet) --- */
+.notice {
+  max-width: 560px;
+  margin: 80px auto;
+  padding: 40px 32px;
+  text-align: center;
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+.notice h1 {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  color: #0a2540;
+}
+.notice p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--color-neutral-6);
+}

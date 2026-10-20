@@ -1,0 +1,173 @@
+.feed-top-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0a2540;
+}
+
+.quota-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-neutral-6);
+  background: var(--color-neutral-3);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.match-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.new-match-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hot-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-bottom-left-radius: 8px;
+}
+.hot-badge-muted { background-color: #9ca3af; }
+
+.card-league-date {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin-top: 20px;
+  font-weight: 500;
+}
+
+.card-league-name {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.card-teams-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.card-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.card-team img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.card-vs {
+  font-weight: bold;
+  color: #9ca3af;
+  padding: 0 10px;
+}
+
+.card-prediction-box {
+  background-color: #f3f4f6;
+  margin: 0 16px 16px 16px;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.prediction-title {
+  display: block;
+  font-size: 0.8rem;
+  color: #4b5563;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.card-odds-row {
+  display: flex;
+  gap: 8px;
+}
+
+.card-odd {
+  flex: 1;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-odd .odd-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.card-odd .odd-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.details-btn {
+  display: block;
+  text-align: center;
+  background-color: #f59e0b;
+  color: white;
+  margin: 0 16px 16px 16px;
+  padding: 12px;
+  border-radius: 24px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.details-btn:hover {
+  background-color: #d97706;
+}
+
+.card-footer {
+  background-color: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 10px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #4b5563;
+  font-weight: 600;
+  margin-top: auto;
+}

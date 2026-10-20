@@ -1,0 +1,48 @@
+.sidebar-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-neutral-6);
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.top-matches { margin-bottom: 24px; }
+
+.league-nav { list-style: none; }
+.league-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-neutral-7);
+  text-align: left;
+  transition: background 0.15s;
+}
+.league-link img { width: 20px; height: 20px; }
+.league-link:hover { background: var(--color-neutral-3); }
+.league-link.active {
+  background: var(--color-brand-weak-elevated);
+  color: var(--color-brand-4);
+  font-weight: 600;
+}
+
+.newsletter-box {
+  background: var(--color-teal-2);
+  border: 1px solid #b2e6da;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 32px;
+}
+.newsletter-box h4 { font-size: 1rem; margin-bottom: 8px; color: var(--color-teal-4); }
+.newsletter-box p { font-size: 0.875rem; color: var(--color-teal-4); margin-bottom: 16px; line-height: 1.4; opacity: 0.8; }
+.newsletter-box input {
+  width: 100%; padding: 10px; border: 1px solid #a7f3d0; border-radius: 8px; margin-bottom: 10px; font-size: 0.875rem;
+}
+.newsletter-box button {
+  width: 100%; padding: 10px; background: var(--color-neutral-7); color: #fff; border-radius: 8px; font-weight: 600; font-size: 0.875rem;
+}

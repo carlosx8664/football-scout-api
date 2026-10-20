@@ -1,87 +1,83 @@
-import React from 'react';
+import type { Match } from "../types";
+import { formatKickoff, matchWinnerPrices } from "../lib/format";
+import "./MainFeed.css";
 
 interface MainFeedProps {
-  matches: any[];
+  matches: Match[];
   selectedLeagueName: string;
   quota: string;
   date: string;
 }
 
-const MainFeed: React.FC<MainFeedProps> = ({ matches, selectedLeagueName, quota, date }) => {
+const MainFeed = ({ matches, selectedLeagueName, quota, date }: MainFeedProps) => {
   return (
     <main className="main-feed">
-      
       <div className="feed-top-header">
         <h1 className="page-title">{selectedLeagueName}</h1>
-        <span className="quota-badge">API Quota Left: {quota} | {date}</span>
+        <span className="quota-badge">
+          API Quota Left: {quota} | {date}
+        </span>
       </div>
 
-      {/* 3-Column Grid Layout */}
       <div className="match-card-grid">
         {matches.length === 0 ? (
           <div className="empty-state">No matches today for this league.</div>
         ) : (
           matches.map((match) => {
-            // Extract the odds into Home/Draw/Away
-            const homeOdd = match.odds?.find((o: any) => o.value === "Home")?.odd || "-";
-            const drawOdd = match.odds?.find((o: any) => o.value === "Draw")?.odd || "-";
-            const awayOdd = match.odds?.find((o: any) => o.value === "Away")?.odd || "-";
+            const prices = matchWinnerPrices(match.odds);
+            const kickoff = formatKickoff(match.fixture.date);
 
             return (
               <div key={match.fixture.id} className="new-match-card">
-                
-                {/* Red HOT Badge */}
-                <div className="hot-badge">HOT 🔥</div>
+                {match.odds ? (
+                  <div className="hot-badge">HOT 🔥</div>
+                ) : (
+                  <div className="hot-badge hot-badge-muted">Awaiting odds</div>
+                )}
 
-                {/* Date & League */}
                 <div className="card-league-date">
-                  <span>{new Date(match.fixture.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                  <span>{new Date(match.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>{kickoff.date}</span>
+                  <span>{kickoff.time}</span>
                 </div>
                 <div className="card-league-name">{match.league.name}</div>
 
-                {/* Teams */}
                 <div className="card-teams-row">
                   <div className="card-team">
-                    <img src={match.teams.home.logo} alt="home" />
+                    <img src={match.teams.home.logo} alt="" />
                     <span>{match.teams.home.name}</span>
                   </div>
                   <span className="card-vs">-</span>
                   <div className="card-team">
-                    <img src={match.teams.away.logo} alt="away" />
+                    <img src={match.teams.away.logo} alt="" />
                     <span>{match.teams.away.name}</span>
                   </div>
                 </div>
 
-                {/* Odds Box */}
                 <div className="card-prediction-box">
                   <span className="prediction-title">Match Winner Odds</span>
                   <div className="card-odds-row">
                     <div className="card-odd">
                       <span className="odd-label">1</span>
-                      <span className="odd-value">{homeOdd}</span>
+                      <span className="odd-value">{prices.home}</span>
                     </div>
                     <div className="card-odd">
                       <span className="odd-label">X</span>
-                      <span className="odd-value">{drawOdd}</span>
+                      <span className="odd-value">{prices.draw}</span>
                     </div>
                     <div className="card-odd">
                       <span className="odd-label">2</span>
-                      <span className="odd-value">{awayOdd}</span>
+                      <span className="odd-value">{prices.away}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* View Details Button */}
                 <a href={`/match/${match.fixture.id}`} className="details-btn">
-                  View AI Details ➔
+                  View AI Details ➜
                 </a>
 
-                {/* Footer Badge */}
                 <div className="card-footer">
-                  <span>🇬🇭 Exclusive Offer</span>
+                  <span>🇬🇧 Exclusive Offer</span>
                 </div>
-
               </div>
             );
           })

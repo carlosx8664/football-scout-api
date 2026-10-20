@@ -1,15 +1,13 @@
-import React from 'react';
+import "./Header.css";
 
-interface HeaderProps {
-  onClickLogo: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ onClickLogo }) => {
+const Header = () => {
   return (
     <header className="top-header">
       <div className="header-inner">
         <div className="header-left">
-          <h1 className="logo" onClick={onClickLogo} style={{ cursor: 'pointer' }}>ABC</h1>
+          <a className="logo" href="/">
+            ABC
+          </a>
           <nav className="top-nav">
             <a href="#">Tip Hub</a>
             <a href="#">Champions League</a>

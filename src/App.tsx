@@ -1,85 +1,105 @@
-import { useState, useEffect } from 'react';
-import './App.css';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import MainFeed from './components/MainFeed';
-import RightSidebar from './components/RightSidebar';
+import { useEffect, useState } from "react";
+import { leagueName } from "../shared/leagues.js";
+import Header from "./components/Header";
+import MainFeed from "./components/MainFeed";
+import MatchDetail from "./components/MatchDetail";
+import RightSidebar from "./components/RightSidebar";
+import Sidebar from "./components/Sidebar";
+import { fetchSnapshot } from "./lib/api";
+import type { SnapshotData } from "./types";
 
-interface SnapshotData {
-  status: string;
-  date: string;
-  quota_remaining: string;
-  match_count: number;
-  matches: any[];
+const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
+
+function currentMatchId(): number | null {
+  const result = MATCH_ROUTE.exec(window.location.pathname);
+  return result ? Number(result[1]) : null;
 }
-
-const LEAGUES = [
-  { id: 39, name: "Premier League" },
-  { id: 135, name: "Serie A" },
-  { id: 78, name: "Bundesliga" },
-  { id: 140, name: "La Liga" },
-  { id: 61, name: "Ligue 1" },
-  { id: 71, name: "Brasileirão" },
-  { id: 94, name: "Primeira Liga" },
-  { id: 144, name: "Belgian Pro League" },
-  { id: 88, name: "Eredivisie" },
-  { id: 40, name: "EFL Championship" }
-];
 
 function App() {
   const [data, setData] = useState<SnapshotData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // 0 = Home (Top Matches), 39 = Premier League, etc.
-  const [selectedLeague, setSelectedLeague] = useState<number>(0); 
+  // 0 = Home (all leagues), otherwise an API-Football league id.
+  const [selectedLeague, setSelectedLeague] = useState(0);
+  const matchId = currentMatchId();
 
   useEffect(() => {
-    fetch('/api/snapshot')
-      .then(async (res) => {
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.message || d.error || 'Failed to fetch data');
-        return d;
-      })
-      .then((d: SnapshotData) => {
-        setData(d);
+    const controller = new AbortController();
+
+    fetchSnapshot(controller.signal)
+      .then((snapshot) => {
+        setData(snapshot);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch((err: Error) => {
+        if (err.name === "AbortError") return;
         setError(err.message);
         setLoading(false);
       });
+
+    return () => controller.abort();
   }, []);
 
   if (loading) return <div className="loader">Loading today's matches...</div>;
   if (error) return <div className="error">Error: {error}</div>;
   if (!data) return null;
 
-  // If Home (0), show all matches. Otherwise, filter by league.
-  const filteredMatches = selectedLeague === 0 
-    ? data.matches 
-    : data.matches.filter(m => m.league.id === selectedLeague);
+  if (data.status === "pending") {
+    return (
+      <div className="app-container">
+        <Header />
+        <div className="notice" role="status">
+          <h1>Today's slate is still syncing</h1>
+          <p>{data.message}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const selectedLeagueName = selectedLeague === 0 
-    ? "Top Matches of the Day" 
-    : LEAGUES.find(l => l.id === selectedLeague)?.name || "";
+  if (matchId !== null) {
+    return (
+      <div className="app-container">
+        <Header />
+        {data.stale && (
+          <div className="stale-banner" role="status">
+            {data.message}
+          </div>
+        )}
+        <MatchDetail
+          match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
+          date={data.date}
+        />
+      </div>
+    );
+  }
+
+  const filteredMatches =
+    selectedLeague === 0
+      ? data.matches
+      : data.matches.filter((match) => match.league.id === selectedLeague);
 
   return (
     <div className="app-container">
-      <Header onClickLogo={() => setSelectedLeague(0)} />
-      
+      <Header />
+
+      {data.stale && (
+        <div className="stale-banner" role="status">
+          {data.message}
+        </div>
+      )}
+
       <div className="app-body">
-        <Sidebar 
-          selectedLeague={selectedLeague} 
-          setSelectedLeague={setSelectedLeague} 
-        />
-        
-        <MainFeed 
-          matches={filteredMatches} 
-          selectedLeagueName={selectedLeagueName}
-          quota={data.quota_remaining}
+        <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+
+        <MainFeed
+          matches={filteredMatches}
+          selectedLeagueName={
+            selectedLeague === 0 ? "Top Matches of the Day" : leagueName(selectedLeague)
+          }
+          quota={data.quota_remaining ?? "unknown"}
           date={data.date}
         />
-        
+
         <RightSidebar />
       </div>
     </div>
