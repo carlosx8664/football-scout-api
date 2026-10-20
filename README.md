@@ -156,12 +156,14 @@ friendly placeholder:
 
 ## Sync behaviour and quota safety
 
-- Window: `/fixtures?from=<today>&to=<today+7d>&timezone=UTC` filtered to the 15 tracked leagues.
-  API-Football rejects `from`/`to` unless `timezone` (or `league`) is also supplied.
-- Odds: a **single** `/odds?from=<today>&to=<today+7d>&timezone=UTC` request (no per-match loop,
-  no 6s delay), matched back to fixtures by `fixture.id`. API-Football paginates this endpoint
-  10 fixtures per page, so raise `ODDS_MAX_PAGES` if the log warns that pages were left
-  unfetched (each page is one request).
+- Window: `/fixtures?from=<today>&to=<today+7d>&season=<season>&timezone=UTC` filtered to the 15
+  tracked leagues. API-Football rejects `from`/`to` unless `season` (or `league`) and `timezone`
+  are also supplied. The season is derived from the window start (European seasons are named
+  after their starting year, so dates before July map to `year - 1`).
+- Odds: a **single** `/odds?from=<today>&to=<today+7d>&season=<season>&timezone=UTC` request
+  (no per-match loop, no 6s delay), matched back to fixtures by `fixture.id`. API-Football
+  paginates this endpoint 10 fixtures per page, so raise `ODDS_MAX_PAGES` if the log warns that
+  pages were left unfetched (each page is one request).
 - Grace period: matches that kicked off more than 4 hours ago are dropped before upload, so the
   payload only holds live/upcoming fixtures.
 - DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`); the run reports the

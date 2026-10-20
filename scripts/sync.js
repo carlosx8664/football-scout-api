@@ -186,6 +186,20 @@ function publicMatch(match) {
   };
 }
 
+/**
+ * API-Football needs a season alongside `from`/`to`. European seasons are named after the
+ * year they start, so anything before July belongs to the previous season.
+ *
+ * @param {string} date YYYY-MM-DD
+ * @returns {number}
+ */
+export function seasonFor(date) {
+  const value = String(date);
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  return month >= 7 ? year : year - 1;
+}
+
 export function createApiFootball({
   apiKey,
   timeoutMs = DEFAULTS.timeoutMs,
@@ -234,11 +248,12 @@ export function createApiFootball({
 
   return {
     fixturesByRange(from, to) {
-      // API-Football rejects from/to without an extra parameter (timezone or league).
-      return request("/fixtures", { from, to, timezone: "UTC" }, `fixtures ${from}..${to}`);
+      // API-Football rejects from/to without season/league/timezone context.
+      const params = { from, to, season: seasonFor(from), timezone: "UTC" };
+      return request("/fixtures", params, `fixtures ${from}..${to}`);
     },
     oddsByRange(from, to, page = 1) {
-      const params = page > 1 ? { from, to, timezone: "UTC", page } : { from, to, timezone: "UTC" };
+      const params = { from, to, season: seasonFor(from), timezone: "UTC", ...(page > 1 ? { page } : {}) };
       return request("/odds", params, `odds ${from}..${to} page ${page}`);
     },
   };
