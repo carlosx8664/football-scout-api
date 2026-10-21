@@ -330,6 +330,7 @@ async function collectFixtures({ apiFootball, days, log }) {
   for (const day of days) {
     try {
       const result = await apiFootball.fixturesByDate(day);
+      if (day === addDays(days[0], 1)) console.log(result.payload);
       requests += 1;
       remaining = result.remaining ?? remaining;
 
