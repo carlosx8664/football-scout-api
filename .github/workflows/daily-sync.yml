@@ -2,8 +2,8 @@ name: Daily football sync
 
 on:
   schedule:
-    # Five times a day at minute 7 to avoid GitHub Actions traffic jams.
-    - cron: "7 9,12,14,16,18 * * *"
+    # Twice daily at minute 7 to fit per-league fixture calls within the free-tier quota.
+    - cron: "7 9,18 * * *"
   workflow_dispatch:
     inputs:
       date:

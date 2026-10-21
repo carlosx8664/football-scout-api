@@ -3,9 +3,9 @@
  * Today + tomorrow data sync (API-Football free-plan compatible).
  *
  * The free API-Football plan only allows a one-day-either-side window and rejects `from`/`to`
- * range queries for the current season, so the window is gathered with two `/fixtures?date=`
- * requests (today and tomorrow). Odds are requested per target-league fixture, capped by a
- * per-run request budget so five daily runs stay inside the 100 requests/day allowance.
+ * range queries for the current season, so each target league is queried separately for today
+ * and tomorrow. Odds are requested per target-league fixture, capped by a per-run request
+ * budget so two daily runs stay inside the 100 requests/day allowance.
  *
  * Today's matches older than the 4-hour grace period are dropped; future-day matches are kept.
  * Matches with odds get a DeepSeek analysis, and the result is stored in Cloudflare KV under
@@ -22,7 +22,7 @@ import { writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import axios from "axios";
-import { LEAGUE_IDS } from "../shared/leagues.js";
+import { LEAGUES, LEAGUE_IDS } from "../shared/leagues.js";
 
 const API_FOOTBALL_BASE = "https://v3.football.api-sports.io";
 const DEEPSEEK_DIRECT_URL = "https://api.deepseek.com/chat/completions";
@@ -32,13 +32,13 @@ const LATEST_SNAPSHOT_KEY = "snapshot-latest";
 
 export const DEFAULTS = {
   model: "deepseek-flash",
-  /** Free plan allows today ± 1 day: two fixture requests, today and tomorrow. */
+  /** Query each target league separately for today and tomorrow. */
   windowDays: 2,
   /**
-   * Hard cap on API-Football calls per run: 2 fixture days + up to 12 per-fixture odds requests.
-   * Five runs/day is 70 requests, inside the free plan's 100/day allowance.
+   * Hard cap per run: 15 leagues × 2 fixture days + up to 12 odds requests.
+   * Two scheduled runs/day use up to 84 requests, inside the free plan's 100/day allowance.
    */
-  maxRequestsPerRun: 14,
+  maxRequestsPerRun: 42,
   gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
   peakWarningThreshold: 75,
@@ -201,7 +201,7 @@ export function createApiFootball({
   retryDelayMs = 2000,
   log = () => {},
 }) {
-  let oddsRequestMade = false;
+  let apiRequestMade = false;
   const http = axios.create({
     baseURL: API_FOOTBALL_BASE,
     timeout: timeoutMs,
@@ -215,8 +215,8 @@ export function createApiFootball({
   async function request(path, params, label) {
     return withRetry(
       async () => {
-        if (path === "/odds" && oddsRequestMade) await sleep(6500);
-        if (path === "/odds") oddsRequestMade = true;
+        if (apiRequestMade) await sleep(6500);
+        apiRequestMade = true;
         const response = await http.get(path, { params });
         if (path === "/odds") console.log(response.data);
         const payload = response.data ?? {};
@@ -245,9 +245,12 @@ export function createApiFootball({
   }
 
   return {
-    fixturesByDate(date) {
-      // Date-scoped queries work on every plan; from/to ranges need a current-season plan.
-      return request("/fixtures", { date, timezone: "UTC" }, `fixtures ${date}`);
+    fixturesByLeagueDate(leagueId, season, date) {
+      return request(
+        "/fixtures",
+        { league: leagueId, season, date, timezone: "UTC" },
+        `fixtures league ${leagueId} ${date}`,
+      );
     },
     oddsByFixture(fixtureId) {
       return request("/odds", { fixture: fixtureId }, `odds fixture ${fixtureId}`);
@@ -329,25 +332,28 @@ async function collectFixtures({ apiFootball, days, log }) {
   let quotaExhausted = false;
 
   for (const day of days) {
-    try {
-      const result = await apiFootball.fixturesByDate(day);
-      if (day === addDays(days[0], 1)) console.log(result.payload);
-      requests += 1;
-      remaining = result.remaining ?? remaining;
+    for (const league of LEAGUES) {
+      try {
+        const result = await apiFootball.fixturesByLeagueDate(league.id, 2026, day);
+        if (day === addDays(days[0], 1)) console.log(result.payload);
+        requests += 1;
+        remaining = result.remaining ?? remaining;
 
-      for (const fixture of result.payload?.response ?? []) {
-        const id = fixture?.fixture?.id;
-        if (id == null || seen.has(id)) continue;
-        seen.add(id);
-        fixtures.push(fixture);
+        for (const fixture of result.payload?.response ?? []) {
+          const id = fixture?.fixture?.id;
+          if (id == null || seen.has(id)) continue;
+          seen.add(id);
+          fixtures.push(fixture);
+        }
+      } catch (error) {
+        if (!(error instanceof QuotaError)) throw error;
+        quotaExhausted = true;
+        log(`::warning::${error.message}`);
+        log("Stopping fixture requests for the rest of this run.");
+        break;
       }
-    } catch (error) {
-      if (!(error instanceof QuotaError)) throw error;
-      quotaExhausted = true;
-      log(`::warning::${error.message}`);
-      log("Stopping fixture requests for the rest of this run.");
-      break;
     }
+    if (quotaExhausted) break;
   }
 
   return { fixtures, requests, remaining, quotaExhausted };
@@ -417,7 +423,8 @@ export async function buildSnapshot({
   console.log("Matches passed target league filter:", inTargetLeagues.length);
 
   log(
-    `Fixtures: ${fixturesResult.fixtures.length} fetched over ${days.length} days, ${inTargetLeagues.length} in the ${LEAGUE_IDS.length} target leagues (quota left: ${remaining ?? "unknown"}).`,
+    `Fixtures: ${fixturesResult.fixtures.length} fetched from ${LEAGUES.length} target leagues over ${days.length} days ` +
+      `(${inTargetLeagues.length} in target leagues; quota left: ${remaining ?? "unknown"}).`,
   );
 
   const cutoff = now - gracePeriodMs;
