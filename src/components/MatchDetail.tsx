@@ -1,4 +1,5 @@
 import type { Match } from "../types";
+import { Link } from "react-router-dom";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import "./MatchDetail.css";
 
@@ -11,9 +12,9 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
   if (!match) {
     return (
       <main className="detail-container">
-        <a className="back-link" href="/">
+        <Link className="back-link" to="/">
           ← Back to matches
-        </a>
+        </Link>
         <div className="empty-state">That match is not on today's slate ({date}).</div>
       </main>
     );
@@ -25,9 +26,9 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
 
   return (
     <main className="detail-container">
-      <a className="back-link" href="/">
+      <Link className="back-link" to="/">
         ← Back to matches
-      </a>
+      </Link>
 
       <article className="detail-card">
         <div className="detail-meta">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import type { Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import { matchesForTab, type FeedTab } from "../lib/schedule";
@@ -107,9 +108,9 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedPro
                   </div>
                 </div>
 
-                <a href={`/match/${match.fixture.id}`} className="details-btn">
+                <Link to={`/match/${match.fixture.id}`} className="details-btn">
                   View AI Details ➜
-                </a>
+                </Link>
 
                 <div className="card-footer">
                   <span>🇬🇧 Exclusive Offer</span>

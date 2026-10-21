@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
 import Header from "./components/Header";
 import MainFeed from "./components/MainFeed";
@@ -11,8 +12,8 @@ import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
 
-function currentMatchId(): number | null {
-  const result = MATCH_ROUTE.exec(window.location.pathname);
+function currentMatchId(pathname: string): number | null {
+  const result = MATCH_ROUTE.exec(pathname);
   return result ? Number(result[1]) : null;
 }
 
@@ -25,7 +26,8 @@ function App() {
   // Kept in state so the upcoming filter is pure and refreshes as kickoffs pass.
   const [now, setNow] = useState(() => Date.now());
   const dataRef = useRef<SnapshotData | null>(null);
-  const matchId = currentMatchId();
+  const { pathname } = useLocation();
+  const matchId = currentMatchId(pathname);
 
   const applySnapshot = useCallback((snapshot: SnapshotData) => {
     dataRef.current = snapshot;
