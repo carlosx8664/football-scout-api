@@ -2,15 +2,15 @@
 
 A football scouting dashboard: upcoming fixtures across 15 competitions (top-5 European
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
-Champions League, EFL Cup, FA Cup, World Cup and Friendlies), match-winner odds from
-API-Football, and a short AI scouting note per match from DeepSeek.
+Champions League, EFL Cup, FA Cup, World Cup and Friendlies) for **today and tomorrow**,
+match-winner odds from API-Football, and a short AI scouting note per match from DeepSeek.
 
 Data gathering is fully decoupled from page views:
 
 ```
 GitHub Actions (09:00, 12:00, 14:00, 16:00, 18:00 UTC, or manual)
-  └─ scripts/sync.js                      (free-plan friendly: ~23 requests/run)
-       ├─ API-Football  → one /fixtures?date= call per day (7-day window)
+  └─ scripts/sync.js                      (free-plan friendly: ~18 requests/run)
+       ├─ API-Football  → /fixtures?date= for today and tomorrow (2 requests)
        │                  + /odds?date= pages for today and tomorrow (max 8/day)
        ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
        └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
@@ -35,7 +35,7 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 
 ```
 shared/leagues.js              Single source of truth for the 15 tracked leagues
-scripts/sync.js                Rolling 7-day sync (fixtures + odds + AI) → Cloudflare KV
+scripts/sync.js                Today + tomorrow sync (fixtures + odds + AI) → Cloudflare KV
 .github/workflows/daily-sync.yml   Cron at 09/13/17/21 UTC + manual workflow_dispatch
 functions/api/snapshot.js      GET /api/snapshot - reads snapshot-latest from KV, never the APIs
 src/App.tsx                    Route switch, snapshot loading, upcoming + league filters
@@ -112,7 +112,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 {
   "status": "success",
   "date": "2026-10-20",
-  "window": { "from": "2026-10-20", "to": "2026-10-26" },
+  "window": { "from": "2026-10-20", "to": "2026-10-21" },
   "generated_at": "2026-10-20T13:00:12.000Z",
   "quota_remaining": "91",
   "quota_exhausted": false,
@@ -161,16 +161,14 @@ friendly placeholder:
 The API-Football **free plan** rejects `from`/`to` range queries for the current season
 (`{"plan":"Free plans do not have access to this season"}`), so the sync uses date-scoped calls:
 
-- Fixtures: one `/fixtures?date=<day>&timezone=UTC` request per day across the 7-day window
-  (7 requests), filtered to the 15 tracked leagues and deduped by `fixture.id`.
+- Fixtures: two `/fixtures?date=<day>&timezone=UTC` requests (today and tomorrow), combined and
+  deduped by `fixture.id`, then filtered to the 15 tracked leagues.
 - Odds: `/odds?date=<day>&timezone=UTC` for **today and tomorrow**, matched back to fixtures by
   `fixture.id`. The API paginates this endpoint at 10 fixtures per page and reports the required
   page count in `paging.total`; `ODDS_MAX_PAGES` (default **8**) caps pages per day, and the log
   warns with the exact shortfall when a day needs more than the cap.
-- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 23 = 7 fixture days + 8 + 8 odds pages) is
-  enforced end to end. Five runs/day is ~115 requests against the free plan's 100/day, so the
-  last run of the day may hit the limit — it logs a warning and still publishes what it gathered.
-  Set `MAX_REQUESTS_PER_RUN=20` to spread the allowance, or upgrade for full coverage.
+- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 18 = 2 fixture days + 8 + 8 odds pages) is
+  enforced end to end. Five runs/day is ~90 requests, inside the free plan's 100/day allowance.
 - A daily-limit response stops further calls for that run, logs a warning, and still uploads
   what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
 - Grace period: matches that kicked off more than 4 hours ago are dropped before upload.
@@ -189,5 +187,6 @@ If you upgrade to a paid plan, you can switch back to `from`/`to` + `season` ran
 
 ## Routes
 
-- `/` — league-filtered fixture grid
+- `/` — fixture grid with **Today's Matches** / **Tomorrow's Matches** tabs and a league filter.
+  Today hides matches that have already kicked off; tomorrow shows the full slate.
 - `/match/:id` — AI detail page (client-side route, served via `public/_redirects`)

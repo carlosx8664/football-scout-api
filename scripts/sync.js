@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * Rolling 7-day data sync (API-Football free-plan compatible).
+ * Today + tomorrow data sync (API-Football free-plan compatible).
  *
- * The free API-Football plan rejects `from`/`to` range queries for the current season, so the
- * window is gathered with one `/fixtures?date=` request per day. Odds use `/odds?date=` for the
- * nearest days only, capped by a per-run request budget so four daily runs stay inside the
- * 100 requests/day allowance.
+ * The free API-Football plan only allows a one-day-either-side window and rejects `from`/`to`
+ * range queries for the current season, so the window is gathered with two `/fixtures?date=`
+ * requests (today and tomorrow) and odds come from `/odds?date=` pages for the same two days,
+ * capped by a per-run request budget so five daily runs stay inside the 100 requests/day
+ * allowance.
  *
  * Matches older than the 4-hour grace period are dropped, matches with odds get a DeepSeek
  * analysis, and the result is stored in Cloudflare KV under `snapshot-latest` (plus a dated
@@ -31,17 +32,17 @@ const LATEST_SNAPSHOT_KEY = "snapshot-latest";
 
 export const DEFAULTS = {
   model: "deepseek-flash",
-  windowDays: 7,
+  /** Free plan allows today ± 1 day: two fixture requests, today and tomorrow. */
+  windowDays: 2,
   /** Odds are fetched for today and tomorrow only. */
   oddsWindowDays: 2,
   /** API-Football paginates /odds at 10 fixtures per page; 8 covers a normal two-day slate. */
   oddsMaxPages: 8,
   /**
-   * Hard cap on API-Football calls per run. 7 fixture days + 8 + 8 odds pages = 23, which fits
-   * one run comfortably; with 5 runs/day (~115) the last run degrades gracefully on the
-   * 100 requests/day free-plan limit. Lower it (e.g. 20) to spread the allowance.
+   * Hard cap on API-Football calls per run: 2 fixture days + 8 + 8 odds pages = 18.
+   * Five runs/day is 90 requests, inside the free plan's 100/day allowance.
    */
-  maxRequestsPerRun: 23,
+  maxRequestsPerRun: 18,
   gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
   peakWarningThreshold: 75,

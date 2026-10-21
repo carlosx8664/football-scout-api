@@ -99,14 +99,10 @@ function App() {
     );
   }
 
-  // Only show matches that have not started yet.
-  const upcomingMatches = data.matches.filter(
-    (match) => new Date(match.fixture.date).getTime() > now,
-  );
   const filteredMatches =
     selectedLeague === 0
-      ? upcomingMatches
-      : upcomingMatches.filter((match) => match.league.id === selectedLeague);
+      ? data.matches
+      : data.matches.filter((match) => match.league.id === selectedLeague);
 
   return (
     <div className="app-container">
@@ -122,6 +118,7 @@ function App() {
           }
           quota={data.quota_remaining ?? "unknown"}
           date={data.date}
+          now={now}
         />
 
         <RightSidebar />

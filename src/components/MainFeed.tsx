@@ -1,5 +1,7 @@
+import { useState } from "react";
 import type { Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
+import { matchesForTab, type FeedTab } from "../lib/schedule";
 import "./MainFeed.css";
 
 interface MainFeedProps {
@@ -7,9 +9,23 @@ interface MainFeedProps {
   selectedLeagueName: string;
   quota: string;
   date: string;
+  now: number;
 }
 
-const MainFeed = ({ matches, selectedLeagueName, quota, date }: MainFeedProps) => {
+const TABS: Array<{ id: FeedTab; label: string }> = [
+  { id: "today", label: "Today's Matches" },
+  { id: "tomorrow", label: "Tomorrow's Matches" },
+];
+
+const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedProps) => {
+  const [activeTab, setActiveTab] = useState<FeedTab>("today");
+
+  const counts: Record<FeedTab, number> = {
+    today: matchesForTab(matches, "today", now).length,
+    tomorrow: matchesForTab(matches, "tomorrow", now).length,
+  };
+  const visibleMatches = matchesForTab(matches, activeTab, now);
+
   return (
     <main className="main-feed">
       <div className="feed-top-header">
@@ -19,11 +35,31 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date }: MainFeedProps) =
         </span>
       </div>
 
+      <div className="match-tabs" role="tablist" aria-label="Match days">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`match-tab${activeTab === tab.id ? " active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+            <span className="tab-count">{counts[tab.id]}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="match-card-grid">
-        {matches.length === 0 ? (
-          <div className="empty-state">No matches today for this league.</div>
+        {visibleMatches.length === 0 ? (
+          <div className="empty-state">
+            {activeTab === "today"
+              ? "No more matches today for this league."
+              : "No matches tomorrow for this league."}
+          </div>
         ) : (
-          matches.map((match) => {
+          visibleMatches.map((match) => {
             const prices = matchWinnerPrices(match.odds);
             const kickoff = formatKickoff(match.fixture.date);
 
