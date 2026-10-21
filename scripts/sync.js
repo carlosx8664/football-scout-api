@@ -407,9 +407,14 @@ export async function buildSnapshot({
   let quotaExhausted = fixturesResult.quotaExhausted;
   const remaining = fixturesResult.remaining;
 
+  console.log(
+    "Sample league IDs:",
+    fixturesResult.fixtures.slice(0, 5).map((fixture) => fixture.league?.id),
+  );
   const inTargetLeagues = fixturesResult.fixtures.filter((match) =>
     LEAGUE_IDS.includes(match.league?.id),
   );
+  console.log("Matches passed target league filter:", inTargetLeagues.length);
 
   log(
     `Fixtures: ${fixturesResult.fixtures.length} fetched over ${days.length} days, ${inTargetLeagues.length} in the ${LEAGUE_IDS.length} target leagues (quota left: ${remaining ?? "unknown"}).`,
