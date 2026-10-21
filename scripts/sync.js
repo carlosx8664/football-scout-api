@@ -219,6 +219,7 @@ export function createApiFootball({
     return withRetry(
       async () => {
         const response = await http.get(path, { params });
+        if (path === "/odds") console.log(response.data);
         const payload = response.data ?? {};
 
         if (hasErrors(payload.errors)) {
