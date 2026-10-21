@@ -35,7 +35,7 @@ export const DEFAULTS = {
   /** Query each target league separately for today and tomorrow. */
   windowDays: 2,
   /**
-   * Hard cap per run: 15 leagues × 2 fixture days + up to 12 odds requests.
+   * Hard cap per run: 16 leagues × 2 fixture days + up to 10 odds requests.
    * Two scheduled runs/day use up to 84 requests, inside the free plan's 100/day allowance.
    */
   maxRequestsPerRun: 42,

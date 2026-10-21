@@ -1,8 +1,8 @@
 # football-scout-api
 
-A football scouting dashboard: upcoming fixtures across 15 competitions (top-5 European
+A football scouting dashboard: upcoming fixtures across 16 competitions (top-5 European
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
-Champions League, EFL Cup, FA Cup, World Cup and Friendlies) for **today and tomorrow**,
+Champions League, Conference League, EFL Cup, FA Cup, World Cup and Friendlies) for **today and tomorrow**,
 match-winner odds from API-Football, and a short AI scouting note per match from DeepSeek.
 
 Data gathering is fully decoupled from page views:
@@ -11,8 +11,8 @@ Data gathering is fully decoupled from page views:
 GitHub Actions (09:07, 18:07 UTC, or manual)
   └─ scripts/sync.js                      (free-plan friendly: max 42 requests/run)
        ├─ API-Football  → /fixtures?league=<id>&season=2026&date=<day>
-       │                  for 15 leagues and 2 days (30 requests)
-       │                  + /odds?fixture=<id> for up to 12 target matches (6.5s apart)
+       │                  for 16 leagues and 2 days (32 requests)
+       │                  + /odds?fixture=<id> for up to 10 target matches (6.5s apart)
        ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
        └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
 
@@ -35,7 +35,7 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 ## Project layout
 
 ```
-shared/leagues.js              Single source of truth for the 15 tracked leagues
+shared/leagues.js              Single source of truth for the 16 tracked leagues
 scripts/sync.js                Today + tomorrow sync (fixtures + odds + AI) → Cloudflare KV
 .github/workflows/daily-sync.yml   Cron at 09/13/17/21 UTC + manual workflow_dispatch
 functions/api/snapshot.js      GET /api/snapshot - reads snapshot-latest from KV, never the APIs
@@ -167,7 +167,7 @@ league separately for each date:
   tracked leagues and both today and tomorrow; responses are combined and deduped by `fixture.id`.
 - Odds: `/odds?fixture=<id>` is requested for target-league fixtures in kickoff order. All
   API-Football calls are spaced 6.5 seconds apart to stay within the free-tier rate limit.
-- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 42 = 30 fixture requests + up to 12 odds
+- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 42 = 32 fixture requests + up to 10 odds
   requests) caps calls per run. The twice-daily schedule uses at most 84 requests/day, inside
   the free plan's 100/day allowance.
 - A daily-limit response stops further calls for that run, logs a warning, and still uploads

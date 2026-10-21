@@ -20,6 +20,7 @@ export const LEAGUES = [
   { id: 88, name: "Eredivisie", logo: logo(88) },
   { id: 40, name: "EFL Championship", logo: logo(40) },
   { id: 2, name: "UEFA Champions League", logo: logo(2) },
+  { id: 848, name: "UEFA Conference League", logo: logo(848) },
   { id: 48, name: "EFL Cup", logo: logo(48) },
   { id: 45, name: "FA Cup", logo: logo(45) },
   { id: 1, name: "World Cup", logo: logo(1) },
