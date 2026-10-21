@@ -32,13 +32,15 @@ const LATEST_SNAPSHOT_KEY = "snapshot-latest";
 
 export const DEFAULTS = {
   model: "deepseek-flash",
-  /** Query each target league separately for today and tomorrow. */
+  /** Query fixtures for today and tomorrow. */
   windowDays: 2,
   /**
-   * Hard cap per run: 16 leagues × 2 fixture days + up to 10 odds requests.
+   * Hard cap per run: up to 32 fixture pages + up to 10 odds requests.
    * Two scheduled runs/day use up to 84 requests, inside the free plan's 100/day allowance.
    */
   maxRequestsPerRun: 42,
+  maxFixtureRequestsPerRun: 32,
+  maxOddsRequestsPerRun: 10,
   gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
   peakWarningThreshold: 75,
@@ -245,12 +247,9 @@ export function createApiFootball({
   }
 
   return {
-    fixturesByLeagueDate(leagueId, season, date) {
-      return request(
-        "/fixtures",
-        { league: leagueId, season, date, timezone: "UTC" },
-        `fixtures league ${leagueId} ${date}`,
-      );
+    fixturesByDate(date, page = 1) {
+      const params = { date, timezone: "UTC", ...(page > 1 ? { page } : {}) };
+      return request("/fixtures", params, `fixtures ${date} p${page}`);
     },
     oddsByFixture(fixtureId) {
       return request("/odds", { fixture: fixtureId }, `odds fixture ${fixtureId}`);
@@ -324,27 +323,57 @@ export function createDeepSeek({
   return { analyze, endpoint, model, viaGateway: useGateway };
 }
 
-async function collectFixtures({ apiFootball, days, log }) {
+async function collectFixtures({ apiFootball, days, requestBudget, log }) {
   const fixtures = [];
   const seen = new Set();
   let requests = 0;
   let remaining = null;
   let quotaExhausted = false;
+  const totalPagesByDay = new Map();
+  const nextPageByDay = new Map();
+
+  const fetchPage = async (day, page) => {
+    requests += 1;
+    const result = await apiFootball.fixturesByDate(day, page);
+    remaining = result.remaining ?? remaining;
+    totalPagesByDay.set(
+      day,
+      Math.max(1, Number(result.payload?.paging?.total ?? 1) || 1),
+    );
+
+    for (const fixture of result.payload?.response ?? []) {
+      const id = fixture?.fixture?.id;
+      if (id == null || seen.has(id)) continue;
+      seen.add(id);
+      fixtures.push(fixture);
+    }
+  };
 
   for (const day of days) {
-    for (const league of LEAGUES) {
-      try {
-        const result = await apiFootball.fixturesByLeagueDate(league.id, 2026, day);
-        if (day === addDays(days[0], 1)) console.log(result.payload);
-        requests += 1;
-        remaining = result.remaining ?? remaining;
+    if (requests >= requestBudget) break;
+    try {
+      await fetchPage(day, 1);
+      nextPageByDay.set(day, 2);
+    } catch (error) {
+      if (!(error instanceof QuotaError)) throw error;
+      quotaExhausted = true;
+      log(`::warning::${error.message}`);
+      log("Stopping fixture requests for the rest of this run.");
+      break;
+    }
+  }
 
-        for (const fixture of result.payload?.response ?? []) {
-          const id = fixture?.fixture?.id;
-          if (id == null || seen.has(id)) continue;
-          seen.add(id);
-          fixtures.push(fixture);
-        }
+  while (!quotaExhausted && requests < requestBudget) {
+    let pageFetched = false;
+    for (const day of days) {
+      const page = nextPageByDay.get(day);
+      if (page == null || page > (totalPagesByDay.get(day) ?? 1)) continue;
+      if (requests >= requestBudget) break;
+
+      try {
+        await fetchPage(day, page);
+        nextPageByDay.set(day, page + 1);
+        pageFetched = true;
       } catch (error) {
         if (!(error instanceof QuotaError)) throw error;
         quotaExhausted = true;
@@ -353,10 +382,18 @@ async function collectFixtures({ apiFootball, days, log }) {
         break;
       }
     }
-    if (quotaExhausted) break;
+    if (quotaExhausted || !pageFetched) break;
   }
 
-  return { fixtures, requests, remaining, quotaExhausted };
+  const pagesAvailable = [...totalPagesByDay.values()].reduce((sum, total) => sum + total, 0);
+  if (!quotaExhausted && requests < pagesAvailable) {
+    log(
+      `::warning::Fixture pagination reached its request cap after ${requests} page(s); ` +
+        `${pagesAvailable - requests} page(s) remain.`,
+    );
+  }
+
+  return { fixtures, requests, remaining, quotaExhausted, pagesAvailable };
 }
 
 async function collectOdds({ apiFootball, fixtures, requestBudget, stopOnQuota, log }) {
@@ -408,7 +445,21 @@ export async function buildSnapshot({
 }) {
   const days = Array.from({ length: windowDays }, (_, index) => addDays(date, index));
 
-  const fixturesResult = await collectFixtures({ apiFootball, days, log });
+  const runRequestBudget = Math.max(0, Math.floor(maxRequestsPerRun));
+  const reservedOddsBudget = Math.min(
+    DEFAULTS.maxOddsRequestsPerRun,
+    Math.max(0, runRequestBudget - 1),
+  );
+  const fixtureRequestBudget = Math.min(
+    DEFAULTS.maxFixtureRequestsPerRun,
+    runRequestBudget - reservedOddsBudget,
+  );
+  const fixturesResult = await collectFixtures({
+    apiFootball,
+    days,
+    requestBudget: fixtureRequestBudget,
+    log,
+  });
   let requestsUsed = fixturesResult.requests;
   let quotaExhausted = fixturesResult.quotaExhausted;
   const remaining = fixturesResult.remaining;
@@ -436,7 +487,10 @@ export async function buildSnapshot({
   const oddsCandidates = inTargetLeagues
     .filter(isInSyncWindow)
     .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)));
-  const oddsBudget = Math.max(0, Math.floor(maxRequestsPerRun - requestsUsed));
+  const oddsBudget = Math.min(
+    DEFAULTS.maxOddsRequestsPerRun,
+    Math.max(0, runRequestBudget - requestsUsed),
+  );
 
   let odds = { oddsByFixture: new Map(), requests: 0, quotaExhausted };
 

@@ -10,8 +10,7 @@ Data gathering is fully decoupled from page views:
 ```
 GitHub Actions (09:07, 18:07 UTC, or manual)
   └─ scripts/sync.js                      (free-plan friendly: max 42 requests/run)
-       ├─ API-Football  → /fixtures?league=<id>&season=2026&date=<day>
-       │                  for 16 leagues and 2 days (32 requests)
+       ├─ API-Football  → /fixtures?date=<day> with pagination, then filter to 16 leagues
        │                  + /odds?fixture=<id> for up to 10 target matches (6.5s apart)
        ├─ DeepSeek      → 2-sentence analysis for matches with odds (3 at a time)
        └─ Cloudflare KV → snapshot-latest (+ snapshot-<YYYY-MM-DD> archive)
@@ -159,17 +158,18 @@ friendly placeholder:
 
 ## Sync behaviour and quota safety
 
-The API-Football **free plan** rejects `from`/`to` range queries for the current season
-(`{"plan":"Free plans do not have access to this season"}`), so the sync queries each target
-league separately for each date:
+The API-Football **free plan** rejects `from`/`to` range queries and season-specific fixture
+queries for the current season, so the sync uses global date-scoped fixture calls:
 
-- Fixtures: `/fixtures?league=<id>&season=2026&date=<day>&timezone=UTC` for each of the 15
-  tracked leagues and both today and tomorrow; responses are combined and deduped by `fixture.id`.
+- Fixtures: `/fixtures?date=<day>&timezone=UTC` for today and tomorrow. Each date's response is
+  paginated using `paging.total`; fetched pages are combined and deduped by `fixture.id` before
+  filtering to the 16 tracked leagues. Pagination is capped to leave room for odds requests.
 - Odds: `/odds?fixture=<id>` is requested for target-league fixtures in kickoff order. All
   API-Football calls are spaced 6.5 seconds apart to stay within the free-tier rate limit.
-- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 42 = 32 fixture requests + up to 10 odds
-  requests) caps calls per run. The twice-daily schedule uses at most 84 requests/day, inside
-  the free plan's 100/day allowance.
+- **Request budget**: `MAX_REQUESTS_PER_RUN` (default 42 = up to 32 fixture pages + up to 10
+  odds requests) caps calls per run. The twice-daily schedule uses at most 84 requests/day,
+  inside the free plan's 100/day allowance. If fixture pagination reaches its cap, the log warns
+  how many pages remain.
 - A daily-limit response stops further calls for that run, logs a warning, and still uploads
   what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
 - Grace period: today's matches that kicked off more than 4 hours ago are dropped before upload;
