@@ -8,7 +8,7 @@ match-winner odds from API-Football, and a short AI scouting note per match from
 Data gathering is fully decoupled from page views:
 
 ```
-GitHub Actions (09:00, 12:00, 14:00, 16:00, 18:00 UTC, or manual)
+GitHub Actions (09:07, 12:07, 14:07, 16:07, 18:07 UTC, or manual)
   └─ scripts/sync.js                      (free-plan friendly: max 14 requests/run)
        ├─ API-Football  → /fixtures?date= for today and tomorrow (2 requests)
        │                  + /odds?fixture=<id> for up to 12 target matches (6.5s apart)
@@ -177,7 +177,7 @@ The API-Football **free plan** rejects `from`/`to` range queries for the current
   `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
 - Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
 - `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
-- Cron is UTC: `0 9,12,14,16,18 * * *` → 09:00, 12:00, 14:00, 16:00 and 18:00.
+- Cron is UTC: `7 9,12,14,16,18 * * *` → 09:07, 12:07, 14:07, 16:07 and 18:07.
 - The site polls `/api/snapshot` every 15 minutes and refetches only when a match kicks off within
   the next hour, so late odds/analysis land without any extra API-Football requests.
 

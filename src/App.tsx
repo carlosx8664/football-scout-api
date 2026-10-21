@@ -87,18 +87,6 @@ function App() {
     );
   }
 
-  if (matchId !== null) {
-    return (
-      <div className="app-container">
-        <Header />
-        <MatchDetail
-          match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
-          date={data.date}
-        />
-      </div>
-    );
-  }
-
   const filteredMatches =
     selectedLeague === 0
       ? data.matches
@@ -111,15 +99,22 @@ function App() {
       <div className="app-body">
         <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
 
-        <MainFeed
-          matches={filteredMatches}
-          selectedLeagueName={
-            selectedLeague === 0 ? "Top Matches of the Day" : leagueName(selectedLeague)
-          }
-          quota={data.quota_remaining ?? "unknown"}
-          date={data.date}
-          now={now}
-        />
+        {matchId !== null ? (
+          <MatchDetail
+            match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
+            date={data.date}
+          />
+        ) : (
+          <MainFeed
+            matches={filteredMatches}
+            selectedLeagueName={
+              selectedLeague === 0 ? "Top Matches of the Day" : leagueName(selectedLeague)
+            }
+            quota={data.quota_remaining ?? "unknown"}
+            date={data.date}
+            now={now}
+          />
+        )}
 
         <RightSidebar />
       </div>

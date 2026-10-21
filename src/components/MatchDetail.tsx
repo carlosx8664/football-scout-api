@@ -12,7 +12,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
     return (
       <main className="detail-container">
         <a className="back-link" href="/">
-          ← Back to today's matches
+          ← Back to matches
         </a>
         <div className="empty-state">That match is not on today's slate ({date}).</div>
       </main>
@@ -26,7 +26,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
   return (
     <main className="detail-container">
       <a className="back-link" href="/">
-        ← Back to today's matches
+        ← Back to matches
       </a>
 
       <article className="detail-card">
