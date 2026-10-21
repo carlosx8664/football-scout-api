@@ -7,9 +7,10 @@
  * requests (today and tomorrow). Odds are requested per target-league fixture, capped by a
  * per-run request budget so five daily runs stay inside the 100 requests/day allowance.
  *
- * Matches older than the 4-hour grace period are dropped, matches with odds get a DeepSeek
- * analysis, and the result is stored in Cloudflare KV under `snapshot-latest` (plus a dated
- * copy). The site reads only from KV, so visitor traffic can never consume the quota.
+ * Today's matches older than the 4-hour grace period are dropped; future-day matches are kept.
+ * Matches with odds get a DeepSeek analysis, and the result is stored in Cloudflare KV under
+ * `snapshot-latest` (plus a dated copy). The site reads only from KV, so visitor traffic can
+ * never consume the quota.
  *
  * Usage:
  *   node scripts/sync.js                 # sync + upload to KV
@@ -415,8 +416,13 @@ export async function buildSnapshot({
   );
 
   const cutoff = now - gracePeriodMs;
+  const isInSyncWindow = (match) => {
+    const kickoff = new Date(match.fixture.date).getTime();
+    const fixtureDay = String(match.fixture.date).slice(0, 10);
+    return fixtureDay > date || (fixtureDay === date && kickoff > cutoff);
+  };
   const oddsCandidates = inTargetLeagues
-    .filter((match) => new Date(match.fixture.date).getTime() > cutoff)
+    .filter(isInSyncWindow)
     .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)));
   const oddsBudget = Math.max(0, Math.floor(maxRequestsPerRun - requestsUsed));
 
@@ -444,12 +450,11 @@ export async function buildSnapshot({
 
   const matches = inTargetLeagues
     .map((match) => ({ ...match, odds: odds.oddsByFixture.get(match.fixture?.id) ?? null }))
-    // Keep anything starting soon or that kicked off within the 4-hour grace period.
-    .filter((match) => new Date(match.fixture.date).getTime() > cutoff)
+    .filter(isInSyncWindow)
     .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)));
 
   log(
-    `Keeping ${matches.length} matches after the ${Math.round(gracePeriodMs / 3600000)}h grace period (dropped ${inTargetLeagues.length - matches.length}).`,
+    `Keeping ${matches.length} matches in the sync window (dropped ${inTargetLeagues.length - matches.length} past/expired).`,
   );
 
   const metrics = dailyMetrics(matches);

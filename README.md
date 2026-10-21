@@ -170,7 +170,8 @@ The API-Football **free plan** rejects `from`/`to` range queries for the current
   100/day allowance.
 - A daily-limit response stops further calls for that run, logs a warning, and still uploads
   what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
-- Grace period: matches that kicked off more than 4 hours ago are dropped before upload.
+- Grace period: today's matches that kicked off more than 4 hours ago are dropped before upload;
+  tomorrow's and other future-day matches bypass the grace period.
 - DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`).
 - Metrics logged each run: total active matches, active days, average per active day, peak day,
   and a loud warning for any day above 75 matches:
