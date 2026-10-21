@@ -4,9 +4,8 @@
  *
  * The free API-Football plan only allows a one-day-either-side window and rejects `from`/`to`
  * range queries for the current season, so the window is gathered with two `/fixtures?date=`
- * requests (today and tomorrow) and odds come from `/odds?date=` pages for the same two days,
- * capped by a per-run request budget so five daily runs stay inside the 100 requests/day
- * allowance.
+ * requests (today and tomorrow). Odds are requested per target-league fixture, capped by a
+ * per-run request budget so five daily runs stay inside the 100 requests/day allowance.
  *
  * Matches older than the 4-hour grace period are dropped, matches with odds get a DeepSeek
  * analysis, and the result is stored in Cloudflare KV under `snapshot-latest` (plus a dated
@@ -34,15 +33,11 @@ export const DEFAULTS = {
   model: "deepseek-flash",
   /** Free plan allows today ± 1 day: two fixture requests, today and tomorrow. */
   windowDays: 2,
-  /** Odds are fetched for today and tomorrow only. */
-  oddsWindowDays: 2,
-  /** API-Football paginates /odds at 10 fixtures per page; 8 covers a normal two-day slate. */
-  oddsMaxPages: 8,
   /**
-   * Hard cap on API-Football calls per run: 2 fixture days + 8 + 8 odds pages = 18.
-   * Five runs/day is 90 requests, inside the free plan's 100/day allowance.
+   * Hard cap on API-Football calls per run: 2 fixture days + up to 12 per-fixture odds requests.
+   * Five runs/day is 70 requests, inside the free plan's 100/day allowance.
    */
-  maxRequestsPerRun: 18,
+  maxRequestsPerRun: 14,
   gracePeriodMs: 4 * 60 * 60 * 1000,
   aiConcurrency: 3,
   peakWarningThreshold: 75,
@@ -205,6 +200,7 @@ export function createApiFootball({
   retryDelayMs = 2000,
   log = () => {},
 }) {
+  let oddsRequestMade = false;
   const http = axios.create({
     baseURL: API_FOOTBALL_BASE,
     timeout: timeoutMs,
@@ -218,6 +214,8 @@ export function createApiFootball({
   async function request(path, params, label) {
     return withRetry(
       async () => {
+        if (path === "/odds" && oddsRequestMade) await sleep(6500);
+        if (path === "/odds") oddsRequestMade = true;
         const response = await http.get(path, { params });
         if (path === "/odds") console.log(response.data);
         const payload = response.data ?? {};
@@ -250,9 +248,8 @@ export function createApiFootball({
       // Date-scoped queries work on every plan; from/to ranges need a current-season plan.
       return request("/fixtures", { date, timezone: "UTC" }, `fixtures ${date}`);
     },
-    oddsByDate(date, page = 1) {
-      const params = { date, timezone: "UTC", ...(page > 1 ? { page } : {}) };
-      return request("/odds", params, `odds ${date} p${page}`);
+    oddsByFixture(fixtureId) {
+      return request("/odds", { fixture: fixtureId }, `odds fixture ${fixtureId}`);
     },
   };
 }
@@ -354,10 +351,9 @@ async function collectFixtures({ apiFootball, days, log }) {
   return { fixtures, requests, remaining, quotaExhausted };
 }
 
-async function collectOdds({ apiFootball, days, pagesPerDay, stopOnQuota, log }) {
+async function collectOdds({ apiFootball, fixtures, requestBudget, stopOnQuota, log }) {
   const oddsByFixture = new Map();
   let requests = 0;
-  let pagesAvailable = 0;
   let quotaExhausted = Boolean(stopOnQuota);
 
   const ingest = (payload) => {
@@ -369,42 +365,25 @@ async function collectOdds({ apiFootball, days, pagesPerDay, stopOnQuota, log })
     }
   };
 
-  for (const day of days) {
-    if (quotaExhausted) break;
+  for (const fixture of fixtures) {
+    if (quotaExhausted || requests >= requestBudget) break;
 
-    let totalPages = 1;
-    let fetched = 0;
-    let failed = false;
+    const fixtureId = fixture?.fixture?.id;
+    if (fixtureId == null) continue;
 
-    for (let page = 1; page <= Math.min(pagesPerDay, totalPages); page += 1) {
-      try {
-        const { payload } = await apiFootball.oddsByDate(day, page);
-        requests += 1;
-        fetched += 1;
-        totalPages = Math.max(1, Number(payload?.paging?.total ?? 1) || 1);
-        ingest(payload);
-      } catch (error) {
-        if (!(error instanceof QuotaError)) throw error;
-        quotaExhausted = true;
-        failed = true;
-        log(`::warning::${error.message}`);
-        log("Stopping odds requests for the rest of this run.");
-        break;
-      }
-    }
-
-    if (failed) break;
-
-    pagesAvailable += totalPages;
-    if (totalPages > fetched) {
-      log(
-        `::warning::${day}: ${totalPages} odds pages are needed but only ${fetched} were fetched ` +
-          `(ODDS_MAX_PAGES=${pagesPerDay}). Raise ODDS_MAX_PAGES / MAX_REQUESTS_PER_RUN for full coverage.`,
-      );
+    requests += 1;
+    try {
+      const { payload } = await apiFootball.oddsByFixture(fixtureId);
+      ingest(payload);
+    } catch (error) {
+      if (!(error instanceof QuotaError)) throw error;
+      quotaExhausted = true;
+      log(`::warning::${error.message}`);
+      log("Stopping odds requests for the rest of this run.");
     }
   }
 
-  return { oddsByFixture, requests, pagesAvailable, quotaExhausted };
+  return { oddsByFixture, requests, quotaExhausted };
 }
 
 export async function buildSnapshot({
@@ -412,8 +391,6 @@ export async function buildSnapshot({
   apiFootball,
   deepseek = null,
   windowDays = DEFAULTS.windowDays,
-  oddsWindowDays = DEFAULTS.oddsWindowDays,
-  oddsMaxPages = DEFAULTS.oddsMaxPages,
   maxRequestsPerRun = DEFAULTS.maxRequestsPerRun,
   gracePeriodMs = DEFAULTS.gracePeriodMs,
   aiConcurrency = DEFAULTS.aiConcurrency,
@@ -436,37 +413,34 @@ export async function buildSnapshot({
     `Fixtures: ${fixturesResult.fixtures.length} fetched over ${days.length} days, ${inTargetLeagues.length} in the ${LEAGUE_IDS.length} target leagues (quota left: ${remaining ?? "unknown"}).`,
   );
 
-  const oddsDays = days.slice(0, Math.max(0, oddsWindowDays));
-  const oddsBudget = Math.max(0, maxRequestsPerRun - requestsUsed);
-  const pagesPerDay = oddsDays.length
-    ? Math.min(oddsMaxPages, Math.floor(oddsBudget / oddsDays.length))
-    : 0;
+  const cutoff = now - gracePeriodMs;
+  const oddsCandidates = inTargetLeagues
+    .filter((match) => new Date(match.fixture.date).getTime() > cutoff)
+    .sort((a, b) => String(a.fixture.date).localeCompare(String(b.fixture.date)));
+  const oddsBudget = Math.max(0, Math.floor(maxRequestsPerRun - requestsUsed));
 
-  let odds = { oddsByFixture: new Map(), requests: 0, pagesAvailable: 0, quotaExhausted };
+  let odds = { oddsByFixture: new Map(), requests: 0, quotaExhausted };
 
-  if (pagesPerDay === 0) {
-    log(
-      "::warning::Request budget leaves no room for odds; raise MAX_REQUESTS_PER_RUN or lower ODDS_WINDOW_DAYS.",
-    );
+  if (oddsBudget === 0) {
+    log("::warning::Request budget leaves no room for odds; raise MAX_REQUESTS_PER_RUN.");
   } else {
     odds = await collectOdds({
       apiFootball,
-      days: oddsDays,
-      pagesPerDay,
+      fixtures: oddsCandidates,
+      requestBudget: oddsBudget,
       stopOnQuota: quotaExhausted,
       log,
     });
     requestsUsed += odds.requests;
     quotaExhausted = odds.quotaExhausted;
     log(
-      `Odds: ${odds.oddsByFixture.size} fixtures matched using ${odds.requests} request(s) over ${oddsDays.join(", ")} ` +
-        `(${odds.pagesAvailable} pages needed, cap ${pagesPerDay}/day).`,
+      `Odds: ${odds.oddsByFixture.size} fixtures matched using ${odds.requests} per-fixture request(s) ` +
+        `(budget ${oddsBudget}; ${oddsCandidates.length} eligible target-league fixtures).`,
     );
   }
 
   log(`API-Football requests used this run: ${requestsUsed}/${maxRequestsPerRun}.`);
 
-  const cutoff = now - gracePeriodMs;
   const matches = inTargetLeagues
     .map((match) => ({ ...match, odds: odds.oddsByFixture.get(match.fixture?.id) ?? null }))
     // Keep anything starting soon or that kicked off within the 4-hour grace period.
@@ -533,7 +507,7 @@ export async function buildSnapshot({
     odds_count: analysable.length,
     analysed_count: analysedCount,
     metrics,
-    odds_pages: { fetched: odds.requests, available: odds.pagesAvailable },
+    odds_requests: odds.requests,
     ai_concurrency: { limit: aiConcurrency, peak: analysablePeak },
     matches: matches.map(publicMatch),
   };
@@ -595,8 +569,6 @@ export async function runSync({
     apiFootball,
     deepseek,
     aiConcurrency: Number(env.AI_CONCURRENCY ?? DEFAULTS.aiConcurrency),
-    oddsMaxPages: Number(env.ODDS_MAX_PAGES ?? DEFAULTS.oddsMaxPages),
-    oddsWindowDays: Number(env.ODDS_WINDOW_DAYS ?? DEFAULTS.oddsWindowDays),
     maxRequestsPerRun: Number(env.MAX_REQUESTS_PER_RUN ?? DEFAULTS.maxRequestsPerRun),
     now,
     log,
@@ -644,7 +616,7 @@ async function main() {
       "Usage: node scripts/sync.js [--dry-run] [--out <file>] [--date <YYYY-MM-DD>]\n\n" +
         "Required env: API_FOOTBALL_KEY, CF_ACCOUNT_ID, CF_KV_NAMESPACE_ID, CF_API_TOKEN\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL, CF_GATEWAY_ID, CF_AIG_TOKEN,\n" +
-        "              AI_CONCURRENCY, ODDS_MAX_PAGES, ODDS_WINDOW_DAYS,\n" +
+        "              AI_CONCURRENCY,\n" +
         "              MAX_REQUESTS_PER_RUN, SYNC_DATE",
     );
     return;
