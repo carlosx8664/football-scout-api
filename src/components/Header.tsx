@@ -6,7 +6,17 @@ const Header = () => {
       <div className="header-inner">
         <div className="header-left">
           <a className="logo" href="/">
-            ABC
+            <img
+              src="/logo.png"
+              alt="Oddtor"
+              style={{
+                height: "40px",
+                width: "auto",
+                maxWidth: "150px",
+                objectFit: "contain",
+                cursor: "pointer",
+              }}
+            />
           </a>
           <nav className="top-nav">
             <a href="#">Tip Hub</a>
