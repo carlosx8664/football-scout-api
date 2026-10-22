@@ -33,19 +33,6 @@
 .top-nav a:hover { color: var(--color-neutral-7); border-bottom-color: var(--color-brand); }
 
 .header-right { display: flex; align-items: center; gap: 12px; }
-.btn-signup {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-brand-4);
-  border: 1px solid var(--color-brand-4);
-  background: var(--color-neutral-1);
-}
-.btn-signup:hover { background: var(--color-brand-weak); }
 .btn-login {
   padding: 8px 16px;
   border-radius: 8px;
