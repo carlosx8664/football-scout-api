@@ -1,4 +1,4 @@
-.tipsters-container {
+.top-picks-container {
   background: var(--color-neutral-1);
   border: 1px solid var(--color-neutral-4);
   border-radius: 12px;
@@ -7,16 +7,58 @@
   top: 100px;
   min-width: 0;
 }
-.tipsters-container h3 {
+.top-picks-container h3 {
   font-size: 1.125rem;
   font-weight: 700;
+  margin-bottom: 4px;
+}
+.top-picks-subtitle {
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
   margin-bottom: 16px;
 }
-.twitter-timeline-container {
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
+.top-picks-list {
+  list-style: none;
 }
-.twitter-timeline-container iframe {
-  max-width: 100% !important;
+.top-pick {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-neutral-3);
+}
+.top-pick-teams,
+.top-pick-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.top-pick-teams {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.top-pick-time {
+  flex: 0 0 auto;
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.top-pick-footer {
+  margin-top: 8px;
+}
+.top-pick-odds {
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+}
+.top-pick-link {
+  color: var(--color-brand-4);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.top-pick-link:hover {
+  text-decoration: underline;
+}
+.top-picks-empty {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
 }

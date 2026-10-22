@@ -118,7 +118,7 @@ function App() {
           />
         )}
 
-        <RightSidebar />
+        <RightSidebar matches={data.matches} date={data.date} />
       </div>
     </div>
   );
