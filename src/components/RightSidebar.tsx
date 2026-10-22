@@ -2,42 +2,77 @@ import { useEffect, useRef, useState } from "react";
 import "./RightSidebar.css";
 
 const TIPSTERS = [
-  { name: "Andy Robson", url: "https://x.com/AndyRobsonTips" },
-  { name: "The Betting Village", url: "https://x.com/bettingvillage" },
-  { name: "Gary Doc", url: "https://x.com/garydoc777" },
-  { name: "Sjakktrekk", url: "https://x.com/Sjakktrekk" },
-  { name: "King Tipster", url: "https://x.com/The_KingTipster" },
+  { name: "Andy Robson", handle: "AndyRobsonTips" },
+  { name: "The Betting Village", handle: "bettingvillage" },
+  { name: "Gary Doc", handle: "garydoc777" },
+  { name: "Sjakktrekk", handle: "Sjakktrekk" },
+  { name: "King Tipster", handle: "The_KingTipster" },
 ];
 
 declare global {
   interface Window {
     twttr?: {
       widgets?: {
-        load: (element?: HTMLElement | null) => void;
+        createTimeline: (
+          source: { sourceType: "profile"; screenName: string },
+          target: HTMLElement,
+          options: { height: number; chrome: string; tweetLimit: number },
+        ) => Promise<HTMLElement>;
       };
     };
   }
 }
 
 const RightSidebar = () => {
-  const [selectedUrl, setSelectedUrl] = useState(TIPSTERS[0].url);
+  const [selectedHandle, setSelectedHandle] = useState(TIPSTERS[0].handle);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const script = document.querySelector<HTMLScriptElement>(
-      'script[src="https://platform.x.com/widgets.js"]',
-    );
-    const loadTimeline = () => window.twttr?.widgets?.load(timelineRef.current);
+    let active = true;
+    let attempts = 0;
+    let interval: number | null = null;
+    const container = timelineRef.current;
 
-    if (window.twttr?.widgets) {
-      loadTimeline();
-      return;
-    }
+    if (!container) return;
+    container.innerHTML = "";
 
-    script?.addEventListener("load", loadTimeline);
+    const renderTimeline = () => {
+      if (!active) return;
+      const widgets = window.twttr?.widgets;
 
-    return () => script?.removeEventListener("load", loadTimeline);
-  }, [selectedUrl]);
+      if (widgets?.createTimeline) {
+        if (interval !== null) window.clearInterval(interval);
+        void widgets
+          .createTimeline(
+            { sourceType: "profile", screenName: selectedHandle },
+            container,
+            {
+              height: 400,
+              chrome: "nofooter noborders transparent",
+              tweetLimit: 3,
+            },
+          )
+          .catch((error: unknown) => {
+            if (active) console.error("Failed to render X timeline:", error);
+          });
+        return;
+      }
+
+      attempts += 1;
+      if (attempts >= 50) {
+        if (interval !== null) window.clearInterval(interval);
+        console.error("X widgets did not become ready; timeline could not be rendered.");
+      }
+    };
+
+    interval = window.setInterval(renderTimeline, 100);
+    renderTimeline();
+
+    return () => {
+      active = false;
+      if (interval !== null) window.clearInterval(interval);
+    };
+  }, [selectedHandle]);
 
   return (
     <aside className="right-sidebar">
@@ -49,27 +84,20 @@ const RightSidebar = () => {
         <select
           id="tipster-select"
           className="tipster-select"
-          value={selectedUrl}
-          onChange={(event) => setSelectedUrl(event.target.value)}
+          value={selectedHandle}
+          onChange={(event) => setSelectedHandle(event.target.value)}
         >
           {TIPSTERS.map((tipster) => (
-            <option key={tipster.url} value={tipster.url}>
+            <option key={tipster.handle} value={tipster.handle}>
               {tipster.name}
             </option>
           ))}
         </select>
-        <div className="twitter-timeline-container" ref={timelineRef}>
-          <a
-            key={selectedUrl}
-            className="twitter-timeline"
-            href={selectedUrl}
-            data-tweet-limit="3"
-            data-chrome="nofooter noborders transparent"
-            data-theme="light"
-          >
-            Tweets by {TIPSTERS.find((tipster) => tipster.url === selectedUrl)?.name}
-          </a>
-        </div>
+        <div
+          key={selectedHandle}
+          className="twitter-timeline-container"
+          ref={timelineRef}
+        />
       </section>
     </aside>
   );
