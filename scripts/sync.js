@@ -632,6 +632,11 @@ export async function runSync({
     return snapshot;
   }
 
+  if (snapshot.matches.length === 0) {
+    log("No matches found. Skipping KV upload to preserve previous data.");
+    return snapshot;
+  }
+
   const target = {
     accountId: required(env, "CF_ACCOUNT_ID"),
     namespaceId: required(env, "CF_KV_NAMESPACE_ID"),
