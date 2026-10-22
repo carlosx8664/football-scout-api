@@ -2,8 +2,8 @@ name: Daily football sync
 
 on:
   schedule:
-    # Twice daily at minute 7 to fit per-league fixture calls within the free-tier quota.
-    - cron: "7 9,18 * * *"
+    # Twice daily at minute 1 UTC.
+    - cron: "1 0,12 * * *"
   workflow_dispatch:
     inputs:
       date:
