@@ -205,7 +205,7 @@ function main() {
     }
   }
 
-  const outPath = path.join(DATA_DIR, 'arbs.json');
+const outPath = path.join(__dirname, '..', 'public', 'arbs.json');
   fs.writeFileSync(outPath, JSON.stringify({
     generatedAt: new Date().toISOString(),
     boostApplied: ODDS_BOOST_MULTIPLIER,
