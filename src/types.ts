@@ -23,10 +23,10 @@ export interface Match {
   ai_analysis: string | null;
 }
 
-export interface ArbBookOdds {
-  home: number;
-  draw: number;
-  away: number;
+export interface ArbLeg {
+  bookmaker: string;
+  outcome: string;
+  odds: number;
 }
 
 export interface ArbOpportunity {
@@ -35,16 +35,15 @@ export interface ArbOpportunity {
   tournament: string;
   /** Epoch milliseconds. */
   kickoff: number;
-  sporty: ArbBookOdds;
-  msport: ArbBookOdds;
-  best: ArbBookOdds;
+  market: string;
   profitPct: number;
+  legs: ArbLeg[];
 }
 
-/** Static snapshot written by the arbitrage scanner to `public/data/arbs.json`. */
+/** Static snapshot written by the arbitrage scanner to `public/arbs.json`. */
 export interface ArbsPayload {
-  generatedAt: string;
-  boostApplied: number;
+  generatedAt?: string;
+  boostApplied?: number;
   arbs: ArbOpportunity[];
 }
 

@@ -2,14 +2,6 @@ import { Fragment, useEffect, useState } from "react";
 import type { ArbOpportunity, ArbsPayload } from "../types";
 import "./ArbsTable.css";
 
-const OUTCOMES = [
-  { key: "home", label: "Home" },
-  { key: "draw", label: "Draw" },
-  { key: "away", label: "Away" },
-] as const;
-
-type OutcomeKey = (typeof OUTCOMES)[number]["key"];
-
 interface ArbsTableProps {
   now: number;
 }
@@ -31,8 +23,26 @@ function kickoffLabel(kickoff: number) {
   };
 }
 
-function bookmakerFor(arb: ArbOpportunity, outcome: OutcomeKey): string {
-  return arb.msport[outcome] > arb.sporty[outcome] ? "MSport" : "SportyBet";
+/**
+ * Accepts `{ generatedAt, arbs: [...] }`, a bare array of opportunities, or a single
+ * opportunity object so the page keeps working across feed versions.
+ */
+function normalize(raw: unknown): { arbs: ArbOpportunity[]; generatedAt: string | null } {
+  if (Array.isArray(raw)) {
+    return { arbs: raw as ArbOpportunity[], generatedAt: null };
+  }
+
+  if (raw && typeof raw === "object") {
+    const payload = raw as Partial<ArbsPayload> & Partial<ArbOpportunity>;
+    if (Array.isArray(payload.arbs)) {
+      return { arbs: payload.arbs, generatedAt: payload.generatedAt ?? null };
+    }
+    if (Array.isArray(payload.legs)) {
+      return { arbs: [payload as ArbOpportunity], generatedAt: null };
+    }
+  }
+
+  return { arbs: [], generatedAt: null };
 }
 
 const ClockIcon = () => (
@@ -73,9 +83,11 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           return;
         }
 
-        const payload = (await response.json()) as ArbsPayload;
-        setArbs(Array.isArray(payload?.arbs) ? payload.arbs : []);
-        setGeneratedAt(payload?.generatedAt ?? null);
+        const { arbs: opportunities, generatedAt: updatedAt } = normalize(
+          await response.json(),
+        );
+        setArbs(opportunities);
+        setGeneratedAt(updatedAt);
       } catch (error) {
         if (controller.signal.aborted) return;
         console.warn("Could not read arbs.json; showing empty state.", error);
@@ -87,7 +99,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     return () => controller.abort();
   }, []);
 
-  const rows = arbs ?? [];
+  const rows = (arbs ?? []).filter((arb) =>
+    (arb.legs ?? []).some((leg) => Number.isFinite(leg.odds)),
+  );
 
   return (
     <section className="arbs-view">
@@ -112,20 +126,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
               </thead>
               <tbody>
                 {rows.map((arb, arbIndex) => {
-                  const outcomes = OUTCOMES.filter((outcome) =>
-                    Number.isFinite(arb.best[outcome.key]),
-                  );
-                  if (outcomes.length === 0) return null;
-
+                  const legs = (arb.legs ?? []).filter((leg) => Number.isFinite(leg.odds));
                   const kickoff = kickoffLabel(arb.kickoff);
                   const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
 
                   return (
                     <Fragment key={`${arb.kickoff}-${arb.home}-${arb.away}`}>
-                      {outcomes.map((outcome, outcomeIndex) => (
-                        <tr className={rowClass} key={outcome.key}>
-                          {outcomeIndex === 0 && (
-                            <td className="arb-profit" rowSpan={outcomes.length}>
+                      {legs.map((leg, legIndex) => (
+                        <tr className={rowClass} key={`${leg.bookmaker}-${leg.outcome}`}>
+                          {legIndex === 0 && (
+                            <td className="arb-profit" rowSpan={legs.length}>
                               <span className="arb-profit-value">
                                 {arb.profitPct.toFixed(2)}%
                               </span>
@@ -137,13 +147,11 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                           )}
 
                           <td className="arb-bookmaker">
-                            <span className="arb-bookmaker-pill">
-                              {bookmakerFor(arb, outcome.key)}
-                            </span>
+                            <span className="arb-bookmaker-pill">{leg.bookmaker}</span>
                           </td>
 
-                          {outcomeIndex === 0 && (
-                            <td className="arb-event" rowSpan={outcomes.length}>
+                          {legIndex === 0 && (
+                            <td className="arb-event" rowSpan={legs.length}>
                               <span className="arb-event-when">
                                 {kickoff.date} · {kickoff.time}
                               </span>
@@ -155,14 +163,12 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                           )}
 
                           <td className="arb-market">
-                            <span className="arb-market-type">1X2</span>
-                            <span className="arb-market-outcome">{outcome.label}</span>
+                            <span className="arb-market-type">{arb.market}</span>
+                            <span className="arb-market-outcome">{leg.outcome}</span>
                           </td>
 
                           <td className="arb-odds">
-                            <span className="arb-odds-value">
-                              {arb.best[outcome.key].toFixed(2)}
-                            </span>
+                            <span className="arb-odds-value">{leg.odds.toFixed(2)}</span>
                             <UpArrow />
                           </td>
                         </tr>
