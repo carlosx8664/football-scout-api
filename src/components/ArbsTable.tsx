@@ -1,10 +1,34 @@
 import { Fragment, useEffect, useState } from "react";
-import type { ArbOpportunity, ArbsPayload } from "../types";
+import type { ArbLeg, ArbOpportunity, ArbsPayload } from "../types";
 import "./ArbsTable.css";
 
 interface ArbsTableProps {
   now: number;
 }
+
+const MARKET_LABELS: Record<string, string> = {
+  asianhandicap: "Asian Handicap",
+  btts: "Both Teams to Score",
+  dnb: "Draw No Bet",
+  doublechance: "Double Chance",
+  doublechance1x: "Double Chance (1X)",
+  doublechancex2: "Double Chance (X2)",
+  doublechance12: "Double Chance (12)",
+  totals: "Total Goals",
+};
+
+const OUTCOME_LABELS: Record<string, string> = {
+  home: "Home",
+  away: "Away",
+  draw: "Draw",
+  yes: "Yes",
+  no: "No",
+  "1x": "Home or Draw (1X)",
+  x2: "Draw or Away (X2)",
+  "12": "Home or Away (12)",
+};
+
+const LEGS_PER_MATCH = 2;
 
 function countdown(kickoff: number, now: number): string {
   const minutes = Math.round((kickoff - now) / 60_000);
@@ -21,6 +45,45 @@ function kickoffLabel(kickoff: number) {
     date: date.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
     time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
+}
+
+/** "25" -> "2.5", "05" -> "0.5", "105" -> "10.5" (the final digit is the fraction). */
+function decimalLine(digits: string): string {
+  if (digits.length < 2) return digits;
+  return `${digits.slice(0, -1)}.${digits.slice(-1)}`;
+}
+
+function humanize(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .trim()
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function formatMarket(market: string): string {
+  if (!market) return "—";
+  const key = market.toLowerCase();
+  if (MARKET_LABELS[key]) return MARKET_LABELS[key];
+
+  const overUnder = /^overunder(\d+)$/.exec(key);
+  if (overUnder) return `Over/Under ${decimalLine(overUnder[1])}`;
+
+  return humanize(market);
+}
+
+function formatOutcome(outcome: string): string {
+  if (!outcome) return "—";
+  const key = outcome.toLowerCase();
+  if (OUTCOME_LABELS[key]) return OUTCOME_LABELS[key];
+
+  const over = /^over(\d+)$/.exec(key);
+  if (over) return `Over ${decimalLine(over[1])}`;
+
+  const under = /^under(\d+)$/.exec(key);
+  if (under) return `Under ${decimalLine(under[1])}`;
+
+  return humanize(outcome);
 }
 
 /**
@@ -43,6 +106,10 @@ function normalize(raw: unknown): { arbs: ArbOpportunity[]; generatedAt: string 
   }
 
   return { arbs: [], generatedAt: null };
+}
+
+function legsFor(arb: ArbOpportunity): ArbLeg[] {
+  return (arb.legs ?? []).filter((leg) => Number.isFinite(leg.odds)).slice(0, LEGS_PER_MATCH);
 }
 
 const ClockIcon = () => (
@@ -99,9 +166,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     return () => controller.abort();
   }, []);
 
-  const rows = (arbs ?? []).filter((arb) =>
-    (arb.legs ?? []).some((leg) => Number.isFinite(leg.odds)),
-  );
+  // Only complete two-leg opportunities can fill the paired row layout.
+  const rows = (arbs ?? []).filter((arb) => legsFor(arb).length === LEGS_PER_MATCH);
 
   return (
     <section className="arbs-view">
@@ -126,7 +192,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
               </thead>
               <tbody>
                 {rows.map((arb, arbIndex) => {
-                  const legs = (arb.legs ?? []).filter((leg) => Number.isFinite(leg.odds));
+                  const legs = legsFor(arb);
                   const kickoff = kickoffLabel(arb.kickoff);
                   const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
 
@@ -135,7 +201,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       {legs.map((leg, legIndex) => (
                         <tr className={rowClass} key={`${leg.bookmaker}-${leg.outcome}`}>
                           {legIndex === 0 && (
-                            <td className="arb-profit" rowSpan={legs.length}>
+                            <td className="arb-profit" rowSpan={LEGS_PER_MATCH}>
                               <span className="arb-profit-value">
                                 {arb.profitPct.toFixed(2)}%
                               </span>
@@ -151,7 +217,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                           </td>
 
                           {legIndex === 0 && (
-                            <td className="arb-event" rowSpan={legs.length}>
+                            <td className="arb-event" rowSpan={LEGS_PER_MATCH}>
                               <span className="arb-event-when">
                                 {kickoff.date} · {kickoff.time}
                               </span>
@@ -163,8 +229,12 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                           )}
 
                           <td className="arb-market">
-                            <span className="arb-market-type">{arb.market}</span>
-                            <span className="arb-market-outcome">{leg.outcome}</span>
+                            <span className="arb-market-type">
+                              {formatMarket(arb.market ?? "")}
+                            </span>
+                            <span className="arb-market-outcome">
+                              {formatOutcome(leg.outcome)}
+                            </span>
                           </td>
 
                           <td className="arb-odds">
