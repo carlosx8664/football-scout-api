@@ -35,13 +35,6 @@ const Sidebar = ({ selectedLeague, setSelectedLeague }: SidebarProps) => {
           ))}
         </ul>
       </div>
-
-      <div className="newsletter-box">
-        <h4>📧 My Best Bets in your Inbox</h4>
-        <p>Free newsletter sent weekly to 100,000+ subscribers.</p>
-        <input type="email" placeholder="Enter your email" />
-        <button>Join the mailing list</button>
-      </div>
     </aside>
   );
 };
