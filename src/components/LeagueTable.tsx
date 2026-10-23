@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { Match } from "../types";
 import "./LeagueTable.css";
 
@@ -95,20 +95,32 @@ const LeagueTable = ({ match }: LeagueTableProps) => {
               </tr>
             ) : null}
 
-            {(data.rows ?? []).map((row) => (
-              <tr
-                key={`${row.position}-${row.name}`}
-                className={row.highlight ? `league-table-row-${row.highlight}` : undefined}
-              >
-                <td className="league-table-position">{row.position}</td>
-                <td className="league-table-team" title={row.name}>
-                  {row.crest ? <img src={row.crest} alt="" /> : null}
-                  <span>{row.shortName || row.name}</span>
-                </td>
-                <td className="league-table-stat">{row.played}</td>
-                <td className="league-table-stat league-table-points">{row.points}</td>
-              </tr>
-            ))}
+            {(data.rows ?? []).map((row, index, all) => {
+              // Collapse the middle of the table when the two teams are far apart.
+              const previous = index > 0 ? all[index - 1] : null;
+              const hasGap = previous !== null && row.position > previous.position + 1;
+
+              return (
+                <Fragment key={`${row.position}-${row.name}`}>
+                  {hasGap ? (
+                    <tr className="league-table-gap">
+                      <td colSpan={4}>…</td>
+                    </tr>
+                  ) : null}
+                  <tr
+                    className={row.highlight ? `league-table-row-${row.highlight}` : undefined}
+                  >
+                    <td className="league-table-position">{row.position}</td>
+                    <td className="league-table-team" title={row.name}>
+                      {row.crest ? <img src={row.crest} alt="" /> : null}
+                      <span>{row.shortName || row.name}</span>
+                    </td>
+                    <td className="league-table-stat">{row.played}</td>
+                    <td className="league-table-stat league-table-points">{row.points}</td>
+                  </tr>
+                </Fragment>
+              );
+            })}
 
             {data.truncatedBelow ? (
               <tr className="league-table-gap">
