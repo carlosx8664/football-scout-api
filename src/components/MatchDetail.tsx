@@ -11,18 +11,22 @@ interface MatchDetailProps {
 }
 
 const MatchDetail = ({ match, date }: MatchDetailProps) => {
+  // Bumping this forces a fresh analysis, skipping the cached copy.
+  const [reloadKey, setReloadKey] = useState(0);
   // Set only after the request settles, so the effect never writes state synchronously.
   const [request, setRequest] = useState<{
     fixtureId: number;
+    reloadKey: number;
     text: string | null;
     status: "ready" | "error";
     error?: string;
   } | null>(null);
 
-  // Analyses baked into the feed win; otherwise ask the Pages Function, which calls DeepSeek
-  // server-side and caches the result in KV.
+  // Analyses baked into the feed win on first load; otherwise ask the Pages Function, which
+  // calls DeepSeek server-side and caches the result in KV.
   useEffect(() => {
-    if (!match || match.ai_analysis) return;
+    if (!match) return;
+    if (match.ai_analysis && reloadKey === 0) return;
 
     const controller = new AbortController();
     const prices = ["Home", "Draw", "Away"]
@@ -38,6 +42,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
       kickoff: match.fixture.date,
       odds: prices,
     });
+    if (reloadKey > 0) params.set("refresh", "1");
 
     fetch(`/api/analysis?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
@@ -47,13 +52,19 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
         if (!response.ok || !body?.analysis) {
           throw new Error(body?.error ?? `Analysis unavailable (HTTP ${response.status})`);
         }
-        setRequest({ fixtureId: match.fixture.id, text: body.analysis, status: "ready" });
+        setRequest({
+          fixtureId: match.fixture.id,
+          reloadKey,
+          text: body.analysis,
+          status: "ready",
+        });
       })
       .catch((error: Error) => {
         if (error.name === "AbortError") return;
         console.warn("Scout analysis failed:", error.message);
         setRequest({
           fixtureId: match.fixture.id,
+          reloadKey,
           text: null,
           status: "error",
           error: error.message,
@@ -61,7 +72,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
       });
 
     return () => controller.abort();
-  }, [match]);
+  }, [match, reloadKey]);
 
   if (!match) {
     return (
@@ -78,9 +89,13 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
   const prices = matchWinnerPrices(match.odds);
   const hasScore = match.goals?.home != null && match.goals?.away != null;
 
-  const resolved = request?.fixtureId === match.fixture.id ? request : null;
-  const analysis = match.ai_analysis ?? resolved?.text ?? null;
-  const analysisStatus = match.ai_analysis ? "ready" : (resolved?.status ?? "loading");
+  const resolved =
+    request?.fixtureId === match.fixture.id && request.reloadKey === reloadKey
+      ? request
+      : null;
+  const bakedAnalysis = reloadKey === 0 ? match.ai_analysis : null;
+  const analysis = bakedAnalysis ?? resolved?.text ?? null;
+  const analysisStatus = bakedAnalysis ? "ready" : (resolved?.status ?? "loading");
 
   return (
     <main className="detail-container">
@@ -129,7 +144,17 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
         </div>
 
         <section className="ai-box">
-          <strong>🤖 Scout Analysis</strong>
+          <div className="ai-box-header">
+            <strong>🤖 Scout Analysis</strong>
+            <button
+              type="button"
+              className="ai-refresh"
+              onClick={() => setReloadKey((key) => key + 1)}
+              disabled={analysisStatus === "loading"}
+            >
+              {analysisStatus === "loading" ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
           <p>
             {analysisStatus === "loading" ? (
               "Reading the market and writing up a view…"

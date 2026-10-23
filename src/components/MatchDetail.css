@@ -87,6 +87,23 @@
   color: var(--color-neutral-7);
 }
 .ai-box p { white-space: pre-line; }
+.ai-box-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ai-refresh {
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--color-brand-4);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.ai-refresh:hover:not(:disabled) { background: rgba(161, 0, 196, 0.1); }
+.ai-refresh:disabled { color: var(--color-neutral-6); cursor: default; }
 .ai-error-detail {
   display: block;
   margin-top: 4px;

@@ -1,5 +1,7 @@
 const KV_BINDING = "FOOTBALL_DATA";
 const CACHE_PREFIX = "analysis-";
+/** Bump when the prompt changes so stale notes are ignored. */
+const CACHE_VERSION = "v2";
 const CACHE_TTL_SECONDS = 60 * 60 * 6;
 /** Shorter TTL when the news lookup failed, so the next click can retry. */
 const FALLBACK_TTL_SECONDS = 60 * 10;
@@ -143,6 +145,8 @@ function buildMessages({ home, away, league, kickoff, odds, context }) {
     "Use ONLY the articles you are given. Never invent injuries, lineups, transfers, quotes,",
     "results or disciplinary news. If the articles do not cover something, leave it out instead",
     "of guessing. If the research is thin, say that in one short sentence.",
+    "When the articles name players who are injured, suspended, doubtful, rested or coming back,",
+    "name those players and say what the article says about them - names make the note useful.",
     "Keep the whole thing under 150 words.",
     "Shape it like this:",
     "1) One or two sentences on what you would back and why, in plain words.",
@@ -234,9 +238,11 @@ export async function onRequestGet({ request, env }) {
   }
 
   const kv = env?.[KV_BINDING];
-  const cacheKey = params.id ? `${CACHE_PREFIX}${params.id}` : null;
+  const cacheKey = params.id ? `${CACHE_PREFIX}${CACHE_VERSION}-${params.id}` : null;
+  // `?refresh=1` skips the read but still refreshes the stored copy.
+  const refresh = url.searchParams.get("refresh") === "1";
 
-  if (kv && cacheKey) {
+  if (kv && cacheKey && !refresh) {
     try {
       const cached = await kv.get(cacheKey);
       if (cached) return json({ analysis: cached, cached: true });
