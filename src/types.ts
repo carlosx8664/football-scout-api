@@ -27,9 +27,13 @@ export interface ArbLeg {
   bookmaker: string;
   outcome: string;
   odds: number;
+  /** Suggested stake for this leg (scripts/find-arbs.js, default total 100). */
+  stake?: number;
 }
 
 export interface ArbOpportunity {
+  /** Shared Sportradar id, e.g. "sr:match:72221344". */
+  eventId?: string;
   home: string;
   away: string;
   tournament: string;
@@ -38,12 +42,16 @@ export interface ArbOpportunity {
   market: string;
   profitPct: number;
   legs: ArbLeg[];
+  /** Extra caveat, e.g. "Draw = both stakes refunded". */
+  note?: string;
 }
 
 /** Static snapshot written by the arbitrage scanner to `public/arbs.json`. */
 export interface ArbsPayload {
   generatedAt?: string;
+  /** 1 = real odds; anything else means the file was generated in --boost test mode. */
   boostApplied?: number;
+  boostTarget?: string | null;
   arbs: ArbOpportunity[];
 }
 

@@ -76,6 +76,24 @@ function App() {
     return () => clearInterval(timer);
   }, [applySnapshot]);
 
+  // The arbs page only reads /arbs.json, so it must not wait on (or break with) the
+  // API-Football snapshot.
+  if (isArbs) {
+    return (
+      <div className="app-container">
+        <Header />
+
+        <div className="app-body">
+          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+          <ArbsTable now={now} />
+          {data && data.status !== "pending" ? (
+            <RightSidebar matches={data.matches} date={data.date} />
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   if (loading) return <div className="loader">Loading today's matches...</div>;
   if (error) return <div className="error">Error: {error}</div>;
   if (!data) return null;
@@ -109,8 +127,6 @@ function App() {
             match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
             date={data.date}
           />
-        ) : isArbs ? (
-          <ArbsTable now={now} />
         ) : (
           <MainFeed
             matches={filteredMatches}
