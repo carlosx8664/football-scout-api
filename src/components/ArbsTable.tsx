@@ -100,6 +100,7 @@ const UpArrow = () => (
 const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
+  const [totalStake, setTotalStake] = useState(100);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -147,11 +148,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
   const isStale = ageMs !== null && Number.isFinite(ageMs) && ageMs > STALE_AFTER_MS;
 
-  const sampleStakes = rows.length > 0 ? legsFor(rows[0]).map((leg) => leg.stake) : [];
-  const stakeTotal = sampleStakes.every((stake) => typeof stake === "number")
-    ? sampleStakes.reduce<number>((sum, stake) => sum + (stake ?? 0), 0)
-    : null;
-
   return (
     <section className="arbs-view">
       <h1 className="arbs-view-title">Arbitrage Scanner</h1>
@@ -177,7 +173,24 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           {rows.length === 0 ? (
             <div className="arbs-state">No arbitrage opportunities found at this time.</div>
           ) : (
-            <div className="arbs-panel">
+            <>
+              <div className="arbs-stake-control">
+                <label htmlFor="arbs-total-stake">Total Stake</label>
+                <input
+                  id="arbs-total-stake"
+                  type="number"
+                  min="0"
+                  step="10"
+                  inputMode="decimal"
+                  value={totalStake}
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    setTotalStake(Number.isFinite(next) ? Math.max(0, next) : 0);
+                  }}
+                />
+              </div>
+
+              <div className="arbs-panel">
               <div className="arbs-table-wrap">
                 <table className="arbs-table">
                   <thead>
@@ -240,7 +253,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                 <span className="arb-odds-value">{leg.odds.toFixed(2)}</span>
                                 <UpArrow />
                                 {typeof leg.stake === "number" && (
-                                  <span className="arb-stake">Stake {leg.stake.toFixed(2)}</span>
+                                  <span className="arb-stake">
+                                    Stake {((leg.stake / 100) * totalStake).toFixed(2)}
+                                  </span>
                                 )}
                               </td>
                             </tr>
@@ -257,11 +272,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   ? `Updated ${new Date(feed.generatedAt).toLocaleString("en-GB")} · `
                   : ""}
                 {rows.length} {rows.length === 1 ? "opportunity" : "opportunities"}
-                {stakeTotal !== null
-                  ? ` · Stakes shown for ${stakeTotal.toFixed(0)} in total; scale to your budget`
-                  : ""}
+                {` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
               </p>
             </div>
+            </>
           )}
         </>
       )}
