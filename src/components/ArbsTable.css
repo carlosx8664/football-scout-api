@@ -24,8 +24,8 @@
   font-weight: 600;
 }
 
-.arbs-stake-control input {
-  width: 110px;
+.arbs-stake-control input,
+.arbs-stake-control select {
   padding: 8px 10px;
   border: 1px solid var(--color-neutral-4);
   border-radius: 8px;
@@ -34,10 +34,20 @@
   font: inherit;
   font-size: 0.875rem;
   font-weight: 700;
+}
+
+.arbs-stake-control input {
+  width: 110px;
   text-align: right;
 }
 
-.arbs-stake-control input:focus {
+.arbs-stake-control select {
+  width: 96px;
+  cursor: pointer;
+}
+
+.arbs-stake-control input:focus,
+.arbs-stake-control select:focus {
   outline: 2px solid var(--color-brand);
   outline-offset: 1px;
 }

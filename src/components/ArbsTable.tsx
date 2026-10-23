@@ -19,6 +19,15 @@ const LEGS_PER_MATCH = 2;
 const REFRESH_MS = 5 * 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
+const ROUNDING_STEPS = [5, 10, 15, 20];
+
+/** Nearest multiple of `step`; a step of 0 leaves the stake untouched. */
+function roundStake(value: number, step: number): number {
+  if (step <= 0) return value;
+  if (value <= 0) return 0;
+  // Never round a live leg to zero: an unbacked side is not an arbitrage.
+  return Math.max(step, Math.round(value / step) * step);
+}
 
 function countdown(kickoff: number, now: number): string {
   const minutes = Math.round((kickoff - now) / 60_000);
@@ -101,6 +110,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
   const [totalStake, setTotalStake] = useState(100);
+  const [rounding, setRounding] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -188,6 +198,20 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     setTotalStake(Number.isFinite(next) ? Math.max(0, next) : 0);
                   }}
                 />
+
+                <label htmlFor="arbs-rounding">Rounding</label>
+                <select
+                  id="arbs-rounding"
+                  value={rounding}
+                  onChange={(event) => setRounding(Number(event.target.value))}
+                >
+                  <option value={0}>None</option>
+                  {ROUNDING_STEPS.map((step) => (
+                    <option key={step} value={step}>
+                      {step}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="arbs-panel">
@@ -209,16 +233,26 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
 
+                      const stakes = legs.map((leg) =>
+                        typeof leg.stake === "number"
+                          ? roundStake((leg.stake / 100) * totalStake, rounding)
+                          : null,
+                      );
+                      // Rounding can nudge the legs above or below the requested total, so
+                      // profit is measured against what would actually be laid out.
+                      const outlay = stakes.reduce<number>(
+                        (sum, stake) => sum + (stake ?? 0),
+                        0,
+                      );
+                      const laidOut = outlay > 0 ? outlay : totalStake;
+
                       return (
                         <Fragment key={arbKey(arb, legs)}>
                           {legs.map((leg, legIndex) => {
-                            const legStake =
-                              typeof leg.stake === "number"
-                                ? (leg.stake / 100) * totalStake
-                                : null;
+                            const legStake = stakes[legIndex];
                             // Payout on this side minus the full outlay: what you keep if it wins.
                             const legProfit =
-                              legStake === null ? null : legStake * leg.odds - totalStake;
+                              legStake === null ? null : legStake * leg.odds - laidOut;
 
                             return (
                             <tr className={rowClass} key={`${leg.bookmaker}-${leg.outcome}`}>
@@ -262,10 +296,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                               <td className="arb-odds">
                                 <span className="arb-odds-value">{leg.odds.toFixed(2)}</span>
                                 <UpArrow />
-                                {typeof leg.stake === "number" && (
-                                  <span className="arb-stake">
-                                    Stake {((leg.stake / 100) * totalStake).toFixed(2)}
-                                  </span>
+                                {legStake !== null && (
+                                  <span className="arb-stake">Stake {legStake.toFixed(2)}</span>
                                 )}
                               </td>
 
@@ -293,7 +325,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   ? `Updated ${new Date(feed.generatedAt).toLocaleString("en-GB")} · `
                   : ""}
                 {rows.length} {rows.length === 1 ? "opportunity" : "opportunities"}
-                {` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
+                {rounding > 0
+                  ? ` · Stakes scaled from ${totalStake.toFixed(2)}, rounded to nearest ${rounding}`
+                  : ` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
               </p>
             </div>
             </>
