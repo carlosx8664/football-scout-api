@@ -55,10 +55,11 @@
   vertical-align: middle;
 }
 
-.league-table-position {
+/* Two classes + element so this beats `.league-table td { padding: 7px 0 }`. */
+.league-table td.league-table-position {
   /* Leave room for the highlight bar so it never sits on top of the number. */
-  width: 30px;
-  padding-left: 8px;
+  width: 34px;
+  padding: 7px 0 7px 9px;
   color: var(--color-neutral-6);
   font-weight: 600;
 }
