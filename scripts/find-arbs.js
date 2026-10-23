@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const DATA_DIR = path.resolve('data');
+// Fix for __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const SPORTY_FILE = path.join(DATA_DIR, 'sportybet.json');
 const MSPORT_FILE = path.join(DATA_DIR, 'msport.json');
 
@@ -205,7 +210,8 @@ function main() {
     }
   }
 
-const outPath = path.join(__dirname, '..', 'public', 'arbs.json');
+  // Write to the public folder so React can read it
+  const outPath = path.join(__dirname, '..', 'public', 'arbs.json');
   fs.writeFileSync(outPath, JSON.stringify({
     generatedAt: new Date().toISOString(),
     boostApplied: ODDS_BOOST_MULTIPLIER,
