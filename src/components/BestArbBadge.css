@@ -1,0 +1,61 @@
+.best-arb {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  background: var(--color-brand-weak);
+  color: var(--color-neutral-7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: box-shadow 0.15s, background 0.15s;
+}
+
+.best-arb:hover {
+  background: var(--color-brand-weak-elevated);
+  box-shadow: 0 2px 10px rgba(211, 36, 252, 0.25);
+}
+
+.best-arb-label {
+  color: var(--color-brand-4);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.best-arb-profit {
+  color: #15803d;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.best-arb-match {
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-neutral-6);
+  font-weight: 600;
+}
+
+/* Boost-mode feeds are not real opportunities, so tone the badge down. */
+.best-arb-test {
+  border-color: var(--color-neutral-4);
+  background: var(--color-neutral-3);
+}
+
+.best-arb-test .best-arb-label {
+  color: #92400e;
+}
+
+.best-arb-test .best-arb-profit {
+  color: #92400e;
+}
+
+@media (max-width: 640px) {
+  .best-arb-match {
+    display: none;
+  }
+}

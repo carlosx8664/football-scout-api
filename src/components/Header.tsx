@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BestArbBadge from "./BestArbBadge";
 import "./Header.css";
 
 const Header = () => {
@@ -23,6 +24,9 @@ const Header = () => {
             <a href="#">Tip Hub</a>
             <Link to="/arbs">Arbs</Link>
           </nav>
+        </div>
+        <div className="header-right">
+          <BestArbBadge />
         </div>
       </div>
     </header>

@@ -31,3 +31,5 @@
   transition: all 0.2s;
 }
 .top-nav a:hover { color: var(--color-neutral-7); border-bottom-color: var(--color-brand); }
+
+.header-right { display: flex; align-items: center; gap: 12px; }
