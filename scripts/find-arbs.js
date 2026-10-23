@@ -1,3 +1,22 @@
+// scripts/find-arbs.js
+//
+// Cross-bookie arbitrage scanner: SportyBet <-> MSport (2-outcome arbs only).
+//
+// How it works
+//  1. Both bookies use Sportradar event IDs ("sr:match:72221344"), so fixtures are
+//     matched by eventId. No team-name guessing.
+//  2. Every market we understand is turned into "selections" with a simple key,
+//     e.g. 1X2:H, DC:X2, DNB:A, BTTS:Y, OU:2.5:O
+//  3. Complementary selections are paired (Over 2.5 + Under 2.5, Home + X2, ...).
+//     Each pair is checked with the two legs on DIFFERENT bookies.
+//  4. Anything with profit above MIN_PROFIT is written to public/arbs.json.
+//
+// Usage
+//   node scripts/find-arbs.js                  real odds (boost = 1.00)
+//   node scripts/find-arbs.js --boost=1.05     TEST ONLY: multiplies MSport odds
+//   node scripts/find-arbs.js --near=10        also print the 10 closest misses
+//   node scripts/find-arbs.js --stake=500      stake split shown per arb (default 100)
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,230 +27,303 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const SPORTY_FILE = path.join(DATA_DIR, 'sportybet.json');
 const MSPORT_FILE = path.join(DATA_DIR, 'msport.json');
-
-// ⚠️ FAKE ODDS BOOST (For testing the math logic)
-const ODDS_BOOST_MULTIPLIER = 1.15; 
+const OUT_FILE = path.resolve(__dirname, '..', 'public', 'arbs.json');
 
 // ---------------------------------------------------------------------------
-// Name Normalization
+// Options
 // ---------------------------------------------------------------------------
-const ABBREV = {
-  utd: 'united', nottm: 'nottingham', ath: 'athletic', wand: 'wanderers',
-  wnd: 'wanderers', intl: 'international', st: 'saint', std: 'standard',
-  mun: 'munich', mgladbach: 'monchengladbach', gladbach: 'monchengladbach',
-  brg: 'brugge', spb: 'sporting', sp: 'sporting',
+const argv = process.argv.slice(2);
+const opt = (name, fallback) => {
+  const hit = argv.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.slice(name.length + 3) : fallback;
 };
 
-const DROP_TOKENS = new Set([
-  'fc', 'cf', 'sc', 'afc', 'ac', 'as', 'ss', 'ssc', 'fk', 'pfk',
-  'sk', 'sv', 'vfb', 'vfl', 'tsv', 'fsv', 'kv', 'kvc', 'kvv',
-  'club', 'calcio', 'cd', 'ca', 'ad', 'ec', 'sd', 'city', 'town', 'united', 'utd',
-]);
+const BOOST = Number(opt('boost', '1'));        // test-only boost applied to MSport odds
+const MIN_PROFIT = Number(opt('min', '0'));     // only keep arbs above this %
+const NEAR = Number(opt('near', '0'));          // print N closest misses
+const TOTAL_STAKE = Number(opt('stake', '100'));
 
-function normalizeName(raw) {
-  if (!raw) return '';
-  let s = String(raw).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase().replace(/[’'´`]/g, '').replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ').trim();
-  const tokens = s.split(' ').filter(Boolean).map(t => ABBREV[t] || t);
-  const kept = tokens.filter(t => !DROP_TOKENS.has(t));
-  return (kept.length ? kept : tokens).join('');
+if (!Number.isFinite(BOOST) || BOOST <= 0) {
+  console.error('Invalid --boost value');
+  process.exit(1);
 }
 
-// Helper to normalize market/outcome strings so Sporty and MSport match
-function cleanString(str) {
-  return String(str).toLowerCase().replace(/[^a-z0-9]/g, '');
+const SPORTY = 'SportyBet';
+const MSPORT = 'MSport';
+
+// ---------------------------------------------------------------------------
+// Market parsing -> selections
+// Market IDs are the standard Sportradar ones used by both bookies:
+//   1 = 1X2, 10 = Double Chance, 11 = Draw No Bet, 18 = Over/Under, 29 = GG/NG
+// ---------------------------------------------------------------------------
+const clean = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]/g, '');
+const num = (x) => {
+  const n = parseFloat(x);
+  return Number.isFinite(n) ? n : null;
+};
+
+function readMarket(m) {
+  const found = [];
+  if (!m || !Array.isArray(m.outcomes)) return found;
+  if (m.status != null && Number(m.status) !== 0) return found; // suspended/closed market
+
+  const id = String(m.id);
+
+  for (const o of m.outcomes) {
+    if (!o || o.isActive === 0) continue;
+    const odds = num(o.odds);
+    if (odds === null || odds <= 1) continue;
+
+    // SportyBet labels outcomes with "desc", MSport with "description"
+    const label = clean(o.desc ?? o.description);
+    const oid = String(o.id);
+    let key;
+
+    if (id === '1') {
+      key = { home: '1X2:H', draw: '1X2:D', away: '1X2:A' }[label]
+        ?? { 1: '1X2:H', 2: '1X2:D', 3: '1X2:A' }[oid];
+    } else if (id === '10') {
+      key = {
+        '1x': 'DC:1X', homeordraw: 'DC:1X',
+        '12': 'DC:12', homeoraway: 'DC:12',
+        x2: 'DC:X2', draworaway: 'DC:X2',
+      }[label];
+    } else if (id === '11') {
+      key = { home: 'DNB:H', away: 'DNB:A', 1: 'DNB:H', 2: 'DNB:A' }[label]
+        ?? { 4: 'DNB:H', 5: 'DNB:A' }[oid];
+    } else if (id === '29') {
+      key = { yes: 'BTTS:Y', no: 'BTTS:N' }[label];
+    } else if (id === '18') {
+      const mt = label.match(/^(over|under)(\d+(?:\.\d+)?)$/);
+      // only .5 lines are true 2-way (whole-number lines can push/refund)
+      if (mt && mt[2].endsWith('.5')) key = `OU:${mt[2]}:${mt[1] === 'over' ? 'O' : 'U'}`;
+    }
+
+    if (key) found.push([key, odds]);
+  }
+  return found;
 }
 
 // ---------------------------------------------------------------------------
-// Extraction
+// Load a bookie file -> Map(eventId -> event)
 // ---------------------------------------------------------------------------
-function extractSporty(file) {
-  const out = [];
-  for (const t of file?.data?.tournaments || []) {
-    for (const e of t.events || []) {
-      const markets = {};
-      for (const m of e.markets || []) {
-        // Clean the market name (e.g., "Over/Under", "1X2", "GG/NG")
-        const mName = cleanString(m.name || m.description || '');
-        if (!mName) continue;
+function loadBookie(file, bookie) {
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const events = new Map();
+  const typeCounts = {};
 
-        markets[mName] = {};
-        for (const o of m.outcomes || []) {
-          // Clean the outcome name (e.g., "Home", "Over 2.5", "Yes")
-          const oName = cleanString(o.description || o.desc || '');
-          if (!oName) continue;
+  for (const t of raw?.data?.tournaments ?? []) {
+    for (const e of t.events ?? []) {
+      if (!e.eventId) continue;
 
-          markets[mName][oName] = {
-            bookie: 'SportyBet',
-            odds: parseFloat(o.odds),
-            specifier: m.specifiers || ''
-          };
+      const sel = {};
+      for (const m of e.markets ?? []) {
+        for (const [key, odds] of readMarket(m)) {
+          if (key in sel) continue;
+          sel[key] = bookie === MSPORT ? odds * BOOST : odds;
+          const type = key.split(':')[0];
+          typeCounts[type] = (typeCounts[type] ?? 0) + 1;
         }
       }
-      out.push({
-        homeTeam: e.homeTeamName, awayTeam: e.awayTeamName,
-        homeNorm: normalizeName(e.homeTeamName), awayNorm: normalizeName(e.awayTeamName),
-        kickoff: e.estimateStartTime,
-        tournament: e?.sport?.category?.tournament?.name || t.name,
-        markets
+
+      const isSporty = bookie === SPORTY;
+      events.set(e.eventId, {
+        eventId: e.eventId,
+        home: isSporty ? e.homeTeamName : e.homeTeam,
+        away: isSporty ? e.awayTeamName : e.awayTeam,
+        kickoff: isSporty ? e.estimateStartTime : e.startTime,
+        tournament: isSporty ? (e?.sport?.category?.tournament?.name ?? t.name) : (e.tournament ?? t.tournament),
+        notStarted: Number(e.status ?? 0) === 0,
+        sel,
       });
     }
   }
-  return out;
-}
-
-function extractMsport(file) {
-  const out = [];
-  for (const t of file?.data?.tournaments || []) {
-    for (const e of t.events || []) {
-      const markets = {};
-      for (const m of e.markets || []) {
-        const mName = cleanString(m.name || m.description || '');
-        if (!mName) continue;
-
-        markets[mName] = {};
-        for (const o of m.outcomes || []) {
-          const oName = cleanString(o.description || o.desc || '');
-          if (!oName) continue;
-
-          markets[mName][oName] = {
-            bookie: 'MSport',
-            odds: parseFloat(o.odds) * ODDS_BOOST_MULTIPLIER, // Apply boost here
-            specifier: m.specifiers || ''
-          };
-        }
-      }
-      out.push({
-        homeTeam: e.homeTeam, awayTeam: e.awayTeam,
-        homeNorm: normalizeName(e.homeTeam), awayNorm: normalizeName(e.awayTeam),
-        kickoff: e.startTime,
-        tournament: e.tournament,
-        markets
-      });
-    }
-  }
-  return out;
+  return { events, typeCounts };
 }
 
 // ---------------------------------------------------------------------------
-// Matching & Math
+// Pairs: two selections that together cover every possible result
 // ---------------------------------------------------------------------------
-const KICKOFF_TOLERANCE_MS = 30 * 60 * 1000; 
+const RESULT = ['H', 'D', 'A'];
 
-function sameFixture(a, b) {
-  if (a.homeNorm !== b.homeNorm || a.awayNorm !== b.awayNorm) return false;
-  if (a.kickoff && b.kickoff && Math.abs(a.kickoff - b.kickoff) > KICKOFF_TOLERANCE_MS) return false;
-  return true;
+const FIXED_PAIRS = [
+  { a: '1X2:H', b: 'DC:X2', scen: RESULT, market: 'Home Win vs Draw/Away (X2)' },
+  { a: '1X2:A', b: 'DC:1X', scen: RESULT, market: 'Away Win vs Home/Draw (1X)' },
+  { a: '1X2:D', b: 'DC:12', scen: RESULT, market: 'Draw vs Home/Away (12)' },
+  // DNB Home refunds on a draw, X2 wins on a draw -> every result is covered
+  { a: 'DNB:H', b: 'DC:X2', scen: RESULT, market: 'DNB Home vs Draw/Away (X2)' },
+  { a: 'DNB:A', b: 'DC:1X', scen: RESULT, market: 'DNB Away vs Home/Draw (1X)' },
+  // Both refunded on a draw: no loss on a draw, profit if either team wins
+  { a: 'DNB:H', b: 'DNB:A', scen: RESULT, profitScen: ['H', 'A'], market: 'Draw No Bet: Home vs Away', note: 'Draw = both stakes refunded (profit only if a team wins)' },
+  { a: 'BTTS:Y', b: 'BTTS:N', scen: ['Y', 'N'], market: 'Both Teams to Score' },
+];
+
+const LABELS = {
+  '1X2:H': 'Home Win', '1X2:D': 'Draw', '1X2:A': 'Away Win',
+  'DC:1X': 'Home or Draw (1X)', 'DC:12': 'Home or Away (12)', 'DC:X2': 'Draw or Away (X2)',
+  'DNB:H': 'Home (DNB)', 'DNB:A': 'Away (DNB)',
+  'BTTS:Y': 'BTTS Yes', 'BTTS:N': 'BTTS No',
+};
+const labelOf = (key) => {
+  if (LABELS[key]) return LABELS[key];
+  const [, line, side] = key.split(':'); // OU:2.5:O
+  return `${side === 'O' ? 'Over' : 'Under'} ${line}`;
+};
+
+// What a leg pays back (per 1 staked) for a given scenario
+function payout(key, odds, scen) {
+  const parts = key.split(':');
+  const type = parts[0];
+  const sel = parts[parts.length - 1];
+  switch (type) {
+    case '1X2': return sel === scen ? odds : 0;
+    case 'DC': return sel.includes({ H: '1', D: 'X', A: '2' }[scen]) ? odds : 0;
+    case 'DNB': return scen === 'D' ? 1 : (sel === scen ? odds : 0);
+    case 'BTTS': return sel === scen ? odds : 0;
+    case 'OU': return sel === scen ? odds : 0;
+    default: return 0;
+  }
 }
 
-// Find 2-way arbs within a specific market
-function findArbsInMarket(sMarket, mMarket, marketName) {
-  const arbs = [];
-  const sOutcomes = Object.keys(sMarket);
-  
-  // Check every possible pair of outcomes (e.g., Home vs Away, Over vs Under)
-  for (let i = 0; i < sOutcomes.length; i++) {
-    for (let j = i + 1; j < sOutcomes.length; j++) {
-      const outA = sOutcomes[i];
-      const outB = sOutcomes[j];
+function evaluate(pair, oa, ob) {
+  const ia = 1 / oa;
+  const ib = 1 / ob;
+  const shareA = ia / (ia + ib); // stake split that equalises the two "main" results
+  const shareB = 1 - shareA;
 
-      // Make sure MSport actually has these same two outcomes
-      if (!mMarket[outA] || !mMarket[outB]) continue;
-
-      // 1. Get the best odds for Side A
-      const bestA = sMarket[outA].odds > mMarket[outA].odds 
-        ? sMarket[outA] : mMarket[outA];
-      
-      // 2. Get the best odds for Side B
-      const bestB = sMarket[outB].odds > mMarket[outB].odds 
-        ? sMarket[outB] : mMarket[outB];
-
-      // 3. Do the 2-way arb math
-      const invSum = (1 / bestA.odds) + (1 / bestB.odds);
-      
-      if (invSum < 1) {
-        const profitPct = ((1 / invSum) - 1) * 100;
-        arbs.push({
-          market: marketName,
-          profitPct: Number(profitPct.toFixed(3)),
-          legs: [
-            { bookmaker: bestA.bookie, outcome: outA, odds: bestA.odds },
-            { bookmaker: bestB.bookie, outcome: outB, odds: bestB.odds }
-          ]
-        });
-      }
-    }
+  const returns = {};
+  for (const s of pair.scen) {
+    returns[s] = shareA * payout(pair.a, oa, s) + shareB * payout(pair.b, ob, s);
   }
-  return arbs;
+  const basis = pair.profitScen ?? pair.scen;
+  const profitPct = (Math.min(...basis.map((s) => returns[s])) - 1) * 100;
+  return { profitPct, shareA, shareB };
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 function main() {
-  const sporty = extractSporty(JSON.parse(fs.readFileSync(SPORTY_FILE, 'utf8')));
-  const msport = extractMsport(JSON.parse(fs.readFileSync(MSPORT_FILE, 'utf8')));
+  const sporty = loadBookie(SPORTY_FILE, SPORTY);
+  const msport = loadBookie(MSPORT_FILE, MSPORT);
 
-  console.log(`SportyBet fixtures: ${sporty.length}`);
-  console.log(`MSport fixtures:    ${msport.length}`);
-  console.log(`⚠️  Applied fake odds boost: +${(ODDS_BOOST_MULTIPLIER - 1) * 100}% to MSport\n`);
-
-  const msportIndex = new Map();
-  for (const m of msport) {
-    const key = `${m.homeNorm}|${m.awayNorm}`;
-    if (!msportIndex.has(key)) msportIndex.set(key, []);
-    msportIndex.get(key).push(m);
+  console.log(`SportyBet events: ${sporty.events.size}`);
+  console.log(`MSport events:    ${msport.events.size}`);
+  if (BOOST !== 1) {
+    console.log(`⚠️  TEST MODE: MSport odds multiplied by ${BOOST}. Results are NOT real.`);
   }
 
-  const allArbs = [];
+  const fmtCounts = (c) => Object.entries(c).map(([k, v]) => `${k} ${v}`).join(' | ') || 'none';
+  console.log(`\nSelections read`);
+  console.log(`  SportyBet: ${fmtCounts(sporty.typeCounts)}`);
+  console.log(`  MSport:    ${fmtCounts(msport.typeCounts)}`);
 
-  for (const s of sporty) {
-    const candidates = msportIndex.get(`${s.homeNorm}|${s.awayNorm}`) || [];
-    const m = candidates.find(c => sameFixture(s, c));
+  const sportyHasMore = Object.keys(sporty.typeCounts).some((t) => t !== '1X2');
+  if (!sportyHasMore) {
+    console.log(
+      '\n⚠️  SportyBet data only contains 1X2. BTTS / Over-Under / Double Chance / DNB cannot be\n' +
+      '    compared until fetch-odds.js asks SportyBet for more markets (see marketId in the URL).'
+    );
+  }
+
+  const arbs = [];
+  const evals = [];
+  let matched = 0;
+  let pairsChecked = 0;
+
+  for (const s of sporty.events.values()) {
+    const m = msport.events.get(s.eventId);
     if (!m) continue;
+    if (!s.notStarted || !m.notStarted) continue; // skip live / started games
+    matched++;
 
-    // Loop through every market SportyBet has
-    for (const marketName of Object.keys(s.markets)) {
-      // If MSport has this exact same market
-      if (m.markets[marketName]) {
-        const marketArbs = findArbsInMarket(s.markets[marketName], m.markets[marketName], marketName);
-        
-        // If we found an arb, attach the match details
-        for (const arb of marketArbs) {
-          allArbs.push({
-            home: s.homeTeam,
-            away: s.awayTeam,
-            tournament: s.tournament,
-            kickoff: s.kickoff,
-            ...arb
-          });
-        }
+    const books = { [SPORTY]: s.sel, [MSPORT]: m.sel };
+
+    // Fixed pairs + one Over/Under pair per line that either bookie offers
+    const lines = new Set();
+    for (const k of [...Object.keys(s.sel), ...Object.keys(m.sel)]) {
+      if (k.startsWith('OU:')) lines.add(k.split(':')[1]);
+    }
+    const pairs = [...FIXED_PAIRS];
+    for (const line of lines) {
+      pairs.push({
+        a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'],
+        market: `Over/Under ${line} Goals`,
+      });
+    }
+
+    for (const pair of pairs) {
+      // Both orientations, ALWAYS one leg on each bookie
+      for (const [bookA, bookB] of [[SPORTY, MSPORT], [MSPORT, SPORTY]]) {
+        const oa = books[bookA][pair.a];
+        const ob = books[bookB][pair.b];
+        if (!oa || !ob) continue;
+        pairsChecked++;
+
+        const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
+        const record = {
+          eventId: s.eventId,
+          home: s.home,
+          away: s.away,
+          tournament: s.tournament,
+          kickoff: s.kickoff,
+          market: pair.market,
+          profitPct: Number(profitPct.toFixed(3)),
+          legs: [
+            { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
+            { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
+          ],
+        };
+        if (pair.note) record.note = pair.note;
+
+        evals.push(record);
+        if (profitPct > MIN_PROFIT) arbs.push(record);
       }
     }
   }
 
-  // Sort arbs by highest profit first
-  allArbs.sort((a, b) => b.profitPct - a.profitPct);
+  arbs.sort((x, y) => y.profitPct - x.profitPct);
 
-  console.log(`Total Arbs Found: ${allArbs.length}\n`);
+  console.log(`\nFixtures matched by eventId: ${matched}`);
+  console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);
+  console.log(`Arbs found:                  ${arbs.length}\n`);
 
-  if (allArbs.length > 0) {
-    console.log(`💰 Top 5 Arbitrage Opportunities:`);
-    for (const a of allArbs.slice(0, 5)) { 
-      console.log(`  ${a.home} vs ${a.away} → ${a.profitPct}% [Market: ${a.market}]`);
-      console.log(`     ${a.legs[0].bookmaker}: ${a.legs[0].outcome} @ ${a.legs[0].odds.toFixed(2)}`);
-      console.log(`     ${a.legs[1].bookmaker}: ${a.legs[1].outcome} @ ${a.legs[1].odds.toFixed(2)}`);
+  const printArb = (a) => {
+    console.log(`  ${a.home} vs ${a.away}  →  ${a.profitPct}%  [${a.market}]  (${a.tournament})`);
+    for (const l of a.legs) {
+      console.log(`     ${l.bookmaker}: ${l.outcome} @ ${l.odds.toFixed(2)}  (stake ${l.stake})`);
     }
+    if (a.note) console.log(`     note: ${a.note}`);
+  };
+
+  if (arbs.length) {
+    console.log('💰 Top opportunities:');
+    arbs.slice(0, 10).forEach(printArb);
+    if (BOOST === 1 && arbs[0].profitPct > 10) {
+      console.log('\n⚠️  Anything above ~10% on real odds is usually a stale price or a data mismatch. Verify on both sites before betting.');
+    }
+  } else if (BOOST === 1) {
+    console.log('No arbs right now with real odds. That is normal: both books are priced tightly.');
   }
 
-  const outPath = path.join(__dirname, '..', 'public', 'arbs.json');
-  fs.writeFileSync(outPath, JSON.stringify({
+  if (NEAR > 0) {
+    console.log(`\nClosest ${NEAR} near-misses:`);
+    evals
+      .filter((r) => r.profitPct <= MIN_PROFIT)
+      .sort((x, y) => y.profitPct - x.profitPct)
+      .slice(0, NEAR)
+      .forEach(printArb);
+  }
+
+  fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
+  fs.writeFileSync(OUT_FILE, JSON.stringify({
     generatedAt: new Date().toISOString(),
-    boostApplied: ODDS_BOOST_MULTIPLIER,
-    arbs: allArbs,
+    boostApplied: BOOST,
+    boostTarget: BOOST !== 1 ? MSPORT : null,
+    stats: { matched, pairsChecked, sportyEvents: sporty.events.size, msportEvents: msport.events.size },
+    arbs,
   }, null, 2));
-  console.log(`\nWrote ${outPath}`);
+  console.log(`\nWrote ${OUT_FILE}`);
 }
 
 main();
