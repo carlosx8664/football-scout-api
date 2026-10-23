@@ -129,7 +129,7 @@ function App() {
           <MainFeed
             matches={filteredMatches}
             selectedLeagueName={
-              selectedLeague === 0 ? "Top Matches of the Day" : leagueName(selectedLeague)
+              selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
             }
             date={data.date}
             now={now}

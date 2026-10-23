@@ -48,6 +48,11 @@
   color: var(--color-neutral-6);
   font-size: 0.75rem;
 }
+.top-pick-edge {
+  color: #15803d;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
 .top-pick-link {
   color: var(--color-brand-4);
   font-size: 0.75rem;

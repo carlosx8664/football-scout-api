@@ -11,6 +11,46 @@ interface RightSidebarProps {
   focusMatch?: Match | null;
 }
 
+const OUTCOMES = [
+  { key: "home", label: "Home" },
+  { key: "draw", label: "Draw" },
+  { key: "away", label: "Away" },
+] as const;
+
+/**
+ * Best price available on an outcome versus the other bookmaker, as a share of that other
+ * price. This is a real, checkable number: 3.10 against 3.00 is a 3.3% better price.
+ */
+function bestEdge(match: Match) {
+  const book = match.book_odds;
+  if (!book) return null;
+
+  let pick: { label: string; odds: number; edge: number; bookmaker: string } | null = null;
+
+  for (const outcome of OUTCOMES) {
+    const price = book[outcome.key];
+    const sportybet = price?.sportybet;
+    const msport = price?.msport;
+    if (typeof sportybet !== "number" || typeof msport !== "number") continue;
+    if (sportybet === msport) continue;
+
+    const best = Math.max(sportybet, msport);
+    const other = Math.min(sportybet, msport);
+    const edge = best / other - 1;
+
+    if (!pick || edge > pick.edge) {
+      pick = {
+        label: outcome.label,
+        odds: best,
+        edge,
+        bookmaker: sportybet > msport ? "SportyBet" : "MSport",
+      };
+    }
+  }
+
+  return pick;
+}
+
 const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) => {
   if (focusMatch) {
     return (
@@ -23,26 +63,20 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
   const topPicks = matches
     .filter((match) => match.fixture.date.slice(0, 10) === date)
     .flatMap((match) => {
-      const prices = [
-        { side: "Home", odd: Number(match.odds?.find((entry) => entry.value === "Home")?.odd) },
-        { side: "Away", odd: Number(match.odds?.find((entry) => entry.value === "Away")?.odd) },
-      ].filter((price) => Number.isFinite(price.odd) && price.odd > 0);
-      const favorite = prices.sort((a, b) => a.odd - b.odd)[0];
-
-      return favorite ? [{ match, favorite }] : [];
+      const pick = bestEdge(match);
+      return pick ? [{ match, pick }] : [];
     })
-    .filter(({ favorite }) => favorite.odd < 1.6)
-    .sort((a, b) => a.favorite.odd - b.favorite.odd)
+    .sort((a, b) => b.pick.edge - a.pick.edge)
     .slice(0, 5);
 
   return (
     <aside className="right-sidebar">
       <section className="top-picks-container">
-        <h3>🔥 Top AI Picks</h3>
-        <p className="top-picks-subtitle">Highest confidence matches today</p>
+        <h3>🔥 Top Picks</h3>
+        <p className="top-picks-subtitle">Biggest price gaps between our two books</p>
         {topPicks.length > 0 ? (
           <ul className="top-picks-list">
-            {topPicks.map(({ match, favorite }) => (
+            {topPicks.map(({ match, pick }) => (
               <li className="top-pick" key={match.fixture.id}>
                 <div className="top-pick-teams">
                   <span>{match.teams.home.name} vs {match.teams.away.name}</span>
@@ -50,7 +84,11 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
                 </div>
                 <div className="top-pick-footer">
                   <span className="top-pick-odds">
-                    {favorite.side} {favorite.odd.toFixed(2)}
+                    {pick.label} {pick.odds.toFixed(2)}
+                    <span className="top-pick-edge">
+                      {" "}
+                      +{(pick.edge * 100).toFixed(1)}% at {pick.bookmaker}
+                    </span>
                   </span>
                   <Link className="top-pick-link" to={`/match/${match.fixture.id}`}>
                     View details
@@ -60,7 +98,9 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
             ))}
           </ul>
         ) : (
-          <p className="top-picks-empty">No high-confidence picks available today.</p>
+          <p className="top-picks-empty">
+            Neither bookmaker is quoting better prices than the other right now.
+          </p>
         )}
       </section>
     </aside>
