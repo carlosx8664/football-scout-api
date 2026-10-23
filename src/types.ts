@@ -23,6 +23,31 @@ export interface Match {
   ai_analysis: string | null;
 }
 
+export interface ArbBookOdds {
+  home: number;
+  draw: number;
+  away: number;
+}
+
+export interface ArbOpportunity {
+  home: string;
+  away: string;
+  tournament: string;
+  /** Epoch milliseconds. */
+  kickoff: number;
+  sporty: ArbBookOdds;
+  msport: ArbBookOdds;
+  best: ArbBookOdds;
+  profitPct: number;
+}
+
+/** Static snapshot written by the arbitrage scanner to `public/data/arbs.json`. */
+export interface ArbsPayload {
+  generatedAt: string;
+  boostApplied: number;
+  arbs: ArbOpportunity[];
+}
+
 /**
  * Payload produced by `scripts/sync.js` and served verbatim from Cloudflare KV.
  */

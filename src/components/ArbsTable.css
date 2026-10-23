@@ -1,0 +1,192 @@
+.arbs-panel {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.arbs-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.arbs-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.arbs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 12px 16px;
+  background: var(--color-neutral-2);
+  border-bottom: 1px solid var(--color-neutral-4);
+  color: var(--color-neutral-6);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.arbs-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-neutral-3);
+  vertical-align: middle;
+  background: var(--color-neutral-1);
+}
+
+.arbs-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.arbs-table tbody tr:hover td {
+  background: var(--color-brand-weak);
+}
+
+.arbs-table tbody tr.arb-row-alt td {
+  background: var(--color-neutral-2);
+}
+
+.arbs-table tbody tr.arb-row-alt:hover td {
+  background: var(--color-brand-weak);
+}
+
+/* --- Profit --- */
+.arb-profit {
+  white-space: nowrap;
+}
+
+.arb-profit-value {
+  display: block;
+  color: #15803d;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.arb-profit-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.arb-clock {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+}
+
+/* --- Bookmaker --- */
+.arb-bookmaker {
+  white-space: nowrap;
+}
+
+.arb-bookmaker-pill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-7);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* --- Event --- */
+.arb-event {
+  min-width: 220px;
+}
+
+.arb-event-when {
+  display: block;
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.arb-event-teams {
+  display: block;
+  margin: 2px 0 3px;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.arb-event-tournament {
+  display: block;
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+}
+
+/* --- Market --- */
+.arb-market {
+  white-space: nowrap;
+}
+
+.arb-market-type {
+  display: block;
+  color: var(--color-neutral-6);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.arb-market-outcome {
+  display: block;
+  color: var(--color-neutral-7);
+  font-weight: 700;
+}
+
+/* --- Odds --- */
+.arb-odds {
+  white-space: nowrap;
+}
+
+.arb-odds-value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.arb-up {
+  width: 11px;
+  height: 11px;
+  margin-left: 5px;
+  color: #16a34a;
+  vertical-align: middle;
+}
+
+/* --- States --- */
+.arbs-state {
+  padding: 48px 24px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.arbs-state-error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.arbs-updated {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-neutral-3);
+  background: var(--color-neutral-2);
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  text-align: right;
+}
