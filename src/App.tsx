@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
 import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
@@ -29,8 +29,19 @@ function App() {
   const [now, setNow] = useState(() => Date.now());
   const dataRef = useRef<SnapshotData | null>(null);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const matchId = currentMatchId(pathname);
   const isArbs = ARBS_ROUTE.test(pathname);
+
+  // On a match page (or the arbs page) there is no feed to filter, so picking a league
+  // has to take the user back to the home feed first.
+  const selectLeague = useCallback(
+    (id: number) => {
+      setSelectedLeague(id);
+      if (pathname !== "/") navigate("/");
+    },
+    [navigate, pathname],
+  );
 
   const applySnapshot = useCallback((snapshot: SnapshotData) => {
     dataRef.current = snapshot;
@@ -84,7 +95,7 @@ function App() {
         <Header />
 
         <div className="app-body app-body-wide">
-          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
           <ArbsTable now={now} />
         </div>
       </div>
@@ -121,7 +132,7 @@ function App() {
       <Header />
 
       <div className="app-body">
-        <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
+        <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
 
         {matchId !== null ? (
           <MatchDetail match={focusedMatch} date={data.date} />

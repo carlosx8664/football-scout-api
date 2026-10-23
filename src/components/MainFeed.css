@@ -74,6 +74,41 @@
   gap: 20px;
 }
 
+.match-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.match-pagination button {
+  padding: 8px 16px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-7);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.match-pagination button:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  color: var(--color-brand-4);
+}
+
+.match-pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.page-status {
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .new-match-card {
   background: #ffffff;
   border-radius: 12px;

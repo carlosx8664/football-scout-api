@@ -18,14 +18,24 @@ const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: "tomorrow", label: "Tomorrow's Matches" },
 ];
 
+const PAGE_SIZE = 8;
+
 const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => {
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
+  const [page, setPage] = useState(1);
 
   const counts: Record<FeedTab, number> = {
     today: matchesForTab(matches, "today", now).length,
     tomorrow: matchesForTab(matches, "tomorrow", now).length,
   };
   const visibleMatches = matchesForTab(matches, activeTab, now);
+
+  const pageCount = Math.max(1, Math.ceil(visibleMatches.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pageMatches = visibleMatches.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   return (
     <main className="main-feed">
@@ -42,7 +52,10 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
             role="tab"
             aria-selected={activeTab === tab.id}
             className={`match-tab${activeTab === tab.id ? " active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setPage(1);
+            }}
           >
             {tab.label}
             <span className="tab-count">{counts[tab.id]}</span>
@@ -58,7 +71,7 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
               : "No matches tomorrow for this league."}
           </div>
         ) : (
-          visibleMatches.map((match) => {
+          pageMatches.map((match) => {
             const prices = matchWinnerPrices(match.odds);
             const kickoff = formatKickoff(match.fixture.date);
 
@@ -117,6 +130,28 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
           })
         )}
       </div>
+
+      {pageCount > 1 && (
+        <nav className="match-pagination" aria-label="Match pages">
+          <button
+            type="button"
+            onClick={() => setPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            ← Prev
+          </button>
+          <span className="page-status">
+            Page {currentPage} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(currentPage + 1)}
+            disabled={currentPage === pageCount}
+          >
+            Next →
+          </button>
+        </nav>
+      )}
     </main>
   );
 };
