@@ -182,12 +182,16 @@ feed is missing.
 `GET /api/analysis?id=&home=&away=&league=&kickoff=&odds=` ([functions/api/analysis.js](functions/api/analysis.js))
 runs a two-step pipeline the first time a fixture is opened:
 
-1. **Scout** — `POST /v1/tools/search` on DeepSeek's Search API with
-   `<home> vs <away> team news injuries lineup after:<yesterday>` (trimmed to the API's 128-character
-   limit). The top three results' `summary` (falling back to `snippet`/`content`) become the news
-   context.
-2. **Analyst** — `POST /chat/completions` with those articles plus the match odds, told to give a
-   straight best-bet opinion and flag anything the articles don't cover.
+1. **Scout** — five parallel `POST /v1/tools/search` calls on DeepSeek's Search API, one per angle
+   group, each with `after:<yesterday>` and trimmed to the API's 128-character query limit:
+   team news/injuries/leaks, underlying form (xG, expected points), manager pressure and
+   discipline (sacking talk, VAR, red cards, charges), head-to-head/derby record, and odds
+   movement. The top two results per topic become the research context; a failed topic is logged
+   and skipped rather than failing the request.
+2. **Analyst** — `POST /chat/completions` with that research plus the match odds. The prompt asks
+   for plain, friendly English (no betting slang, stat terms explained), explicitly forbids
+   inventing facts, and asks for a best bet, two or three alternative angles, and a line on when
+   to walk away.
 
 The key stays server-side — calling DeepSeek from the browser would expose it:
 
