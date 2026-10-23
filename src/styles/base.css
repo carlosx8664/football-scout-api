@@ -56,6 +56,11 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   padding: 32px 24px;
 }
 
+/* Two-column variant: the centre content absorbs the right sidebar's space. */
+.app-body-wide {
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
 /* --- Shared odds tiles --- */
 .odd-label { font-size: 0.75rem; color: var(--color-neutral-6); font-weight: 500; }
 .odd-value { font-size: 1rem; color: var(--color-neutral-7); font-weight: 700; }

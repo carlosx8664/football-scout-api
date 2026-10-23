@@ -83,12 +83,9 @@ function App() {
       <div className="app-container">
         <Header />
 
-        <div className="app-body">
+        <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
           <ArbsTable now={now} />
-          {data && data.status !== "pending" ? (
-            <RightSidebar matches={data.matches} date={data.date} />
-          ) : null}
         </div>
       </div>
     );
