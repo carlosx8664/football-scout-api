@@ -1,14 +1,25 @@
 import { Link } from "react-router-dom";
 import { formatKickoff } from "../lib/format";
 import type { Match } from "../types";
+import LeagueTable from "./LeagueTable";
 import "./RightSidebar.css";
 
 interface RightSidebarProps {
   matches: Match[];
   date: string;
+  /** When a match page is open, the sidebar shows that league's table instead of top picks. */
+  focusMatch?: Match | null;
 }
 
-const RightSidebar = ({ matches, date }: RightSidebarProps) => {
+const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) => {
+  if (focusMatch) {
+    return (
+      <aside className="right-sidebar">
+        <LeagueTable match={focusMatch} />
+      </aside>
+    );
+  }
+
   const topPicks = matches
     .filter((match) => match.fixture.date.slice(0, 10) === date)
     .flatMap((match) => {

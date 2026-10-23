@@ -213,6 +213,26 @@ Behaviour:
 - Analyses baked into `matches.json` (via `npm run build:matches` with `DEEPSEEK_API_KEY`) take
   precedence over the on-demand endpoint.
 - The response also returns `sources: [{ title, url }]`, which the UI does not render yet.
+- `?refresh=1` bypasses the cache read (the UI's **Refresh** button uses it), and the cache key
+  carries a version prefix so prompt changes invalidate old notes.
+
+### League table on match pages
+
+`GET /api/standings?league=&home=&away=&season=` ([functions/api/standings.js](functions/api/standings.js))
+serves the competition table behind the right sidebar when a match page is open (the home page
+keeps showing Top Picks).
+
+- Source: [football-data.org](https://www.football-data.org/) v4. Register for a free token and
+  set `FOOTBALL_DATA_ORG_TOKEN` (`.dev.vars` locally, Pages secret in production).
+- Tables are cached in KV for 30 minutes per competition and season (their free tier allows
+  10 requests/minute).
+- The sidebar shows five rows around each team, with both highlighted; an ellipsis marks rows
+  trimmed above/below.
+- Team names differ between sources ("SC Telstar" vs "Telstar"), so rows are matched with the same
+  token-similarity scoring used by the odds feed.
+- Mapped competitions: Premier League, Championship, Serie A, Bundesliga, La Liga, Ligue 1,
+  Eredivisie, Primeira Liga, Brasileirão, Champions League and World Cup. Cups, the Belgian Pro
+  League and the Conference League have no table and return a friendly message instead.
 
 ## Sync behaviour and quota safety
 

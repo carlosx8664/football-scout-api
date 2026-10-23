@@ -111,6 +111,10 @@ function App() {
     selectedLeague === 0
       ? data.matches
       : data.matches.filter((match) => match.league.id === selectedLeague);
+  const focusedMatch =
+    matchId !== null
+      ? (data.matches.find((match) => match.fixture.id === matchId) ?? null)
+      : null;
 
   return (
     <div className="app-container">
@@ -120,10 +124,7 @@ function App() {
         <Sidebar selectedLeague={selectedLeague} setSelectedLeague={setSelectedLeague} />
 
         {matchId !== null ? (
-          <MatchDetail
-            match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
-            date={data.date}
-          />
+          <MatchDetail match={focusedMatch} date={data.date} />
         ) : (
           <MainFeed
             matches={filteredMatches}
@@ -135,7 +136,7 @@ function App() {
           />
         )}
 
-        <RightSidebar matches={data.matches} date={data.date} />
+        <RightSidebar matches={data.matches} date={data.date} focusMatch={focusedMatch} />
       </div>
     </div>
   );

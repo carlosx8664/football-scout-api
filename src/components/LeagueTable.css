@@ -1,0 +1,129 @@
+.league-table-container {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 20px;
+  position: sticky;
+  top: 100px;
+  min-width: 0;
+}
+
+.league-table-container h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.league-table-subtitle {
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+}
+
+.league-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.league-table thead th {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.league-table thead th:nth-child(3),
+.league-table thead th:nth-child(4) {
+  text-align: right;
+}
+
+.league-table tbody tr {
+  border-bottom: 1px solid var(--color-neutral-3);
+}
+
+.league-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.league-table td {
+  padding: 7px 0;
+  vertical-align: middle;
+}
+
+.league-table-position {
+  width: 22px;
+  color: var(--color-neutral-6);
+  font-weight: 600;
+}
+
+.league-table-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+  min-width: 0;
+}
+
+.league-table-team img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.league-table-team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.league-table-stat {
+  width: 32px;
+  text-align: right;
+  color: var(--color-neutral-6);
+}
+
+.league-table-points {
+  color: var(--color-neutral-7);
+  font-weight: 700;
+}
+
+/* Highlight the two teams in the fixture being viewed. */
+.league-table-row-home td,
+.league-table-row-away td {
+  background: var(--color-brand-weak);
+}
+
+.league-table-row-home .league-table-team,
+.league-table-row-away .league-table-team,
+.league-table-row-home .league-table-points,
+.league-table-row-away .league-table-points {
+  color: var(--color-brand-4);
+}
+
+.league-table-row-home td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-brand);
+}
+
+.league-table-row-away td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-brand-4);
+}
+
+.league-table-gap td {
+  padding: 2px 0;
+  color: var(--color-neutral-5);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.league-table-note {
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
