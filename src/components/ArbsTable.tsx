@@ -21,12 +21,61 @@ const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
 const ROUNDING_STEPS = [5, 10, 15, 20];
 
-/** Nearest multiple of `step`; a step of 0 leaves the stake untouched. */
-function roundStake(value: number, step: number): number {
-  if (step <= 0) return value;
-  if (value <= 0) return 0;
-  // Never round a live leg to zero: an unbacked side is not an arbitrage.
-  return Math.max(step, Math.round(value / step) * step);
+/**
+ * Rounds each leg to a multiple of `step` while keeping the pair within the requested total.
+ * Each leg is considered at both its floor and ceil multiple, and the combination with the
+ * best worst-case profit wins, so coarse steps do not silently leave a leg under-funded.
+ */
+function roundStakes(
+  rawStakes: Array<number | null>,
+  odds: number[],
+  step: number,
+  target: number,
+): Array<number | null> {
+  if (step <= 0) return rawStakes;
+
+  const candidates = rawStakes.map((value) => {
+    if (value === null) return [null];
+    if (value <= 0) return [0];
+    const floor = Math.max(step, Math.floor(value / step) * step);
+    const ceil = Math.max(step, Math.ceil(value / step) * step);
+    return floor === ceil ? [floor] : [floor, ceil];
+  });
+
+  const search: {
+    best: { stakes: Array<number | null>; worst: number; total: number } | null;
+  } = { best: null };
+
+  const walk = (index: number, current: Array<number | null>) => {
+    if (index === candidates.length) {
+      const total = current.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+      if (total > target) return;
+
+      const worst = current.reduce<number>((lowest, value, position) => {
+        if (value === null) return lowest;
+        return Math.min(lowest, value * odds[position] - total);
+      }, Number.POSITIVE_INFINITY);
+
+      const currentBest = search.best;
+      const better =
+        currentBest === null ||
+        worst > currentBest.worst + 1e-9 ||
+        (Math.abs(worst - currentBest.worst) <= 1e-9 && total > currentBest.total);
+      if (better) search.best = { stakes: [...current], worst, total };
+      return;
+    }
+
+    for (const option of candidates[index]) {
+      current.push(option);
+      walk(index + 1, current);
+      current.pop();
+    }
+  };
+
+  walk(0, []);
+
+  // Nothing fits the budget: fall back to the smallest multiples.
+  return search.best ? search.best.stakes : candidates.map((options) => options[0]);
 }
 
 function countdown(kickoff: number, now: number): string {
@@ -233,10 +282,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
 
-                      const stakes = legs.map((leg) =>
+                      const rawStakes = legs.map((leg) =>
                         typeof leg.stake === "number"
-                          ? roundStake((leg.stake / 100) * totalStake, rounding)
+                          ? (leg.stake / 100) * totalStake
                           : null,
+                      );
+                      const stakes = roundStakes(
+                        rawStakes,
+                        legs.map((leg) => leg.odds),
+                        rounding,
+                        totalStake,
                       );
                       // Rounding can nudge the legs above or below the requested total, so
                       // profit is measured against what would actually be laid out.
