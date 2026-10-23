@@ -180,23 +180,32 @@ feed is missing.
 ### Scout analysis on the match page
 
 `GET /api/analysis?id=&home=&away=&league=&kickoff=&odds=` ([functions/api/analysis.js](functions/api/analysis.js))
-generates a short tipster note the first time a fixture is opened, then caches it in KV under
-`analysis-<fixtureId>` for six hours. The DeepSeek key stays server-side — calling the API from
-the browser would expose it — so set it on the Pages project:
+runs a two-step pipeline the first time a fixture is opened:
+
+1. **Scout** — `POST /v1/tools/search` on DeepSeek's Search API with
+   `<home> vs <away> team news injuries lineup after:<yesterday>` (trimmed to the API's 128-character
+   limit). The top three results' `summary` (falling back to `snippet`/`content`) become the news
+   context.
+2. **Analyst** — `POST /chat/completions` with those articles plus the match odds, told to give a
+   straight best-bet opinion and flag anything the articles don't cover.
+
+The key stays server-side — calling DeepSeek from the browser would expose it:
 
 ```bash
 npx wrangler pages secret put DEEPSEEK_API_KEY
 ```
 
-Notes:
+Behaviour:
 
-- The prompt deliberately forbids inventing injuries, suspensions, line-ups, transfers and
-  head-to-head records. DeepSeek has **no live web access**, so those details cannot be sourced;
-  the note tells the reader to check team news instead of bluffing.
-- Odds movement, news and injury feeds need a real data source (an odds-history table plus a
-  news API). They are not fabricated here.
+- Results are cached in KV under `analysis-<fixtureId>` for six hours. If the search step failed,
+  the note is cached for only ten minutes so the next click retries with fresh news.
+- A search failure never blocks the write-up: the prompt falls back to
+  "No recent news found. Base analysis on odds only."
+- The prompt forbids inventing injuries, suspensions, line-ups, transfers or head-to-head records;
+  the model may only cite what the articles contain.
 - Analyses baked into `matches.json` (via `npm run build:matches` with `DEEPSEEK_API_KEY`) take
   precedence over the on-demand endpoint.
+- The response also returns `sources: [{ title, url }]`, which the UI does not render yet.
 
 ## Sync behaviour and quota safety
 
