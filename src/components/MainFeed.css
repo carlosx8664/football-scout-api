@@ -11,7 +11,7 @@
   color: #0a2540;
 }
 
-.quota-badge {
+.feed-date-badge {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--color-neutral-6);
@@ -208,15 +208,4 @@
 
 .details-btn:hover {
   background-color: #d97706;
-}
-
-.card-footer {
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
-  padding: 10px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #4b5563;
-  font-weight: 600;
-  margin-top: auto;
 }

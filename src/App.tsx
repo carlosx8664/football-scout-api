@@ -130,7 +130,6 @@ function App() {
             selectedLeagueName={
               selectedLeague === 0 ? "Top Matches of the Day" : leagueName(selectedLeague)
             }
-            quota={data.quota_remaining ?? "unknown"}
             date={data.date}
             now={now}
           />

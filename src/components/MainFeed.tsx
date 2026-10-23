@@ -9,7 +9,6 @@ import "./MainFeed.css";
 interface MainFeedProps {
   matches: Match[];
   selectedLeagueName: string;
-  quota: string;
   date: string;
   now: number;
 }
@@ -19,7 +18,7 @@ const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: "tomorrow", label: "Tomorrow's Matches" },
 ];
 
-const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedProps) => {
+const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => {
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
 
   const counts: Record<FeedTab, number> = {
@@ -32,9 +31,7 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedPro
     <main className="main-feed">
       <div className="feed-top-header">
         <h1 className="page-title">{selectedLeagueName}</h1>
-        <span className="quota-badge">
-          API Quota Left: {quota} | {date}
-        </span>
+        <span className="feed-date-badge">{date}</span>
       </div>
 
       <div className="match-tabs" role="tablist" aria-label="Match days">
@@ -115,10 +112,6 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedPro
                 <Link to={`/match/${match.fixture.id}`} className="details-btn">
                   View AI Details ➜
                 </Link>
-
-                <div className="card-footer">
-                  <span>🇬🇧 Exclusive Offer</span>
-                </div>
               </div>
             );
           })
