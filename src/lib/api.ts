@@ -11,18 +11,12 @@ export async function fetchSnapshot(signal?: AbortSignal): Promise<SnapshotData>
   const feed =
     (await readJson<SnapshotData>("/api/matches", signal)) ??
     (await readJson<SnapshotData>("/matches.json", signal));
-  if (feed?.matches) return feed;
 
-  // Fallback for deployments that have not generated the feed yet.
-  const response = await fetch("/api/snapshot", { signal });
-  const body = (await response.json().catch(() => null)) as
-    | (SnapshotData & { error?: string })
-    | null;
-
-  if (!response.ok || !body) {
-    throw new Error(body?.error ?? `Request failed with HTTP ${response.status}`);
+  if (!feed?.matches) {
+    throw new Error("Could not load the match feed. Try refreshing in a minute.");
   }
-  return body;
+
+  return feed;
 }
 
 const ARBS_SOURCES = ["/api/arbs", "/arbs.json"];

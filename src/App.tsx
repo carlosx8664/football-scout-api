@@ -106,17 +106,6 @@ function App() {
   if (error) return <div className="error">Error: {error}</div>;
   if (!data) return null;
 
-  if (data.status === "pending") {
-    return (
-      <div className="app-container">
-        <Header />
-        <div className="notice" role="status">
-          <h1>Today's slate is still syncing</h1>
-          <p>{data.message}</p>
-        </div>
-      </div>
-    );
-  }
 
   const filteredMatches =
     selectedLeague === 0

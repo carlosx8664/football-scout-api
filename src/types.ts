@@ -71,16 +71,13 @@ export interface ArbsPayload {
 }
 
 /**
- * Payload produced by `scripts/sync.js` and served verbatim from Cloudflare KV.
+ * Payload served by `/api/matches` (KV) or `/matches.json`, produced by
+ * `scripts/build-match-feed.js`.
  */
 export interface SnapshotData {
-  status: "success" | "pending";
+  status: "success";
   date: string;
-  message?: string;
   generated_at?: string;
-  quota_remaining?: string;
-  quota_exhausted?: boolean;
   match_count: number;
-  analysed_count?: number;
   matches: Match[];
 }

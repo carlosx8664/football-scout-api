@@ -72,25 +72,31 @@ a `preview_id` with the id of `wrangler kv namespace create FOOTBALL_DATA --prev
 
 | Secret | Where to get it |
 | --- | --- |
-| `API_FOOTBALL_KEY` | API-Football dashboard → API key |
-| `DEEPSEEK_API_KEY` | DeepSeek platform → API keys |
 | `CF_ACCOUNT_ID` | Cloudflare dashboard → any zone/Workers overview (right-hand account id) |
 | `CF_KV_NAMESPACE_ID` | Output of the `kv namespace create` command above |
 | `CF_API_TOKEN` | Cloudflare → My Profile → API Tokens → create a token with **Workers KV Storage: Edit** (scoped to your account) |
 
-Optional (only for AI Gateway routing): `CF_GATEWAY_ID`, `CF_AIG_TOKEN`.
-
-Add them under **Settings → Secrets and variables → Actions → New repository secret**.
-
-### 3. Run the sync once
-
-Actions → **Daily football sync** → *Run workflow*. Or locally:
+Pages Functions need two more, set as Pages secrets (not Actions secrets):
 
 ```bash
-cp .dev.vars.example .dev.vars    # fill in the values
-node scripts/sync.js --dry-run --out snapshot.json   # inspect the payload, no upload
-node scripts/sync.js                                 # upload to KV
+npx wrangler pages secret put DEEPSEEK_API_KEY       # on-demand match analysis
+npx wrangler pages secret put FOOTBALL_DATA_ORG_TOKEN # league tables
 ```
+
+Add the Actions ones under **Settings → Secrets and variables → Actions → New repository secret**.
+
+### 3. Publish the feeds
+
+Actions → **Odds refresh** → *Run workflow*, or locally:
+
+```bash
+node scripts/fetch-odds.js            # data/sportybet.json, data/msport.json
+node scripts/find-arbs.js             # public/arbs.json
+node scripts/build-match-feed.js --no-ai   # public/matches.json
+```
+
+The workflow uploads both files to KV; until it has run once, the site falls back to the JSON
+files committed under `public/`.
 
 ## Local development
 
@@ -100,72 +106,49 @@ npm run preview   # builds + serves the Pages app (Functions + local KV) on :878
 npm run dev       # Vite on :5173, proxies /api -> :8788
 ```
 
-To see real data locally, run the sync (above) or seed a snapshot into the local KV:
-
-```bash
-npx wrangler kv key put --binding FOOTBALL_DATA "snapshot-latest" --path snapshot.json --local
-```
-
-Without a snapshot the app shows *"Today's matches are not available yet. The next sync will
-refresh them shortly."*
+To work with fresh data locally, run the three scripts above and then load the app — `npm run
+dev` serves `public/` directly, so no KV seeding is needed.
 
 Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 
 ## API
 
-`GET /api/snapshot` reads `snapshot-latest` and returns the stored payload verbatim:
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/matches` | Match feed from KV (`feed-matches`); 404 until the workflow has run |
+| `GET /api/arbs` | Arbitrage feed from KV (`feed-arbs`); 404 until the workflow has run |
+| `GET /api/analysis` | On-demand DeepSeek note with live search, cached 6 h per fixture |
+| `GET /api/standings` | League table window for a fixture, from football-data.org |
+
+`/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
 ```jsonc
 {
   "status": "success",
-  "date": "2026-10-20",
-  "window": { "from": "2026-10-20", "to": "2026-10-21" },
-  "generated_at": "2026-10-20T13:00:12.000Z",
-  "quota_remaining": "91",
-  "quota_exhausted": false,
-  "requests_used": 9,
-  "match_count": 128,
-  "odds_count": 96,
-  "analysed_count": 96,
-  "metrics": {
-    "total": 128,
-    "activeDays": 6,
-    "averagePerActiveDay": 21.3,
-    "peakDay": "2026-10-25",
-    "peakCount": 44,
-    "days": [{ "day": "2026-10-20", "count": 18 }]
-  },
-  "odds_requests": 12,
-  "ai_concurrency": { "limit": 3, "peak": 3 },
+  "date": "2026-10-23",
+  "window": { "from": "2026-10-23", "to": "2026-10-24" },
+  "generated_at": "2026-10-23T18:05:04.000Z",
+  "match_count": 57,
   "matches": [
     {
-      "fixture": { "id": 1234, "date": "2026-10-20T19:00:00+00:00" },
+      "fixture": { "id": 1234, "date": "2026-10-23T19:00:00.000Z" },
       "league": { "id": 39, "name": "Premier League", "logo": "..." },
       "teams": { "home": { "name": "...", "logo": "..." }, "away": { "name": "...", "logo": "..." } },
-      "goals": { "home": null, "away": null },
-      "odds": [{ "value": "Home", "odd": "1.80" }, { "value": "Draw", "odd": "3.50" }, { "value": "Away", "odd": "4.20" }],
-      "ai_analysis": "..."
+      "goals": null,
+      "odds": [{ "value": "Home", "odd": "1.80" }],
+      "book_odds": { "home": { "sportybet": 1.80, "msport": 1.85, "best": 1.85, "bookmaker": "MSport" } },
+      "ai_analysis": null
     }
   ]
 }
 ```
 
-If `snapshot-latest` does not exist yet (first ever deploy), it returns HTTP 200 with a
-friendly placeholder:
-
-```json
-{
-  "status": "pending",
-  "date": "2026-10-20",
-  "message": "Today's matches are not available yet. The next sync will refresh them shortly.",
-  "match_count": 0,
-  "matches": []
-}
-```
+The client tries `/api/matches` first, then falls back to `/matches.json`, so a deployment
+without KV data still renders.
 
 ## Match feed (SportyBet + MSport)
 
-The site prefers `public/matches.json`, generated from the two bookmaker snapshots:
+The match feed is generated from the bookmaker snapshots:
 
 ```bash
 npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
@@ -181,8 +164,7 @@ npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
 - Adds DeepSeek analysis when `DEEPSEEK_API_KEY` is set (`--no-ai` skips it).
 - Leaves the existing feed untouched if nothing parses, so a failed run cannot blank the site.
 
-The React app fetches `/matches.json` and only falls back to `/api/snapshot` (KV) when the
-feed is missing.
+The React app fetches `/api/matches`, falling back to `/matches.json` when KV is empty.
 
 ### Scout analysis on the match page
 
@@ -262,37 +244,6 @@ cost a DeepSeek call per fixture every 15 minutes.
 Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day
 and this uses 192. GitHub runners use datacenter IPs, so bookmaker sites may block them even when
 the scripts work locally — check the first few scheduled runs.
-
-## Sync behaviour and quota safety
-
-The API-Football **free plan** rejects `from`/`to` range queries and season-specific fixture
-queries for the current season, so the sync uses global date-scoped fixture calls:
-
-- Fixtures: `/fixtures?date=<day>&timezone=UTC` for today and tomorrow. Each date's response is
-  paginated using `paging.total`; fetched pages are combined and deduped by `fixture.id` before
-  filtering to the 16 tracked leagues.
-- Odds: `/odds?fixture=<id>` is requested for every eligible target-league match in kickoff
-  order. All API-Football calls are spaced 6.5 seconds apart. Odds fetching has no arbitrary
-  request cap and stops gracefully if the API reports a quota or rate limit.
-- Fixture pagination is capped at 32 requests per run; if more pages remain, the log warns how
-  many. The total daily API usage depends on fixture pages and eligible matches, so check the
-  API quota logs when running frequently.
-- A daily-limit response stops further calls for that run, logs a warning, and still uploads
-  what was gathered (`quota_exhausted: true`). Bad credentials still fail the workflow.
-- Grace period: today's matches that kicked off more than 4 hours ago are dropped before upload;
-  tomorrow's and other future-day matches bypass the grace period.
-- DeepSeek: only for matches that have odds, 3 at a time (`AI_CONCURRENCY`).
-- Metrics logged each run: total active matches, active days, average per active day, peak day,
-  and a loud warning for any day above 75 matches:
-  `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
-- Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
-- `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
-- **No longer scheduled.** `daily-sync.yml` was deleted once the site moved to the 15-minute
-  odds refresh; run `node scripts/sync.js` by hand only for API-Football backfills.
-- The site polls `/api/snapshot` every 15 minutes and refetches only when a match kicks off within
-  the next hour, so late odds/analysis land without any extra API-Football requests.
-
-The `odds_requests` field reports how many per-fixture odds requests were made during the run.
 
 ## Routes
 

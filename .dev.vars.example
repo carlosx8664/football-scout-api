@@ -1,23 +1,16 @@
-# Local-only secrets for `wrangler pages dev` / `npm run preview`.
+﻿# Local-only secrets for `wrangler pages dev` / `npm run preview`.
 # Copy to `.dev.vars` (gitignored) and fill in real values.
-#
-# The Pages Function only reads Cloudflare KV, so it needs no credentials here: the
-# FOOTBALL_DATA binding in wrangler.jsonc is used instead. The variables below are only
-# needed when you run the sync script locally:
-#
-#   node scripts/sync.js --dry-run        # gather data, skip the KV upload
-#   node scripts/sync.js                  # gather data and upload it to KV
 
-# API-Football (https://dashboard.api-football.com)
-API_FOOTBALL_KEY=
-
-# DeepSeek (https://platform.deepseek.com/api_keys)
+# DeepSeek (https://platform.deepseek.com/api_keys) - powers /api/analysis match write-ups.
 DEEPSEEK_API_KEY=
-
 # Optional: model override. Defaults to deepseek-flash.
 # DEEPSEEK_MODEL=deepseek-flash
 
-# Cloudflare API token with "Workers KV Storage: Edit", plus your account and namespace ids.
+# football-data.org (https://www.football-data.org/client/register) - league tables.
+FOOTBALL_DATA_ORG_TOKEN=
+
+# Cloudflare API token with "Workers KV Storage: Edit", plus account and namespace ids.
+# Only needed to publish feeds locally instead of via GitHub Actions.
 # CF_ACCOUNT_ID=
 # CF_KV_NAMESPACE_ID=
 # CF_API_TOKEN=
@@ -25,9 +18,3 @@ DEEPSEEK_API_KEY=
 # Optional: route DeepSeek calls through Cloudflare AI Gateway instead of api.deepseek.com.
 # CF_GATEWAY_ID=
 # CF_AIG_TOKEN=
-
-# Optional sync tuning (defaults shown).
-# AI_CONCURRENCY=3
-# ODDS_WINDOW_DAYS=2
-# ODDS_MAX_PAGES=8
-# MAX_REQUESTS_PER_RUN=18
