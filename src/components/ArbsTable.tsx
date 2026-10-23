@@ -19,7 +19,7 @@ const LEGS_PER_MATCH = 2;
 const REFRESH_MS = 5 * 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
-const ROUNDING_STEPS = [5, 10, 15, 20];
+const ROUNDING_STEPS = [5, 10, 20];
 
 /**
  * Rounds each leg to a multiple of `step` while keeping the pair within the requested total.

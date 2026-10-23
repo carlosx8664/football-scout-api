@@ -24,9 +24,6 @@ const Header = () => {
             <Link to="/arbs">Arbs</Link>
           </nav>
         </div>
-        <div className="header-right">
-          <button className="btn-login">Log in</button>
-        </div>
       </div>
     </header>
   );

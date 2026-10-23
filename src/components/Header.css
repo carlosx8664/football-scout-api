@@ -31,14 +31,3 @@
   transition: all 0.2s;
 }
 .top-nav a:hover { color: var(--color-neutral-7); border-bottom-color: var(--color-brand); }
-
-.header-right { display: flex; align-items: center; gap: 12px; }
-.btn-login {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-neutral-7);
-}
-.btn-login:hover { background: var(--color-neutral-6); }
