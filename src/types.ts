@@ -15,8 +15,8 @@ export interface Team {
 }
 
 export interface BookPrice {
-  sportybet: number | null;
-  msport: number | null;
+  /** Bookmaker name -> decimal price. Only books quoting this outcome appear. */
+  books: Record<string, number>;
   best: number | null;
   bookmaker: string | null;
 }

@@ -28,6 +28,7 @@ const AI_CONCURRENCY = 3;
 const SOURCES = [
   { name: "SportyBet", file: "data/sportybet.json", readEvents: readSportyEvents },
   { name: "MSport", file: "data/msport.json", readEvents: readMsportEvents },
+  { name: "BetBoro", file: "data/betboro.json", readEvents: readBetBoroEvents },
 ];
 
 /**
@@ -106,6 +107,7 @@ function readSportyEvents(json) {
   for (const tournament of tournaments) {
     for (const event of tournament?.events ?? []) {
       events.push({
+        srId: String(event.eventId ?? ""),
         home: event.homeTeamName,
         away: event.awayTeamName,
         startTime: Number(event.estimateStartTime),
@@ -129,6 +131,7 @@ function readMsportEvents(json) {
   for (const tournament of tournaments) {
     for (const event of tournament?.events ?? []) {
       events.push({
+        srId: String(event.eventId ?? ""),
         home: event.homeTeam,
         away: event.awayTeam,
         startTime: Number(event.startTime),
@@ -140,6 +143,36 @@ function readMsportEvents(json) {
         }),
       });
     }
+  }
+
+  return events;
+}
+
+/** BetBoro writes `{ generatedAt, fixtures: [...] }`; the 1X2 market is `match_result`. */
+function readBetBoroEvents(json) {
+  const fixtures = Array.isArray(json?.fixtures) ? json.fixtures : [];
+  const events = [];
+  const bySlot = { 0: "home", 1: "draw", 2: "away" };
+
+  for (const fixture of fixtures) {
+    const odds = { home: Number.NaN, draw: Number.NaN, away: Number.NaN };
+
+    for (const [slot, outcome] of Object.entries(fixture?.markets?.match_result ?? {})) {
+      const key = bySlot[slot];
+      if (!key) continue;
+      if (outcome?.status && outcome.status !== "available") continue;
+      odds[key] = toNumber(outcome?.price);
+    }
+
+    events.push({
+      srId: String(fixture?.eventId ?? ""),
+      home: fixture?.home,
+      away: fixture?.away,
+      startTime: Number(fixture?.kickoff),
+      competition: normalize(`${fixture?.region} ${fixture?.competition}`),
+      logos: { home: "", away: "" },
+      odds,
+    });
   }
 
   return events;
@@ -177,10 +210,16 @@ function toBookOdds(books) {
   const result = {};
 
   for (const outcome of OUTCOMES) {
+    const quotes = {};
+
+    for (const [bookmaker, odds] of Object.entries(books)) {
+      const price = roundPrice(odds?.[outcome.key]);
+      if (price !== null) quotes[bookmaker] = price;
+    }
+
     const best = bestPrice(books, outcome.key);
     result[outcome.key] = {
-      sportybet: roundPrice(books.SportyBet?.[outcome.key]),
-      msport: roundPrice(books.MSport?.[outcome.key]),
+      books: quotes,
       best: best ? roundPrice(best.price) : null,
       bookmaker: best?.bookmaker ?? null,
     };
@@ -379,7 +418,9 @@ async function main() {
 
   const windowDays = Math.max(1, Number(values.days) || 2);
   const leagueIndex = buildLeagueIndex();
-  // Same league + same kickoff time, so name variants can be paired by similarity.
+  // Every bookmaker uses Sportradar ids ("sr:match:..."), so join on that. The league+kickoff
+  // bucket with name similarity stays as a fallback for events without an id.
+  const bySrId = new Map();
   const buckets = new Map();
 
   for (const source of SOURCES) {
@@ -400,10 +441,20 @@ async function main() {
       const league = leagueIndex.get(event.competition);
       if (!league) continue;
 
-      const bucketKey = `${league.id}|${event.startTime}`;
-      const bucket = buckets.get(bucketKey) ?? { SportyBet: [], MSport: [] };
-      bucket[source.name].push({ ...event, league, source: source.name });
-      buckets.set(bucketKey, bucket);
+      const enriched = { ...event, league, source: source.name };
+      const srId = String(event.srId ?? "");
+
+      if (/^sr:match:\d+$/.test(srId)) {
+        const group = bySrId.get(srId) ?? [];
+        group.push(enriched);
+        bySrId.set(srId, group);
+      } else {
+        const bucketKey = `${league.id}|${event.startTime}`;
+        const bucket = buckets.get(bucketKey) ?? [];
+        bucket.push(enriched);
+        buckets.set(bucketKey, bucket);
+      }
+
       kept += 1;
     }
 
@@ -413,35 +464,45 @@ async function main() {
   const merged = [];
   let paired = 0;
 
+  for (const group of bySrId.values()) {
+    if (group.length > 1) paired += 1;
+    merged.push(mergeEvents(group));
+  }
+
+  // Fallback for events without a Sportradar id: same league, same kickoff, similar names.
   for (const bucket of buckets.values()) {
-    const available = [...bucket.MSport];
+    const taken = new Set();
+    const placed = [];
 
-    for (const event of bucket.SportyBet) {
-      let bestIndex = -1;
-      let bestScore = 0;
-
-      available.forEach((candidate, index) => {
+    for (const event of bucket) {
+      let partner = null;
+      for (const candidate of bucket) {
+        if (candidate === event || taken.has(candidate) || candidate.source === event.source) {
+          continue;
+        }
         const score =
           (similarity(event.home, candidate.home) + similarity(event.away, candidate.away)) / 2;
-        if (score > bestScore) {
-          bestScore = score;
-          bestIndex = index;
+        if (score >= MERGE_THRESHOLD) {
+          partner = candidate;
+          break;
         }
-      });
+      }
 
-      if (bestIndex >= 0 && bestScore >= MERGE_THRESHOLD) {
-        const partner = available.splice(bestIndex, 1)[0];
+      if (placed.includes(event)) continue;
+      placed.push(event);
+
+      if (partner) {
+        taken.add(partner);
+        placed.push(partner);
         merged.push(mergeEvents([event, partner]));
         paired += 1;
       } else {
         merged.push(mergeEvents([event]));
       }
     }
-
-    for (const event of available) merged.push(mergeEvents([event]));
   }
 
-  log(`Paired ${paired} fixtures across both bookmakers.`);
+  log(`Paired ${paired} fixtures across bookmakers.`);
 
   if (merged.length === 0) {
     // Never replace a good feed with an empty one when the source dumps are absent.

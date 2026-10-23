@@ -135,7 +135,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
       "teams": { "home": { "name": "...", "logo": "..." }, "away": { "name": "...", "logo": "..." } },
       "goals": null,
       "odds": [{ "value": "Home", "odd": "1.80" }],
-      "book_odds": { "home": { "sportybet": 1.80, "msport": 1.85, "best": 1.85, "bookmaker": "MSport" } },
+      "book_odds": { "home": { "books": { "SportyBet": 1.80, "MSport": 1.85, "BetBoro": 1.78 }, "best": 1.85, "bookmaker": "MSport" } },
       "ai_analysis": null
     }
   ]
@@ -145,7 +145,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 The client tries `/api/matches` first, then falls back to `/matches.json`, so a deployment
 without KV data still renders.
 
-## Match feed (SportyBet + MSport)
+## Match feed (SportyBet + MSport + BetBoro)
 
 The match feed is generated from the bookmaker snapshots:
 
@@ -153,13 +153,15 @@ The match feed is generated from the bookmaker snapshots:
 npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
 ```
 
-- Reads `data/sportybet.json` and `data/msport.json` and keeps the 1X2 market.
+- Reads `data/sportybet.json`, `data/msport.json` and `data/betboro.json`, keeping the 1X2 market.
 - Filters to the tracked leagues using `<country> <competition>`, because names such as
   "Championship" and "Premier League" exist in many countries.
-- Pairs the same fixture across bookmakers by league + kickoff, then team-name similarity, so
-  "Nottm Forest" still merges with "Nottingham Forest".
-- Emits the best price per outcome plus a `book_odds` block holding each bookmaker's price,
-  which powers the hover breakdown; the tile itself always shows the best price.
+- Joins the same fixture across bookmakers on the Sportradar id (`sr:match:…`), which all three
+  quote. League + kickoff + team-name similarity ("Nottm Forest" vs "Nottingham Forest") is only
+  a fallback for events without an id.
+- Emits the best price per outcome plus a `book_odds` block. Each outcome carries
+  `{ books: { <bookmaker>: price }, best, bookmaker }`, so the hover breakdown lists however many
+  books quote it while the tile always shows the best price.
 - Adds DeepSeek analysis when `DEEPSEEK_API_KEY` is set (`--no-ai` skips it).
 - Leaves the existing feed untouched if nothing parses, so a failed run cannot blank the site.
 

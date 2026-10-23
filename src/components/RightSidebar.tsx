@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { formatKickoff } from "../lib/format";
+import { sortedQuotes } from "../lib/odds";
 import type { Match } from "../types";
 import LeagueTable from "./LeagueTable";
 import "./RightSidebar.css";
@@ -18,7 +19,7 @@ const OUTCOMES = [
 ] as const;
 
 /**
- * Best price available on an outcome versus the other bookmaker, as a share of that other
+ * Best price available on an outcome versus the next best bookmaker, as a share of that
  * price. This is a real, checkable number: 3.10 against 3.00 is a 3.3% better price.
  */
 function bestEdge(match: Match) {
@@ -28,23 +29,17 @@ function bestEdge(match: Match) {
   let pick: { label: string; odds: number; edge: number; bookmaker: string } | null = null;
 
   for (const outcome of OUTCOMES) {
-    const price = book[outcome.key];
-    const sportybet = price?.sportybet;
-    const msport = price?.msport;
-    if (typeof sportybet !== "number" || typeof msport !== "number") continue;
-    if (sportybet === msport) continue;
+    const quotes = sortedQuotes(book[outcome.key]);
 
-    const best = Math.max(sportybet, msport);
-    const other = Math.min(sportybet, msport);
-    const edge = best / other - 1;
+    // Need at least two books to have any edge to measure.
+    if (quotes.length < 2) continue;
+
+    const [bestBook, bestOdds] = quotes[0];
+    const other = quotes[1][1];
+    const edge = bestOdds / other - 1;
 
     if (!pick || edge > pick.edge) {
-      pick = {
-        label: outcome.label,
-        odds: best,
-        edge,
-        bookmaker: sportybet > msport ? "SportyBet" : "MSport",
-      };
+      pick = { label: outcome.label, odds: bestOdds, edge, bookmaker: bestBook };
     }
   }
 
@@ -73,7 +68,7 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
     <aside className="right-sidebar">
       <section className="top-picks-container">
         <h3>🔥 Top Picks</h3>
-        <p className="top-picks-subtitle">Biggest price gaps between our two books</p>
+        <p className="top-picks-subtitle">Biggest price gaps across our books</p>
         {topPicks.length > 0 ? (
           <ul className="top-picks-list">
             {topPicks.map(({ match, pick }) => (
@@ -99,7 +94,7 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
           </ul>
         ) : (
           <p className="top-picks-empty">
-            Neither bookmaker is quoting better prices than the other right now.
+            No bookmaker is quoting a better price than the others right now.
           </p>
         )}
       </section>

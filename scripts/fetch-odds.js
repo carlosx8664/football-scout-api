@@ -90,6 +90,10 @@ async function fetchAllSportyBet(marketIds) {
     await sleep(1500);
   }
 
+  if (page > MAX_PAGES) {
+    console.log(`   ⚠️  Stopped at the ${MAX_PAGES}-page safety limit, so some SportyBet matches may be missing.`);
+  }
+
   return allTournaments;
 }
 
@@ -188,7 +192,7 @@ async function fetchAllMSport() {
   const seen = new Set();
   let lastEventId = null;
   let page = 1;
-  const MAX_PAGES = 25; // Safety limit
+  const MAX_PAGES = 80; // Safety limit (the loop normally stops itself well before this)
 
   while (page <= MAX_PAGES) {
     console.log(`📄 MSport page ${page}...`);
@@ -238,6 +242,10 @@ async function fetchAllMSport() {
     lastEventId = nextCursor;
     page++;
     await sleep(500);
+  }
+
+  if (page > MAX_PAGES) {
+    console.log(`   ⚠️  Stopped at the ${MAX_PAGES}-page safety limit, so some MSport matches may be missing.`);
   }
 
   return { data: { tournaments: allTournaments } };

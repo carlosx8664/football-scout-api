@@ -1,6 +1,6 @@
 // scripts/find-arbs.js
 //
-// Cross-bookie arbitrage scanner: SportyBet <-> MSport (2-outcome arbs only).
+// Cross-bookie arbitrage scanner: SportyBet <-> MSport <-> BetBoro (2-outcome arbs only).
 //
 // How it works
 //  1. Both bookies use Sportradar event IDs ("sr:match:72221344"), so fixtures are
@@ -27,6 +27,7 @@ const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const SPORTY_FILE = path.join(DATA_DIR, 'sportybet.json');
 const MSPORT_FILE = path.join(DATA_DIR, 'msport.json');
+const BETBORO_FILE = path.join(DATA_DIR, 'betboro.json');
 const OUT_FILE = path.resolve(__dirname, '..', 'public', 'arbs.json');
 
 // ---------------------------------------------------------------------------
@@ -50,6 +51,7 @@ if (!Number.isFinite(BOOST) || BOOST <= 0) {
 
 const SPORTY = 'SportyBet';
 const MSPORT = 'MSport';
+const BETBORO = 'BetBoro';
 
 // ---------------------------------------------------------------------------
 // Market parsing -> selections
@@ -142,6 +144,65 @@ function loadBookie(file, bookie) {
 }
 
 // ---------------------------------------------------------------------------
+// BetBoro: `{ fixtures: [...] }`, markets keyed by name
+// ---------------------------------------------------------------------------
+const betBoroPrice = (node) => {
+  if (!node || (node.status && node.status !== 'available')) return null;
+  const p = num(node.price);
+  return p !== null && p > 1 ? p : null;
+};
+
+function loadBetBoro(file) {
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const events = new Map();
+  const typeCounts = {};
+
+  for (const f of raw?.fixtures ?? []) {
+    if (!f?.eventId) continue;
+
+    const sel = {};
+    const add = (key, price) => {
+      if (!key || price === null || key in sel) return;
+      sel[key] = price;
+      const type = key.split(':')[0];
+      typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+    };
+
+    const result = f.markets?.match_result ?? {};
+    add('1X2:H', betBoroPrice(result['0']));
+    add('1X2:D', betBoroPrice(result['1']));
+    add('1X2:A', betBoroPrice(result['2']));
+
+    const dc = f.markets?.double_chance ?? {};
+    add('DC:1X', betBoroPrice(dc['0'])); // "1 or X"
+    add('DC:12', betBoroPrice(dc['1'])); // "1 or 2"
+    add('DC:X2', betBoroPrice(dc['2'])); // "X or 2"
+
+    const btts = f.markets?.both_teams_to_score ?? {};
+    add('BTTS:Y', betBoroPrice(btts['0']));
+    add('BTTS:N', betBoroPrice(btts['1']));
+
+    for (const [line, node] of Object.entries(f.markets?.total_goals ?? {})) {
+      if (!line.endsWith('.5')) continue; // whole-number lines can push
+      add(`OU:${line}:O`, betBoroPrice(node?.['0']));
+      add(`OU:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    events.set(f.eventId, {
+      eventId: f.eventId,
+      home: f.home,
+      away: f.away,
+      kickoff: f.kickoff,
+      tournament: `${f.region ?? ''} · ${f.competition ?? ''}`.trim(),
+      notStarted: Number(f.kickoff) > Date.now(),
+      sel,
+    });
+  }
+
+  return { events, typeCounts };
+}
+
+// ---------------------------------------------------------------------------
 // Pairs: two selections that together cover every possible result
 // ---------------------------------------------------------------------------
 const RESULT = ['H', 'D', 'A'];
@@ -206,17 +267,26 @@ function evaluate(pair, oa, ob) {
 function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
+  const betboro = loadBetBoro(BETBORO_FILE);
 
-  console.log(`SportyBet events: ${sporty.events.size}`);
-  console.log(`MSport events:    ${msport.events.size}`);
+  const sources = [
+    { name: SPORTY, book: sporty },
+    { name: MSPORT, book: msport },
+    { name: BETBORO, book: betboro },
+  ];
+
+  for (const { name, book } of sources) {
+    console.log(`${name.padEnd(10)} events: ${book.events.size}`);
+  }
   if (BOOST !== 1) {
     console.log(`⚠️  TEST MODE: MSport odds multiplied by ${BOOST}. Results are NOT real.`);
   }
 
   const fmtCounts = (c) => Object.entries(c).map(([k, v]) => `${k} ${v}`).join(' | ') || 'none';
   console.log(`\nSelections read`);
-  console.log(`  SportyBet: ${fmtCounts(sporty.typeCounts)}`);
-  console.log(`  MSport:    ${fmtCounts(msport.typeCounts)}`);
+  for (const { name, book } of sources) {
+    console.log(`  ${name.padEnd(10)} ${fmtCounts(book.typeCounts)}`);
+  }
 
   const sportyHasMore = Object.keys(sporty.typeCounts).some((t) => t !== '1X2');
   if (!sportyHasMore) {
@@ -226,23 +296,32 @@ function main() {
     );
   }
 
+  // One record per fixture, holding each bookmaker's selections.
+  const fixtures = new Map();
+  for (const { name, book } of sources) {
+    for (const ev of book.events.values()) {
+      if (!ev.notStarted) continue; // skip live / started games
+      const record = fixtures.get(ev.eventId) ?? { event: ev, books: {} };
+      record.books[name] = ev.sel;
+      fixtures.set(ev.eventId, record);
+    }
+  }
+
   const arbs = [];
   const evals = [];
   let matched = 0;
   let pairsChecked = 0;
 
-  for (const s of sporty.events.values()) {
-    const m = msport.events.get(s.eventId);
-    if (!m) continue;
-    if (!s.notStarted || !m.notStarted) continue; // skip live / started games
+  for (const { event, books } of fixtures.values()) {
+    const names = Object.keys(books);
+    if (names.length < 2) continue; // an arb needs two bookmakers
     matched++;
 
-    const books = { [SPORTY]: s.sel, [MSPORT]: m.sel };
-
-    // Fixed pairs + one Over/Under pair per line that either bookie offers
     const lines = new Set();
-    for (const k of [...Object.keys(s.sel), ...Object.keys(m.sel)]) {
-      if (k.startsWith('OU:')) lines.add(k.split(':')[1]);
+    for (const name of names) {
+      for (const k of Object.keys(books[name])) {
+        if (k.startsWith('OU:')) lines.add(k.split(':')[1]);
+      }
     }
     const pairs = [...FIXED_PAIRS];
     for (const line of lines) {
@@ -253,31 +332,34 @@ function main() {
     }
 
     for (const pair of pairs) {
-      // Both orientations, ALWAYS one leg on each bookie
-      for (const [bookA, bookB] of [[SPORTY, MSPORT], [MSPORT, SPORTY]]) {
-        const oa = books[bookA][pair.a];
-        const ob = books[bookB][pair.b];
-        if (!oa || !ob) continue;
-        pairsChecked++;
+      // Each ordered pair of different bookmakers, one leg on each.
+      for (const bookA of names) {
+        for (const bookB of names) {
+          if (bookA === bookB) continue;
+          const oa = books[bookA][pair.a];
+          const ob = books[bookB][pair.b];
+          if (!oa || !ob) continue;
+          pairsChecked++;
 
-        const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
-        const record = {
-          eventId: s.eventId,
-          home: s.home,
-          away: s.away,
-          tournament: s.tournament,
-          kickoff: s.kickoff,
-          market: pair.market,
-          profitPct: Number(profitPct.toFixed(3)),
-          legs: [
-            { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
-            { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
-          ],
-        };
-        if (pair.note) record.note = pair.note;
+          const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
+          const record = {
+            eventId: event.eventId,
+            home: event.home,
+            away: event.away,
+            tournament: event.tournament,
+            kickoff: event.kickoff,
+            market: pair.market,
+            profitPct: Number(profitPct.toFixed(3)),
+            legs: [
+              { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
+              { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
+            ],
+          };
+          if (pair.note) record.note = pair.note;
 
-        evals.push(record);
-        if (profitPct > MIN_PROFIT) arbs.push(record);
+          evals.push(record);
+          if (profitPct > MIN_PROFIT) arbs.push(record);
+        }
       }
     }
   }
@@ -303,7 +385,7 @@ function main() {
       console.log('\n⚠️  Anything above ~10% on real odds is usually a stale price or a data mismatch. Verify on both sites before betting.');
     }
   } else if (BOOST === 1) {
-    console.log('No arbs right now with real odds. That is normal: both books are priced tightly.');
+    console.log('No arbs right now with real odds. That is normal: the books are priced tightly.');
   }
 
   if (NEAR > 0) {
@@ -320,7 +402,11 @@ function main() {
     generatedAt: new Date().toISOString(),
     boostApplied: BOOST,
     boostTarget: BOOST !== 1 ? MSPORT : null,
-    stats: { matched, pairsChecked, sportyEvents: sporty.events.size, msportEvents: msport.events.size },
+    stats: {
+      matched,
+      pairsChecked,
+      bookEvents: Object.fromEntries(sources.map(({ name, book }) => [name, book.events.size])),
+    },
     arbs,
   }, null, 2));
   console.log(`\nWrote ${OUT_FILE}`);
