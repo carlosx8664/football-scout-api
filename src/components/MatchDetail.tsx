@@ -1,6 +1,7 @@
 import type { Match } from "../types";
 import { Link } from "react-router-dom";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
+import BookBreakdown from "./BookBreakdown";
 import "./MatchDetail.css";
 
 interface MatchDetailProps {
@@ -40,14 +41,14 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
 
         <div className="detail-teams">
           <div className="detail-team">
-            <img src={match.teams.home.logo} alt="" />
+            {match.teams.home.logo && <img src={match.teams.home.logo} alt="" />}
             <span>{match.teams.home.name}</span>
           </div>
           <span className="detail-score">
             {hasScore ? `${match.goals?.home} - ${match.goals?.away}` : "vs"}
           </span>
           <div className="detail-team">
-            <img src={match.teams.away.logo} alt="" />
+            {match.teams.away.logo && <img src={match.teams.away.logo} alt="" />}
             <span>{match.teams.away.name}</span>
           </div>
         </div>
@@ -56,14 +57,17 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
           <div className="odd-box">
             <span className="odd-label">1</span>
             <span className="odd-value">{prices.home}</span>
+            <BookBreakdown price={match.book_odds?.home} />
           </div>
           <div className="odd-box">
             <span className="odd-label">X</span>
             <span className="odd-value">{prices.draw}</span>
+            <BookBreakdown price={match.book_odds?.draw} />
           </div>
           <div className="odd-box">
             <span className="odd-label">2</span>
             <span className="odd-value">{prices.away}</span>
+            <BookBreakdown price={match.book_odds?.away} />
           </div>
         </div>
 

@@ -65,6 +65,37 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .odd-label { font-size: 0.75rem; color: var(--color-neutral-6); font-weight: 500; }
 .odd-value { font-size: 1rem; color: var(--color-neutral-7); font-weight: 700; }
 
+/* --- Per-bookmaker odds breakdown, revealed on tile hover --- */
+.book-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  width: 124px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0f172a;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.28);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.35;
+  z-index: 30;
+}
+.book-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.72);
+}
+.book-tooltip-row.best { color: #4ade80; }
+.card-odd:hover .book-tooltip,
+.odd-box:hover .book-tooltip {
+  display: grid;
+  gap: 4px;
+}
+
 /* --- Shared states --- */
 .loader, .error, .empty-state {
   text-align: center;

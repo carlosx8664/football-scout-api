@@ -14,12 +14,27 @@ export interface Team {
   logo: string;
 }
 
+export interface BookPrice {
+  sportybet: number | null;
+  msport: number | null;
+  best: number | null;
+  bookmaker: string | null;
+}
+
+export interface BookOdds {
+  home: BookPrice;
+  draw: BookPrice;
+  away: BookPrice;
+}
+
 export interface Match {
   fixture: { id: number; date: string };
   league: League;
   teams: { home: Team; away: Team };
   goals?: { home: number | null; away: number | null };
   odds: Odd[] | null;
+  /** Per-bookmaker prices behind the best price shown in `odds`. */
+  book_odds?: BookOdds | null;
   ai_analysis: string | null;
 }
 

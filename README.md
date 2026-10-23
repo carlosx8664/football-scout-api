@@ -156,6 +156,27 @@ friendly placeholder:
 }
 ```
 
+## Match feed (SportyBet + MSport)
+
+The site prefers `public/matches.json`, generated from the two bookmaker snapshots:
+
+```bash
+npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
+```
+
+- Reads `data/sportybet.json` and `data/msport.json` and keeps the 1X2 market.
+- Filters to the tracked leagues using `<country> <competition>`, because names such as
+  "Championship" and "Premier League" exist in many countries.
+- Pairs the same fixture across bookmakers by league + kickoff, then team-name similarity, so
+  "Nottm Forest" still merges with "Nottingham Forest".
+- Emits the best price per outcome plus a `book_odds` block holding each bookmaker's price,
+  which powers the hover breakdown; the tile itself always shows the best price.
+- Adds DeepSeek analysis when `DEEPSEEK_API_KEY` is set (`--no-ai` skips it).
+- Leaves the existing feed untouched if nothing parses, so a failed run cannot blank the site.
+
+The React app fetches `/matches.json` and only falls back to `/api/snapshot` (KV) when the
+feed is missing.
+
 ## Sync behaviour and quota safety
 
 The API-Football **free plan** rejects `from`/`to` range queries and season-specific fixture

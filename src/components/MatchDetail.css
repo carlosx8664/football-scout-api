@@ -65,6 +65,7 @@
   margin-bottom: 24px;
 }
 .detail-odds .odd-box {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
