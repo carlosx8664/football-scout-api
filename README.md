@@ -35,9 +35,16 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 
 ```
 shared/leagues.js              Single source of truth for the 16 tracked leagues
-scripts/sync.js                Today + tomorrow sync (fixtures + odds + AI) → Cloudflare KV
-.github/workflows/daily-sync.yml   Cron at 09/13/17/21 UTC + manual workflow_dispatch
-functions/api/snapshot.js      GET /api/snapshot - reads snapshot-latest from KV, never the APIs
+.github/workflows/odds-refresh.yml  Every 15 min: scrape odds, build feeds, publish to KV
+functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh output)
+functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
+functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek note with live search
+functions/api/standings.js     GET /api/standings - league table via football-data.org
+functions/api/snapshot.js      Legacy GET /api/snapshot - reads snapshot-latest from KV
+scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
+scripts/find-arbs.js           Cross-bookie arbitrage scanner
+scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
+scripts/sync.js                Legacy API-Football sync (no longer scheduled)
 src/App.tsx                    Route switch, snapshot loading, upcoming + league filters
 src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail (+ CSS)
 src/lib/                       Fetch helper and formatting utils
@@ -280,7 +287,8 @@ queries for the current season, so the sync uses global date-scoped fixture call
   `⚠️ PEAK DAY WARNING: {date} has {count} matches. Manual review recommended.`
 - Every run writes `snapshot-latest` (read by the site) plus `snapshot-<YYYY-MM-DD>` as an archive.
 - `workflow_dispatch` accepts an optional `date` input (`SYNC_DATE`), useful for backfills.
-- Cron is UTC: `1 0,12 * * *` → 00:01 and 12:01.
+- **No longer scheduled.** `daily-sync.yml` was deleted once the site moved to the 15-minute
+  odds refresh; run `node scripts/sync.js` by hand only for API-Football backfills.
 - The site polls `/api/snapshot` every 15 minutes and refetches only when a match kicks off within
   the next hour, so late odds/analysis land without any extra API-Football requests.
 
