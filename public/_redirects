@@ -1,3 +1,4 @@
 # Client-side match detail routes are served by the React app.
 # Rewriting to "/" (not "/index.html") avoids Pages' .html-stripping redirect loop warning.
 /match/* / 200
+/arbs / 200

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
+import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
 import MainFeed from "./components/MainFeed";
 import MatchDetail from "./components/MatchDetail";
@@ -11,6 +12,7 @@ import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedu
 import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
+const ARBS_ROUTE = /^\/arbs\/?$/;
 
 function currentMatchId(pathname: string): number | null {
   const result = MATCH_ROUTE.exec(pathname);
@@ -28,6 +30,7 @@ function App() {
   const dataRef = useRef<SnapshotData | null>(null);
   const { pathname } = useLocation();
   const matchId = currentMatchId(pathname);
+  const isArbs = ARBS_ROUTE.test(pathname);
 
   const applySnapshot = useCallback((snapshot: SnapshotData) => {
     dataRef.current = snapshot;
@@ -106,6 +109,8 @@ function App() {
             match={data.matches.find((match) => match.fixture.id === matchId) ?? null}
             date={data.date}
           />
+        ) : isArbs ? (
+          <ArbsTable now={now} />
         ) : (
           <MainFeed
             matches={filteredMatches}

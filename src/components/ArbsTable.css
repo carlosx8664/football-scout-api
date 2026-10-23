@@ -1,3 +1,15 @@
+.arbs-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.arbs-view-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0a2540;
+}
+
 .arbs-panel {
   background: var(--color-neutral-1);
   border: 1px solid var(--color-neutral-4);

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import type { Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import { matchesForTab, type FeedTab } from "../lib/schedule";
-import ArbsTable from "./ArbsTable";
 import "./MainFeed.css";
 
 interface MainFeedProps {
@@ -14,35 +13,30 @@ interface MainFeedProps {
   now: number;
 }
 
-type TabId = FeedTab | "arbs";
-
-const TABS: Array<{ id: TabId; label: string }> = [
+const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: "today", label: "Today's Matches" },
   { id: "tomorrow", label: "Tomorrow's Matches" },
-  { id: "arbs", label: "Arbs" },
 ];
 
 const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedProps) => {
-  const [activeTab, setActiveTab] = useState<TabId>("today");
-  const isArbs = activeTab === "arbs";
+  const [activeTab, setActiveTab] = useState<FeedTab>("today");
 
   const counts: Record<FeedTab, number> = {
     today: matchesForTab(matches, "today", now).length,
     tomorrow: matchesForTab(matches, "tomorrow", now).length,
   };
-  const visibleMatches =
-    activeTab === "arbs" ? [] : matchesForTab(matches, activeTab, now);
+  const visibleMatches = matchesForTab(matches, activeTab, now);
 
   return (
     <main className="main-feed">
       <div className="feed-top-header">
-        <h1 className="page-title">{isArbs ? "Arbitrage Scanner" : selectedLeagueName}</h1>
+        <h1 className="page-title">{selectedLeagueName}</h1>
         <span className="quota-badge">
           API Quota Left: {quota} | {date}
         </span>
       </div>
 
-      <div className="match-tabs" role="tablist" aria-label="Feed views">
+      <div className="match-tabs" role="tablist" aria-label="Match days">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -53,15 +47,12 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedPro
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
-            {tab.id !== "arbs" && <span className="tab-count">{counts[tab.id]}</span>}
+            <span className="tab-count">{counts[tab.id]}</span>
           </button>
         ))}
       </div>
 
-      {isArbs ? (
-        <ArbsTable now={now} />
-      ) : (
-        <div className="match-card-grid">
+      <div className="match-card-grid">
         {visibleMatches.length === 0 ? (
           <div className="empty-state">
             {activeTab === "today"
@@ -128,8 +119,7 @@ const MainFeed = ({ matches, selectedLeagueName, quota, date, now }: MainFeedPro
             );
           })
         )}
-        </div>
-      )}
+      </div>
     </main>
   );
 };

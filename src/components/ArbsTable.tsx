@@ -2,9 +2,6 @@ import { Fragment, useEffect, useState } from "react";
 import type { ArbOpportunity, ArbsPayload } from "../types";
 import "./ArbsTable.css";
 
-/** The scanner may write either location; both resolve to a file in `public/`. */
-const ARBS_URLS = ["/arbs.json", "/data/arbs.json"];
-
 const OUTCOMES = [
   { key: "home", label: "Home" },
   { key: "draw", label: "Draw" },
@@ -38,26 +35,6 @@ function bookmakerFor(arb: ArbOpportunity, outcome: OutcomeKey): string {
   return arb.msport[outcome] > arb.sporty[outcome] ? "MSport" : "SportyBet";
 }
 
-async function fetchArbs(signal: AbortSignal): Promise<ArbsPayload> {
-  let lastError: Error | null = null;
-
-  for (const url of ARBS_URLS) {
-    try {
-      const response = await fetch(url, { signal, cache: "no-store" });
-      if (!response.ok) {
-        lastError = new Error(`${url} responded with HTTP ${response.status}`);
-        continue;
-      }
-      return (await response.json()) as ArbsPayload;
-    } catch (error) {
-      if (signal.aborted) throw error;
-      lastError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  throw lastError ?? new Error("Could not load the arbitrage feed.");
-}
-
 const ClockIcon = () => (
   <svg className="arb-clock" viewBox="0 0 16 16" aria-hidden="true">
     <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -79,122 +56,132 @@ const UpArrow = () => (
 );
 
 const ArbsTable = ({ now }: ArbsTableProps) => {
-  const [payload, setPayload] = useState<ArbsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // `null` means "still loading"; an empty array means "loaded, nothing to show".
+  const [arbs, setArbs] = useState<ArbOpportunity[] | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
 
-    fetchArbs(controller.signal)
-      .then((data) => {
-        setPayload(data);
-        setLoading(false);
-      })
-      .catch((err: Error) => {
-        if (err.name === "AbortError") return;
-        setError(err.message);
-        setLoading(false);
-      });
+    const load = async () => {
+      try {
+        const response = await fetch("/arbs.json", { signal: controller.signal });
+        if (!response.ok) {
+          // Pages/dev servers answer a missing file with an HTML 404, so treat it as "no data".
+          console.warn(`arbs.json unavailable (HTTP ${response.status}); showing empty state.`);
+          setArbs([]);
+          return;
+        }
 
+        const payload = (await response.json()) as ArbsPayload;
+        setArbs(Array.isArray(payload?.arbs) ? payload.arbs : []);
+        setGeneratedAt(payload?.generatedAt ?? null);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.warn("Could not read arbs.json; showing empty state.", error);
+        setArbs([]);
+      }
+    };
+
+    void load();
     return () => controller.abort();
   }, []);
 
-  if (loading) {
-    return <div className="arbs-state">Loading arbitrage opportunities…</div>;
-  }
-
-  if (error) {
-    return <div className="arbs-state arbs-state-error">Could not load arbs: {error}</div>;
-  }
-
-  const arbs = payload?.arbs ?? [];
-
-  if (arbs.length === 0) {
-    return <div className="arbs-state">No arbitrage opportunities found at this time.</div>;
-  }
+  const rows = arbs ?? [];
 
   return (
-    <div className="arbs-panel">
-      <div className="arbs-table-wrap">
-        <table className="arbs-table">
-          <thead>
-            <tr>
-              <th scope="col">Profit</th>
-              <th scope="col">Bookmaker</th>
-              <th scope="col">Event</th>
-              <th scope="col">Market</th>
-              <th scope="col">Odds</th>
-            </tr>
-          </thead>
-          <tbody>
-            {arbs.map((arb, arbIndex) => {
-              const outcomes = OUTCOMES.filter((outcome) =>
-                Number.isFinite(arb.best[outcome.key]),
-              );
-              if (outcomes.length === 0) return null;
+    <section className="arbs-view">
+      <h1 className="arbs-view-title">Arbitrage Scanner</h1>
 
-              const kickoff = kickoffLabel(arb.kickoff);
-              const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
+      {arbs === null ? (
+        <div className="arbs-state">Loading arbitrage opportunities…</div>
+      ) : rows.length === 0 ? (
+        <div className="arbs-state">No arbitrage opportunities found at this time.</div>
+      ) : (
+        <div className="arbs-panel">
+          <div className="arbs-table-wrap">
+            <table className="arbs-table">
+              <thead>
+                <tr>
+                  <th scope="col">Profit</th>
+                  <th scope="col">Bookmaker</th>
+                  <th scope="col">Event</th>
+                  <th scope="col">Market</th>
+                  <th scope="col">Odds</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((arb, arbIndex) => {
+                  const outcomes = OUTCOMES.filter((outcome) =>
+                    Number.isFinite(arb.best[outcome.key]),
+                  );
+                  if (outcomes.length === 0) return null;
 
-              return (
-                <Fragment key={`${arb.kickoff}-${arb.home}-${arb.away}`}>
-                  {outcomes.map((outcome, outcomeIndex) => (
-                    <tr className={rowClass} key={outcome.key}>
-                      {outcomeIndex === 0 && (
-                        <td className="arb-profit" rowSpan={outcomes.length}>
-                          <span className="arb-profit-value">{arb.profitPct.toFixed(2)}%</span>
-                          <span className="arb-profit-time">
-                            <ClockIcon />
-                            {countdown(arb.kickoff, now)}
-                          </span>
-                        </td>
-                      )}
+                  const kickoff = kickoffLabel(arb.kickoff);
+                  const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
 
-                      <td className="arb-bookmaker">
-                        <span className="arb-bookmaker-pill">
-                          {bookmakerFor(arb, outcome.key)}
-                        </span>
-                      </td>
+                  return (
+                    <Fragment key={`${arb.kickoff}-${arb.home}-${arb.away}`}>
+                      {outcomes.map((outcome, outcomeIndex) => (
+                        <tr className={rowClass} key={outcome.key}>
+                          {outcomeIndex === 0 && (
+                            <td className="arb-profit" rowSpan={outcomes.length}>
+                              <span className="arb-profit-value">
+                                {arb.profitPct.toFixed(2)}%
+                              </span>
+                              <span className="arb-profit-time">
+                                <ClockIcon />
+                                {countdown(arb.kickoff, now)}
+                              </span>
+                            </td>
+                          )}
 
-                      {outcomeIndex === 0 && (
-                        <td className="arb-event" rowSpan={outcomes.length}>
-                          <span className="arb-event-when">
-                            {kickoff.date} · {kickoff.time}
-                          </span>
-                          <span className="arb-event-teams">
-                            {arb.home} vs {arb.away}
-                          </span>
-                          <span className="arb-event-tournament">{arb.tournament}</span>
-                        </td>
-                      )}
+                          <td className="arb-bookmaker">
+                            <span className="arb-bookmaker-pill">
+                              {bookmakerFor(arb, outcome.key)}
+                            </span>
+                          </td>
 
-                      <td className="arb-market">
-                        <span className="arb-market-type">1X2</span>
-                        <span className="arb-market-outcome">{outcome.label}</span>
-                      </td>
+                          {outcomeIndex === 0 && (
+                            <td className="arb-event" rowSpan={outcomes.length}>
+                              <span className="arb-event-when">
+                                {kickoff.date} · {kickoff.time}
+                              </span>
+                              <span className="arb-event-teams">
+                                {arb.home} vs {arb.away}
+                              </span>
+                              <span className="arb-event-tournament">{arb.tournament}</span>
+                            </td>
+                          )}
 
-                      <td className="arb-odds">
-                        <span className="arb-odds-value">
-                          {arb.best[outcome.key].toFixed(2)}
-                        </span>
-                        <UpArrow />
-                      </td>
-                    </tr>
-                  ))}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                          <td className="arb-market">
+                            <span className="arb-market-type">1X2</span>
+                            <span className="arb-market-outcome">{outcome.label}</span>
+                          </td>
 
-      {payload?.generatedAt && (
-        <p className="arbs-updated">
-          Updated {new Date(payload.generatedAt).toLocaleString("en-GB")}
-        </p>
+                          <td className="arb-odds">
+                            <span className="arb-odds-value">
+                              {arb.best[outcome.key].toFixed(2)}
+                            </span>
+                            <UpArrow />
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {generatedAt && (
+            <p className="arbs-updated">
+              Updated {new Date(generatedAt).toLocaleString("en-GB")}
+            </p>
+          )}
+        </div>
       )}
-    </div>
+    </section>
   );
 };
 
