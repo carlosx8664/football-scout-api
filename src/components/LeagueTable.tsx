@@ -69,7 +69,7 @@ const LeagueTable = ({ match }: LeagueTableProps) => {
 
   return (
     <section className="league-table-container">
-      <h3>📊 {league.name} table</h3>
+      <h3>📊 {league.name} Table</h3>
       <p className="league-table-subtitle">Both teams highlighted</p>
 
       {!current ? (

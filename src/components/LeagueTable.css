@@ -56,7 +56,9 @@
 }
 
 .league-table-position {
-  width: 22px;
+  /* Leave room for the highlight bar so it never sits on top of the number. */
+  width: 30px;
+  padding-left: 8px;
   color: var(--color-neutral-6);
   font-weight: 600;
 }
