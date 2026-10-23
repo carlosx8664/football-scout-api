@@ -35,7 +35,8 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 
 ```
 shared/leagues.js              Single source of truth for the 16 tracked leagues
-.github/workflows/odds-refresh.yml  Every 15 min: scrape odds, build feeds, publish to KV
+.github/workflows/odds-refresh.yml  Scrape odds, build feeds, publish to KV
+workers/dispatch-trigger/      Cloudflare Cron Worker that dispatches the workflow every 15 min
 functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh output)
 functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
 functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek note with live search
@@ -244,6 +245,30 @@ cost a DeepSeek call per fixture every 15 minutes.
 Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day
 and this uses 192. GitHub runners use datacenter IPs, so bookmaker sites may block them even when
 the scripts work locally — check the first few scheduled runs.
+
+### Reliable trigger: Cloudflare Cron
+
+GitHub's `schedule` is best-effort. Measured on this repo, a `1 0,12 * * *` cron actually ran at
+03:31 and 16:31 — hours late — and the 15-minute cron produced no scheduled runs at all.
+`workers/dispatch-trigger/` is a small Worker whose Cron Trigger dispatches the workflow instead:
+
+```bash
+cd workers/dispatch-trigger
+
+# Fine-grained PAT scoped to this repo with "Actions: Read and write".
+npx wrangler secret put GH_DISPATCH_TOKEN --config wrangler.jsonc
+# Optional shared secret for the manual endpoint.
+npx wrangler secret put TRIGGER_KEY --config wrangler.jsonc
+
+cd ../.. && npm run worker:deploy
+```
+
+- Cron Trigger: `*/15 * * * *` (UTC). Cloudflare allows 5 per account on the free plan, and the
+  job is a single `fetch()` so it stays well inside the 10 ms CPU allowance.
+- Manual test: `curl -X POST "https://oddtor-dispatch-trigger.<subdomain>.workers.dev/?key=<TRIGGER_KEY>"`.
+- The workflow keeps its own `schedule` as a fallback; if GitHub does fire it, the `concurrency`
+  group prevents overlapping runs.
+- Secrets stay in Cloudflare; nothing is shared with a third-party scheduler.
 
 ## Routes
 

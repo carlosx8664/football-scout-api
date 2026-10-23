@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:matches": "node scripts/build-match-feed.js",
+    "worker:deploy": "wrangler deploy --config workers/dispatch-trigger/wrangler.jsonc",
+    "worker:dry-run": "wrangler deploy --config workers/dispatch-trigger/wrangler.jsonc --dry-run",
     "lint": "oxlint",
     "preview": "npm run build && wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy",
