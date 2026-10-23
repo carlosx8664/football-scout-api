@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Match } from "../types";
 import { Link } from "react-router-dom";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
@@ -10,6 +11,52 @@ interface MatchDetailProps {
 }
 
 const MatchDetail = ({ match, date }: MatchDetailProps) => {
+  // Set only after the request settles, so the effect never writes state synchronously.
+  const [request, setRequest] = useState<{
+    fixtureId: number;
+    text: string | null;
+    status: "ready" | "error";
+  } | null>(null);
+
+  // Analyses baked into the feed win; otherwise ask the Pages Function, which calls DeepSeek
+  // server-side and caches the result in KV.
+  useEffect(() => {
+    if (!match || match.ai_analysis) return;
+
+    const controller = new AbortController();
+    const prices = ["Home", "Draw", "Away"]
+      .map((label) => match.odds?.find((entry) => entry.value === label)?.odd)
+      .filter(Boolean)
+      .join(" / ");
+
+    const params = new URLSearchParams({
+      id: String(match.fixture.id),
+      home: match.teams.home.name,
+      away: match.teams.away.name,
+      league: match.league.name,
+      kickoff: match.fixture.date,
+      odds: prices,
+    });
+
+    fetch(`/api/analysis?${params.toString()}`, { signal: controller.signal })
+      .then(async (response) => {
+        const body = (await response.json().catch(() => null)) as
+          | { analysis?: string; error?: string }
+          | null;
+        if (!response.ok || !body?.analysis) {
+          throw new Error(body?.error ?? `Analysis unavailable (HTTP ${response.status})`);
+        }
+        setRequest({ fixtureId: match.fixture.id, text: body.analysis, status: "ready" });
+      })
+      .catch((error: Error) => {
+        if (error.name === "AbortError") return;
+        console.warn("Scout analysis failed:", error.message);
+        setRequest({ fixtureId: match.fixture.id, text: null, status: "error" });
+      });
+
+    return () => controller.abort();
+  }, [match]);
+
   if (!match) {
     return (
       <main className="detail-container">
@@ -24,6 +71,10 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
   const kickoff = formatKickoff(match.fixture.date);
   const prices = matchWinnerPrices(match.odds);
   const hasScore = match.goals?.home != null && match.goals?.away != null;
+
+  const resolved = request?.fixtureId === match.fixture.id ? request : null;
+  const analysis = match.ai_analysis ?? resolved?.text ?? null;
+  const analysisStatus = match.ai_analysis ? "ready" : (resolved?.status ?? "loading");
 
   return (
     <main className="detail-container">
@@ -74,8 +125,10 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
         <section className="ai-box">
           <strong>🤖 Scout Analysis</strong>
           <p>
-            {match.ai_analysis ??
-              "Analysis is still being generated for this fixture — refresh in a minute."}
+            {analysisStatus === "loading"
+              ? "Reading the market and writing up a view…"
+              : (analysis ??
+                "Couldn't pull a write-up for this one. Refresh to try again, and check the team news yourself before you back it.")}
           </p>
         </section>
       </article>

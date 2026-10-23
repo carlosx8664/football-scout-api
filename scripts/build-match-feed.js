@@ -259,14 +259,26 @@ function mergeEvents(events) {
   return entry;
 }
 
+const ANALYSIS_SYSTEM_PROMPT = [
+  "You are a football tipster texting a mate before kick-off.",
+  "Sound like a person: casual, direct, a bit opinionated. No corporate language,",
+  "no 'as an AI', no bullet-point marketing.",
+  "You have no live feed: never state injuries, suspensions, line-ups, transfers or",
+  "head-to-head records as fact. If the call depends on team news, say so plainly and tell",
+  "them to check the lineup. Use only the odds you are given plus general knowledge of how",
+  "these teams play.",
+  "Max 160 words: a short read on the 1X2 prices, then three lines with other angles",
+  "(BTTS, over/under 2.5, corners, cards). Be honest when you would swerve a market.",
+].join(" ");
+
 function buildPrompt(match) {
   const price = (label) =>
     match.odds?.find((entry) => entry.value === label)?.odd ?? "unknown";
   return (
-    `You are a football betting analyst. The match is ${match.teams.home.name} vs ` +
-    `${match.teams.away.name} in the ${match.league.name}. Current 1X2 odds: ` +
-    `home ${price("Home")}, draw ${price("Draw")}, away ${price("Away")}. ` +
-    "Write a two-sentence preview and no preamble."
+    `Match: ${match.teams.home.name} vs ${match.teams.away.name}\n` +
+    `Competition: ${match.league.name}\n` +
+    `Kick-off: ${match.fixture.date}\n` +
+    `1X2 odds: ${price("Home")} / ${price("Draw")} / ${price("Away")}`
   );
 }
 
@@ -280,15 +292,11 @@ async function analyzeMatch(match, { apiKey, model, timeoutMs = 25_000 }) {
     body: JSON.stringify({
       model,
       messages: [
-        {
-          role: "system",
-          content:
-            "You are a concise football betting analyst. Reply with two short sentences and no preamble.",
-        },
+        { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
         { role: "user", content: buildPrompt(match) },
       ],
-      reasoning_effort: "low",
-      max_tokens: 400,
+      temperature: 0.7,
+      max_tokens: 500,
       stream: false,
     }),
     signal: AbortSignal.timeout(timeoutMs),
