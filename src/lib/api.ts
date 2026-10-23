@@ -7,8 +7,10 @@ async function readJson<T>(url: string, signal?: AbortSignal): Promise<T | null>
 }
 
 export async function fetchSnapshot(signal?: AbortSignal): Promise<SnapshotData> {
-  // Primary source: the feed built from the bookmaker snapshots (no API-Football calls).
-  const feed = await readJson<SnapshotData>("/matches.json", signal);
+  // Freshness first: the Odds refresh workflow writes this to KV every 15 minutes.
+  const feed =
+    (await readJson<SnapshotData>("/api/matches", signal)) ??
+    (await readJson<SnapshotData>("/matches.json", signal));
   if (feed?.matches) return feed;
 
   // Fallback for deployments that have not generated the feed yet.
@@ -21,4 +23,20 @@ export async function fetchSnapshot(signal?: AbortSignal): Promise<SnapshotData>
     throw new Error(body?.error ?? `Request failed with HTTP ${response.status}`);
   }
   return body;
+}
+
+const ARBS_SOURCES = ["/api/arbs", "/arbs.json"];
+
+/** KV-backed arbitrage feed first, static file second. Returns null when neither answers. */
+export async function fetchArbsJson(signal?: AbortSignal): Promise<unknown | null> {
+  for (const url of ARBS_SOURCES) {
+    try {
+      const response = await fetch(url, { cache: "no-store", signal });
+      if (!response.ok) continue;
+      return await response.json();
+    } catch (error) {
+      if (signal?.aborted) throw error;
+    }
+  }
+  return null;
 }

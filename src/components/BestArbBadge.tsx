@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { fetchArbsJson } from "../lib/api";
 import "./BestArbBadge.css";
 
 const REFRESH_MS = 5 * 60_000;
@@ -63,14 +64,11 @@ const BestArbBadge = () => {
 
     const load = async () => {
       try {
-        const response = await fetch("/arbs.json", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) return;
-        setBest(pickBest(await response.json()));
+        const payload = await fetchArbsJson(controller.signal);
+        if (payload === null) return;
+        setBest(pickBest(payload));
       } catch {
-        if (!controller.signal.aborted) console.warn("Could not read arbs.json for the header.");
+        if (!controller.signal.aborted) console.warn("Could not read the arbitrage feed.");
       }
     };
 

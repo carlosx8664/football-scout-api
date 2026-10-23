@@ -234,6 +234,28 @@ keeps showing Top Picks).
   Eredivisie, Primeira Liga, Brasileirão, Champions League and World Cup. Cups, the Belgian Pro
   League and the Conference League have no table and return a friendly message instead.
 
+## Keeping odds fresh
+
+`.github/workflows/odds-refresh.yml` runs every 15 minutes (GitHub's minimum is 5; runs can start
+late under load) and publishes straight to KV, so the site never redeploys to update odds:
+
+1. `node scripts/fetch-odds.js` → `data/sportybet.json`, `data/msport.json`
+2. `node scripts/find-arbs.js` → `public/arbs.json`
+3. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
+4. Both files are `PUT` into KV as `feed-matches` and `feed-arbs`
+
+A `concurrency` group stops runs from overlapping, and the job refuses to upload if either feed
+is missing or empty, so a failed fetch cannot wipe what is already live.
+
+`functions/api/matches.js` and `functions/api/arbs.js` serve those keys; the client tries
+`/api/matches` then `/matches.json`, and `/api/arbs` then `/arbs.json`, so a deployment without
+KV data still works. Analysis is left to `/api/analysis` on demand — generating it here would
+cost a DeepSeek call per fixture every 15 minutes.
+
+Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day
+and this uses 192. GitHub runners use datacenter IPs, so bookmaker sites may block them even when
+the scripts work locally — check the first few scheduled runs.
+
 ## Sync behaviour and quota safety
 
 The API-Football **free plan** rejects `from`/`to` range queries and season-specific fixture

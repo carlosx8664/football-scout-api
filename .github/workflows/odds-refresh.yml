@@ -1,0 +1,74 @@
+name: Odds refresh
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub's minimum is 5; runs can start a few minutes late under load.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+# A slow run must never overlap the next one and double-write KV.
+concurrency:
+  group: odds-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Fetch odds, rebuild feeds, publish to KV
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch odds from the bookmakers
+        run: node scripts/fetch-odds.js
+
+      - name: Build arbitrage feed
+        run: node scripts/find-arbs.js
+
+      - name: Build match feed
+        # Analysis is generated on demand by /api/analysis, so skip it here.
+        run: node scripts/build-match-feed.js --no-ai
+
+      - name: Verify feeds were written
+        run: |
+          for file in public/matches.json public/arbs.json; do
+            if [ ! -s "$file" ]; then
+              echo "::error::$file is missing or empty; refusing to overwrite KV."
+              exit 1
+            fi
+            echo "$file: $(wc -c < "$file") bytes"
+          done
+
+      - name: Publish feeds to KV
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          # Freshness comes from KV, so the site never needs a redeploy.
+          upload() {
+            local key="$1" file="$2"
+            curl -sS --fail-with-body -X PUT \
+              "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/${key}" \
+              -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data-binary "@${file}"
+            echo " -> wrote ${key}"
+          }
+
+          upload "feed-matches" "public/matches.json"
+          upload "feed-arbs" "public/arbs.json"

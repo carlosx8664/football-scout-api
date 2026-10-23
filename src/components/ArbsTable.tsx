@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { fetchArbsJson } from "../lib/api";
 import type { ArbLeg, ArbOpportunity, ArbsPayload } from "../types";
 import "./ArbsTable.css";
 
@@ -166,17 +167,14 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
 
     const load = async () => {
       try {
-        const response = await fetch("/arbs.json", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          // Pages/dev servers answer a missing file with an HTML 404, so treat it as "no data".
-          console.warn(`arbs.json unavailable (HTTP ${response.status}); showing empty state.`);
+        // KV-backed feed first (fresh every 15 min), static file as fallback.
+        const payload = await fetchArbsJson(controller.signal);
+        if (!payload) {
+          console.warn("No arbitrage feed available; showing empty state.");
           setFeed((previous) => previous ?? EMPTY_FEED);
           return;
         }
-        setFeed(normalize(await response.json()));
+        setFeed(normalize(payload));
       } catch (error) {
         if (controller.signal.aborted) return;
         console.warn("Could not read arbs.json; showing empty state.", error);
