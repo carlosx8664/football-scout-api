@@ -203,6 +203,9 @@ Behaviour:
 
 - Results are cached in KV under `analysis-<fixtureId>` for six hours. If the search step failed,
   the note is cached for only ten minutes so the next click retries with fresh news.
+- Thinking mode is explicitly **disabled** for these calls: DeepSeek enables it by default at
+  `high` effort, and its chain-of-thought shares the `max_tokens` budget, which otherwise
+  returned an empty `content` once the research context grew.
 - A search failure never blocks the write-up: the prompt falls back to
   "No recent news found. Base analysis on odds only."
 - The prompt forbids inventing injuries, suspensions, line-ups, transfers or head-to-head records;

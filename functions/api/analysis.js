@@ -183,8 +183,11 @@ async function generate({ env, params }) {
     body: JSON.stringify({
       model: (env.DEEPSEEK_MODEL ?? "").trim() || DEFAULT_MODEL,
       messages: buildMessages({ ...params, context: research.context }),
+      // Thinking mode is on by default and would spend the token budget on reasoning,
+      // leaving `content` empty. A short casual note does not need it.
+      thinking: { type: "disabled" },
       temperature: 0.6,
-      max_tokens: 600,
+      max_tokens: 900,
       stream: false,
     }),
     signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
@@ -193,8 +196,12 @@ async function generate({ env, params }) {
   if (!response.ok) throw new Error(`DeepSeek responded with HTTP ${response.status}`);
 
   const body = await response.json();
-  const text = body?.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("DeepSeek returned an empty completion");
+  const choice = body?.choices?.[0];
+  const text = choice?.message?.content?.trim();
+  if (!text) {
+    const finish = choice?.finish_reason ?? "unknown";
+    throw new Error(`DeepSeek returned an empty completion (finish_reason=${finish})`);
+  }
 
   return { analysis: text, sources: research.sources, newsFound: research.found };
 }

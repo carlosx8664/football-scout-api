@@ -296,7 +296,10 @@ async function analyzeMatch(match, { apiKey, model, timeoutMs = 25_000 }) {
         { role: "user", content: buildPrompt(match) },
       ],
       temperature: 0.7,
-      max_tokens: 500,
+      // Thinking mode is on by default and can consume the whole token budget, returning an
+      // empty `content`. These short notes do not need it.
+      thinking: { type: "disabled" },
+      max_tokens: 900,
       stream: false,
     }),
     signal: AbortSignal.timeout(timeoutMs),
@@ -305,8 +308,12 @@ async function analyzeMatch(match, { apiKey, model, timeoutMs = 25_000 }) {
   if (!response.ok) throw new Error(`DeepSeek HTTP ${response.status}`);
 
   const body = await response.json();
-  const content = body?.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error("DeepSeek returned an empty completion");
+  const choice = body?.choices?.[0];
+  const content = choice?.message?.content?.trim();
+  if (!content) {
+    const finish = choice?.finish_reason ?? "unknown";
+    throw new Error(`DeepSeek returned an empty completion (finish_reason=${finish})`);
+  }
   return content;
 }
 
