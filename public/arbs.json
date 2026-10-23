@@ -1,12 +1,3578 @@
 {
-  "generatedAt": "2026-10-23T03:14:27.718Z",
-  "boostApplied": 1,
-  "boostTarget": null,
+  "generatedAt": "2026-10-23T03:31:03.510Z",
+  "boostApplied": 1.05,
+  "boostTarget": "MSport",
   "stats": {
     "matched": 640,
     "pairsChecked": 14152,
     "sportyEvents": 1054,
     "msportEvents": 641
   },
-  "arbs": []
+  "arbs": [
+    {
+      "eventId": "sr:match:72221336",
+      "home": "Chelsea",
+      "away": "Tottenham",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 2.02,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 94.33
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 18,
+          "stake": 5.67
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478650",
+      "home": "Atletico Madrid",
+      "away": "RC Deportivo de A Coruna",
+      "tournament": "LaLiga",
+      "kickoff": 1792868400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.938,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 11,
+          "stake": 9.27
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.12,
+          "stake": 90.73
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73019600",
+      "home": "Simba SC",
+      "away": "Mbeya City FC",
+      "tournament": "Premier League",
+      "kickoff": 1792753200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.903,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 21,
+          "stake": 4.85
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.07,
+          "stake": 95.15
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221334",
+      "home": "Aston Villa",
+      "away": "Man City",
+      "tournament": "Premier League",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.855,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 94.18
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 17.5,
+          "stake": 5.82
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478650",
+      "home": "Atletico Madrid",
+      "away": "RC Deportivo de A Coruna",
+      "tournament": "LaLiga",
+      "kickoff": 1792868400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.855,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 94.18
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 17.5,
+          "stake": 5.82
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:68995418",
+      "home": "Chongqing Tonglianglong FC",
+      "away": "Qingdao Hainiu FC",
+      "tournament": "Chinese Super League",
+      "kickoff": 1792827000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.853,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 12,
+          "stake": 8.49
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.11,
+          "stake": 91.51
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72036244",
+      "home": "Lens",
+      "away": "Paris FC",
+      "tournament": "Ligue 1",
+      "kickoff": 1792867500000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.79,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.09,
+          "stake": 93.21
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15,
+          "stake": 6.79
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513268",
+      "home": "Mainz",
+      "away": "Werder Bremen",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.681,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 94.02
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 17,
+          "stake": 5.98
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221332",
+      "home": "Arsenal",
+      "away": "Everton",
+      "tournament": "Premier League",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.631,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 92.18
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 13,
+          "stake": 7.82
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945330",
+      "home": "Como 1907",
+      "away": "Sassuolo",
+      "tournament": "Serie A",
+      "kickoff": 1792846800000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.524,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 94.79
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 19.5,
+          "stake": 5.21
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513272",
+      "home": "Paderborn",
+      "away": "Hamburg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.497,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 93.85
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16.5,
+          "stake": 6.15
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72936094",
+      "home": "AEK Athens",
+      "away": "Panaitolikos Agrinio",
+      "tournament": "Super League",
+      "kickoff": 1792861200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.497,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 16.5,
+          "stake": 6.15
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.08,
+          "stake": 93.85
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945336",
+      "home": "Lazio",
+      "away": "Parma Calcio",
+      "tournament": "Serie A",
+      "kickoff": 1792867500000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.494,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 8.37,
+          "stake": 12.13
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.16,
+          "stake": 87.87
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478646",
+      "home": "Alaves",
+      "away": "Malaga CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.491,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.12,
+          "stake": 90.33
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 10.5,
+          "stake": 9.67
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945340",
+      "home": "Napoli",
+      "away": "Roma",
+      "tournament": "Serie A",
+      "kickoff": 1792857600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.479,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 91.18
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 11.5,
+          "stake": 8.82
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221332",
+      "home": "Arsenal",
+      "away": "Everton",
+      "tournament": "Premier League",
+      "kickoff": 1792850400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.436,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 7.38,
+          "stake": 13.74
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.18,
+          "stake": 86.26
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339958",
+      "home": "Wolves",
+      "away": "Watford",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.346,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 8.27,
+          "stake": 12.25
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.16,
+          "stake": 87.75
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945336",
+      "home": "Lazio",
+      "away": "Parma Calcio",
+      "tournament": "Serie A",
+      "kickoff": 1792867500000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.314,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 91.89
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 12.5,
+          "stake": 8.11
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513270",
+      "home": "Cologne",
+      "away": "Schalke",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.303,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 93.67
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16,
+          "stake": 6.33
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478664",
+      "home": "Valencia",
+      "away": "Villarreal",
+      "tournament": "LaLiga",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.299,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.09,
+          "stake": 92.76
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 14,
+          "stake": 7.24
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:67126822",
+      "home": "Djurgardens IF",
+      "away": "Orgryte IS",
+      "tournament": "Allsvenskan",
+      "kickoff": 1792855800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.299,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 14,
+          "stake": 7.24
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 92.76
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72466570",
+      "home": "Gorna Oryahovitsa",
+      "away": "FC Pirin Blagoevgrad",
+      "tournament": "Vtora Liga",
+      "kickoff": 1792767600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.299,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 14,
+          "stake": 7.24
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 92.76
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71462926",
+      "home": "Bodoe/Glimt",
+      "away": "Vaalerenga IF",
+      "tournament": "Eliteserien",
+      "kickoff": 1792850400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.23,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 13.87,
+          "stake": 7.3
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 92.7
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221336",
+      "home": "Chelsea",
+      "away": "Tottenham",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 1.223,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.23,
+          "stake": 82.4
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.75,
+          "stake": 17.6
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513266",
+      "home": "Augsburg",
+      "away": "Union Berlin",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.085,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 94.38
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 18,
+          "stake": 5.62
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945342",
+      "home": "Torino",
+      "away": "Monza",
+      "tournament": "Serie A",
+      "kickoff": 1792781100000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.073,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 90.81
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 11,
+          "stake": 9.19
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513256",
+      "home": "Borussia Dortmund",
+      "away": "Eintracht Frankfurt",
+      "tournament": "Bundesliga",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 1.053,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.17,
+          "stake": 86.7
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 7.6,
+          "stake": 13.3
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72201678",
+      "home": "Rangers",
+      "away": "St. Johnstone FC",
+      "tournament": "Premiership",
+      "kickoff": 1792850400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.05,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 12.11,
+          "stake": 8.34
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.1,
+          "stake": 91.66
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221344",
+      "home": "Ipswich Town",
+      "away": "Nottingham Forest",
+      "tournament": "Premier League",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.028,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.09,
+          "stake": 92.52
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 13.5,
+          "stake": 7.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221338",
+      "home": "Coventry City",
+      "away": "Fulham",
+      "tournament": "Premier League",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.028,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.09,
+          "stake": 92.52
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 13.5,
+          "stake": 7.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72036242",
+      "home": "Brest",
+      "away": "Nice",
+      "tournament": "Ligue 1",
+      "kickoff": 1792781100000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 1.028,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.09,
+          "stake": 92.52
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 13.5,
+          "stake": 7.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72409744",
+      "home": "FC Dynamo Kyiv",
+      "away": "FK Kudrivka",
+      "tournament": "Premier League",
+      "kickoff": 1792749600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.028,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 13.5,
+          "stake": 7.48
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 92.52
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72409754",
+      "home": "FC Polissya Zhytomyr",
+      "away": "FC Obolon Kyiv",
+      "tournament": "Premier League",
+      "kickoff": 1792749600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.028,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 13.5,
+          "stake": 7.48
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 92.52
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478658",
+      "home": "Rayo Vallecano",
+      "away": "Elche CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792843200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.973,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 91.59
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 12,
+          "stake": 8.41
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75723908",
+      "home": "WA Tlemcen",
+      "away": "Jrb Taghit",
+      "tournament": "Ligue 2",
+      "kickoff": 1792764000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.973,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 12,
+          "stake": 8.41
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.1,
+          "stake": 91.59
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513258",
+      "home": "RB Leipzig",
+      "away": "SV 07 Elversberg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.956,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.13,
+          "stake": 89.03
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 9.2,
+          "stake": 10.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478646",
+      "home": "Alaves",
+      "away": "Malaga CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792782000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.909,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 5.65,
+          "stake": 17.86
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.23,
+          "stake": 82.14
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478656",
+      "home": "Racing Santander",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1792851300000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.877,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 93.27
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15,
+          "stake": 6.73
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339938",
+      "home": "Bolton Wanderers",
+      "away": "Middlesbrough FC",
+      "tournament": "Championship",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.877,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 93.27
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15,
+          "stake": 6.73
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66854234",
+      "home": "Shamrock Rovers",
+      "away": "Sligo Rovers FC",
+      "tournament": "Premier Division",
+      "kickoff": 1792782000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.877,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 15,
+          "stake": 6.73
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.08,
+          "stake": 93.27
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478664",
+      "home": "Valencia",
+      "away": "Villarreal",
+      "tournament": "LaLiga",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.838,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.29,
+          "stake": 78.08
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4.6,
+          "stake": 21.92
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72036242",
+      "home": "Brest",
+      "away": "Nice",
+      "tournament": "Ligue 1",
+      "kickoff": 1792781100000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.838,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.29,
+          "stake": 78.08
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4.6,
+          "stake": 21.92
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73215812",
+      "home": "Al-Faisaly FC",
+      "away": "Al Nassr Club",
+      "tournament": "Saudi Pro League",
+      "kickoff": 1792762200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.795,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 9.8,
+          "stake": 10.29
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.12,
+          "stake": 89.71
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299708",
+      "home": "DC United",
+      "away": "FC Cincinnati",
+      "tournament": "MLS",
+      "kickoff": 1792884600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.753,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 94.07
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 17,
+          "stake": 5.93
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299712",
+      "home": "Philadelphia Union",
+      "away": "New England Revolution",
+      "tournament": "MLS",
+      "kickoff": 1792884600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.753,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 94.07
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 17,
+          "stake": 5.93
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221334",
+      "home": "Aston Villa",
+      "away": "Man City",
+      "tournament": "Premier League",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.748,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.23,
+          "stake": 82.01
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.6,
+          "stake": 17.99
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513268",
+      "home": "Mainz",
+      "away": "Werder Bremen",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.748,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.23,
+          "stake": 82.01
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.6,
+          "stake": 17.99
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513270",
+      "home": "Cologne",
+      "away": "Schalke",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.743,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.25,
+          "stake": 80.63
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.2,
+          "stake": 19.37
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513260",
+      "home": "Stuttgart",
+      "away": "Borussia M´gladbach",
+      "tournament": "Bundesliga",
+      "kickoff": 1792780200000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.715,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 6.07,
+          "stake": 16.59
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.21,
+          "stake": 83.41
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513260",
+      "home": "Stuttgart",
+      "away": "Borussia M´gladbach",
+      "tournament": "Bundesliga",
+      "kickoff": 1792780200000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.71,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.13,
+          "stake": 88.81
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 9,
+          "stake": 11.19
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513256",
+      "home": "Borussia Dortmund",
+      "away": "Eintracht Frankfurt",
+      "tournament": "Bundesliga",
+      "kickoff": 1792859400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.691,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 5.81,
+          "stake": 17.33
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.22,
+          "stake": 82.67
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513260",
+      "home": "Stuttgart",
+      "away": "Borussia M´gladbach",
+      "tournament": "Bundesliga",
+      "kickoff": 1792780200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.664,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 6.99,
+          "stake": 14.4
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.18,
+          "stake": 85.6
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530970",
+      "home": "Gil Vicente Barcelos",
+      "away": "Porto",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792870200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.664,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 6.99,
+          "stake": 14.4
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.18,
+          "stake": 85.6
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478656",
+      "home": "Racing Santander",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1792851300000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.639,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.26,
+          "stake": 79.87
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5,
+          "stake": 20.13
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339944",
+      "home": "Lincoln City",
+      "away": "Burnley",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.633,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 90.42
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 10.5,
+          "stake": 9.58
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339952",
+      "home": "Sheffield United",
+      "away": "Derby County",
+      "tournament": "Championship",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.605,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 11.5,
+          "stake": 8.75
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.1,
+          "stake": 91.25
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71462926",
+      "home": "Bodoe/Glimt",
+      "away": "Vaalerenga IF",
+      "tournament": "Eliteserien",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.605,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.1,
+          "stake": 91.25
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 11.5,
+          "stake": 8.75
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:68823406",
+      "home": "AA Ponte Preta SP",
+      "away": "Fortaleza EC CE",
+      "tournament": "Brasileiro Serie B",
+      "kickoff": 1792877400000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.605,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 11.5,
+          "stake": 8.75
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.1,
+          "stake": 91.25
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75856246",
+      "home": "HSK Zrinjski Mostar",
+      "away": "FK Radnik Bijeljina",
+      "tournament": "Premijer Liga",
+      "kickoff": 1792778400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.605,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 11.5,
+          "stake": 8.75
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.1,
+          "stake": 91.25
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513256",
+      "home": "Borussia Dortmund",
+      "away": "Eintracht Frankfurt",
+      "tournament": "Bundesliga",
+      "kickoff": 1792859400000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.602,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 5.35,
+          "stake": 18.8
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.24,
+          "stake": 81.2
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513258",
+      "home": "RB Leipzig",
+      "away": "SV 07 Elversberg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.588,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 6.3,
+          "stake": 15.97
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.2,
+          "stake": 84.03
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945330",
+      "home": "Como 1907",
+      "away": "Sassuolo",
+      "tournament": "Serie A",
+      "kickoff": 1792846800000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.588,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.2,
+          "stake": 84.03
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 6.3,
+          "stake": 15.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945328",
+      "home": "Cagliari",
+      "away": "Bologna",
+      "tournament": "Serie A",
+      "kickoff": 1792846800000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.584,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.13,
+          "stake": 88.7
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 8.9,
+          "stake": 11.3
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71462926",
+      "home": "Bodoe/Glimt",
+      "away": "Vaalerenga IF",
+      "tournament": "Eliteserien",
+      "kickoff": 1792850400000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.579,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 9.6,
+          "stake": 10.48
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.12,
+          "stake": 89.52
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75110478",
+      "home": "Inter Kashi FC",
+      "away": "East Bengal FC",
+      "tournament": "Indian Super League",
+      "kickoff": 1792755000000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.579,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 9.6,
+          "stake": 10.48
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.12,
+          "stake": 89.52
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72041194",
+      "home": "Go Ahead Eagles",
+      "away": "SC Telstar",
+      "tournament": "Eredivisie",
+      "kickoff": 1792778400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.572,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.9
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16.5,
+          "stake": 6.1
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299710",
+      "home": "Orlando City SC",
+      "away": "New York City FC",
+      "tournament": "MLS",
+      "kickoff": 1792884600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.572,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.9
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16.5,
+          "stake": 6.1
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299726",
+      "home": "San Diego FC",
+      "away": "Seattle Sounders",
+      "tournament": "MLS",
+      "kickoff": 1792895400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.572,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.9
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16.5,
+          "stake": 6.1
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513258",
+      "home": "RB Leipzig",
+      "away": "SV 07 Elversberg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 2.5 Goals",
+      "profitPct": 0.534,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 2.5",
+          "odds": 1.35,
+          "stake": 74.22
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 2.5",
+          "odds": 3.9,
+          "stake": 25.78
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945336",
+      "home": "Lazio",
+      "away": "Parma Calcio",
+      "tournament": "Serie A",
+      "kickoff": 1792867500000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.534,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.35,
+          "stake": 74.22
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 3.9,
+          "stake": 25.78
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513266",
+      "home": "Augsburg",
+      "away": "Union Berlin",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.52,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.21,
+          "stake": 83.25
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 6,
+          "stake": 16.75
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66887108",
+      "home": "Cruzeiro EC MG",
+      "away": "Clube do Remo PA",
+      "tournament": "Brasileiro Serie A",
+      "kickoff": 1792796400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.504,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 7.3,
+          "stake": 13.77
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.17,
+          "stake": 86.23
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513258",
+      "home": "RB Leipzig",
+      "away": "SV 07 Elversberg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.479,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 5.74,
+          "stake": 17.51
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.22,
+          "stake": 82.49
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221344",
+      "home": "Ipswich Town",
+      "away": "Nottingham Forest",
+      "tournament": "Premier League",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.47,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.3,
+          "stake": 77.17
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4.4,
+          "stake": 22.83
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339942",
+      "home": "Charlton Athletic",
+      "away": "Norwich",
+      "tournament": "Championship",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.427,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12.5,
+          "stake": 8.03
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339944",
+      "home": "Lincoln City",
+      "away": "Burnley",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.427,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12.5,
+          "stake": 8.03
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339948",
+      "home": "Preston North End",
+      "away": "West Bromwich",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.427,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12.5,
+          "stake": 8.03
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339950",
+      "home": "Queens Park Rangers",
+      "away": "Swansea",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.427,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12.5,
+          "stake": 8.03
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75028986",
+      "home": "FC Pyunik Yerevan",
+      "away": "Gandzasar Kapan FC",
+      "tournament": "Premier League",
+      "kickoff": 1792767600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.427,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 12.5,
+          "stake": 8.03
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.09,
+          "stake": 91.97
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945342",
+      "home": "Torino",
+      "away": "Monza",
+      "tournament": "Serie A",
+      "kickoff": 1792781100000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.426,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.37,
+          "stake": 73.57
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 3.8,
+          "stake": 26.43
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478650",
+      "home": "Atletico Madrid",
+      "away": "RC Deportivo de A Coruna",
+      "tournament": "LaLiga",
+      "kickoff": 1792868400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.424,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.24,
+          "stake": 81.05
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.3,
+          "stake": 18.95
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513272",
+      "home": "Paderborn",
+      "away": "Hamburg",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.424,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.24,
+          "stake": 81.05
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 5.3,
+          "stake": 18.95
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221336",
+      "home": "Chelsea",
+      "away": "Tottenham",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 2.5 Goals",
+      "profitPct": 0.423,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 2.5",
+          "odds": 1.62,
+          "stake": 62.1
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 2.5",
+          "odds": 2.65,
+          "stake": 37.9
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339946",
+      "home": "Portsmouth FC",
+      "away": "Millwall FC",
+      "tournament": "Championship",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 14,
+          "stake": 7.17
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.08,
+          "stake": 92.83
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339940",
+      "home": "Cardiff City",
+      "away": "Birmingham City",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 92.83
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 14,
+          "stake": 7.17
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339958",
+      "home": "Wolves",
+      "away": "Watford",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 92.83
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 14,
+          "stake": 7.17
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71463740",
+      "home": "HamKam",
+      "away": "Rosenborg BK",
+      "tournament": "Eliteserien",
+      "kickoff": 1792857600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 92.83
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 14,
+          "stake": 7.17
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530980",
+      "home": "Vitoria SC Guimaraes",
+      "away": "Maritimo Madeira",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792784700000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 14,
+          "stake": 7.17
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.08,
+          "stake": 92.83
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299702",
+      "home": "CF Montreal",
+      "away": "Nashville SC",
+      "tournament": "MLS",
+      "kickoff": 1792863000000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.395,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.08,
+          "stake": 92.83
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 14,
+          "stake": 7.17
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299700",
+      "home": "Columbus Crew",
+      "away": "Toronto FC",
+      "tournament": "MLS",
+      "kickoff": 1792870200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.381,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.73
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16,
+          "stake": 6.27
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299706",
+      "home": "Atlanta United FC",
+      "away": "Chicago Fire",
+      "tournament": "MLS",
+      "kickoff": 1792884600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.381,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.73
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16,
+          "stake": 6.27
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299714",
+      "home": "FC Dallas",
+      "away": "San Jose Earthquakes",
+      "tournament": "MLS",
+      "kickoff": 1792888200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.381,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.73
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16,
+          "stake": 6.27
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299718",
+      "home": "Sporting Kansas City",
+      "away": "Austin FC",
+      "tournament": "MLS",
+      "kickoff": 1792888200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.381,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.73
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 16,
+          "stake": 6.27
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478646",
+      "home": "Alaves",
+      "away": "Malaga CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.357,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.41,
+          "stake": 71.33
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 3.5,
+          "stake": 28.67
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221338",
+      "home": "Coventry City",
+      "away": "Fulham",
+      "tournament": "Premier League",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.35,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.29,
+          "stake": 77.7
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4.5,
+          "stake": 22.3
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339936",
+      "home": "Blackburn Rovers",
+      "away": "Wrexham AFC",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.323,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.13,
+          "stake": 88.47
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 8.7,
+          "stake": 11.53
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339946",
+      "home": "Portsmouth FC",
+      "away": "Millwall FC",
+      "tournament": "Championship",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 4.5 Goals",
+      "profitPct": 0.312,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5",
+          "odds": 7.2,
+          "stake": 13.93
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 4.5",
+          "odds": 1.17,
+          "stake": 86.07
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71463740",
+      "home": "HamKam",
+      "away": "Rosenborg BK",
+      "tournament": "Eliteserien",
+      "kickoff": 1792857600000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.281,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 8.1,
+          "stake": 12.38
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.14,
+          "stake": 87.62
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72341322",
+      "home": "Huddersfield",
+      "away": "Wigan Athletic",
+      "tournament": "League One",
+      "kickoff": 1792841400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.281,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 8.1,
+          "stake": 12.38
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.14,
+          "stake": 87.62
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339938",
+      "home": "Bolton Wanderers",
+      "away": "Middlesbrough FC",
+      "tournament": "Championship",
+      "kickoff": 1792782000000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.263,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 7.6,
+          "stake": 13.19
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.16,
+          "stake": 86.81
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945330",
+      "home": "Como 1907",
+      "away": "Sassuolo",
+      "tournament": "Serie A",
+      "kickoff": 1792846800000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.245,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 5.07,
+          "stake": 19.77
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.25,
+          "stake": 80.23
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72522132",
+      "home": "Holywell Town",
+      "away": "Pen-y-Bont FC",
+      "tournament": "Cymru Premier",
+      "kickoff": 1792781100000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.24,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 9.3,
+          "stake": 10.78
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.12,
+          "stake": 89.22
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72036244",
+      "home": "Lens",
+      "away": "Paris FC",
+      "tournament": "Ligue 1",
+      "kickoff": 1792867500000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.227,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.26,
+          "stake": 79.55
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4.9,
+          "stake": 20.45
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513268",
+      "home": "Mainz",
+      "away": "Werder Bremen",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.225,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 4.24,
+          "stake": 23.64
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.31,
+          "stake": 76.36
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945330",
+      "home": "Como 1907",
+      "away": "Sassuolo",
+      "tournament": "Serie A",
+      "kickoff": 1792846800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 5.89,
+          "stake": 17.01
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.21,
+          "stake": 82.99
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339952",
+      "home": "Sheffield United",
+      "away": "Derby County",
+      "tournament": "Championship",
+      "kickoff": 1792841400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 90.89
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 11,
+          "stake": 9.11
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530970",
+      "home": "Gil Vicente Barcelos",
+      "away": "Porto",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792870200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 90.89
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 11,
+          "stake": 9.11
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72723284",
+      "home": "Samsunspor",
+      "away": "Amed Sportif Faaliyetler",
+      "tournament": "Super Lig",
+      "kickoff": 1792857600000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.1,
+          "stake": 90.89
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 11,
+          "stake": 9.11
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72345548",
+      "home": "SK Rapid",
+      "away": "Austria Lustenau",
+      "tournament": "Bundesliga",
+      "kickoff": 1792863000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 11,
+          "stake": 9.11
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.1,
+          "stake": 90.89
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73603096",
+      "home": "Manchester City U21",
+      "away": "Stoke City U21",
+      "tournament": "U21 Premier League 2",
+      "kickoff": 1792778400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 11,
+          "stake": 9.11
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.1,
+          "stake": 90.89
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75395114",
+      "home": "Brothers Union",
+      "away": "Abahani Limited Dhaka",
+      "tournament": "Football League",
+      "kickoff": 1792745100000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.207,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 11,
+          "stake": 9.11
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.1,
+          "stake": 90.89
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478658",
+      "home": "Rayo Vallecano",
+      "away": "Elche CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792843200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.197,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 4.6,
+          "stake": 21.78
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.28,
+          "stake": 78.22
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478650",
+      "home": "Atletico Madrid",
+      "away": "RC Deportivo de A Coruna",
+      "tournament": "LaLiga",
+      "kickoff": 1792868400000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.191,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 6.44,
+          "stake": 15.56
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.19,
+          "stake": 84.44
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339958",
+      "home": "Wolves",
+      "away": "Watford",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.189,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 8.6,
+          "stake": 11.65
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.13,
+          "stake": 88.35
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75617408",
+      "home": "Union Magdalena",
+      "away": "Atletico FC Cali",
+      "tournament": "Torneo DIMAYOR",
+      "kickoff": 1792873800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.182,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 9.25,
+          "stake": 10.83
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.12,
+          "stake": 89.17
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513256",
+      "home": "Borussia Dortmund",
+      "away": "Eintracht Frankfurt",
+      "tournament": "Bundesliga",
+      "kickoff": 1792859400000,
+      "market": "Over/Under 2.5 Goals",
+      "profitPct": 0.18,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 2.5",
+          "odds": 1.44,
+          "stake": 69.64
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 2.5",
+          "odds": 3.3,
+          "stake": 30.36
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339936",
+      "home": "Blackburn Rovers",
+      "away": "Wrexham AFC",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.178,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 15.5,
+          "stake": 6.46
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.07,
+          "stake": 93.54
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339956",
+      "home": "West Ham",
+      "away": "Southampton",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.178,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.54
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15.5,
+          "stake": 6.46
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72041196",
+      "home": "FC Utrecht",
+      "away": "PEC Zwolle",
+      "tournament": "Eredivisie",
+      "kickoff": 1792852200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.178,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.54
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15.5,
+          "stake": 6.46
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72041200",
+      "home": "ADO Den Haag",
+      "away": "SC Heerenveen",
+      "tournament": "Eredivisie",
+      "kickoff": 1792868400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.178,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.07,
+          "stake": 93.54
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 15.5,
+          "stake": 6.46
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339950",
+      "home": "Queens Park Rangers",
+      "away": "Swansea",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 89.98
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 10,
+          "stake": 10.02
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530966",
+      "home": "Estrela Amadora",
+      "away": "Casa Pia Lisbon",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792852200000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 89.98
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 10,
+          "stake": 10.02
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72723270",
+      "home": "Eyupspor",
+      "away": "Kasimpasa Istanbul",
+      "tournament": "Super Lig",
+      "kickoff": 1792837800000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.11,
+          "stake": 89.98
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 10,
+          "stake": 10.02
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72225326",
+      "home": "Maccabi Tel Aviv FC",
+      "away": "Hapoel Haifa FC",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 10,
+          "stake": 10.02
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.11,
+          "stake": 89.98
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73019602",
+      "home": "Azam FC",
+      "away": "Mashujaa FC",
+      "tournament": "Premier League",
+      "kickoff": 1792753200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 10,
+          "stake": 10.02
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.11,
+          "stake": 89.98
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72679222",
+      "home": "FC Sokol Saratov",
+      "away": "Rodina-2",
+      "tournament": "2. Liga, Division A",
+      "kickoff": 1792839600000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.153,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 10,
+          "stake": 10.02
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.11,
+          "stake": 89.98
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:67126826",
+      "home": "BK Hacken",
+      "away": "Degerfors IF",
+      "tournament": "Allsvenskan",
+      "kickoff": 1792846800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.151,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 6.75,
+          "stake": 14.84
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.18,
+          "stake": 85.16
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:66299724",
+      "home": "Portland Timbers",
+      "away": "Charlotte FC",
+      "tournament": "MLS",
+      "kickoff": 1792895400000,
+      "market": "Over/Under 0.5 Goals",
+      "profitPct": 0.15,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 0.5",
+          "odds": 1.06,
+          "stake": 94.44
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 0.5",
+          "odds": 18,
+          "stake": 5.56
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513268",
+      "home": "Mainz",
+      "away": "Werder Bremen",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.149,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 4.46,
+          "stake": 22.46
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.29,
+          "stake": 77.54
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221334",
+      "home": "Aston Villa",
+      "away": "Man City",
+      "tournament": "Premier League",
+      "kickoff": 1792841400000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.143,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 4.88,
+          "stake": 20.52
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.26,
+          "stake": 79.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72513266",
+      "home": "Augsburg",
+      "away": "Union Berlin",
+      "tournament": "Bundesliga",
+      "kickoff": 1792848600000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.143,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 4.12,
+          "stake": 24.31
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.32,
+          "stake": 75.69
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339954",
+      "home": "Stoke",
+      "away": "Bristol City",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.129,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 13.5,
+          "stake": 7.42
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.08,
+          "stake": 92.58
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72723270",
+      "home": "Eyupspor",
+      "away": "Kasimpasa Istanbul",
+      "tournament": "Super Lig",
+      "kickoff": 1792837800000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.129,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 13.5,
+          "stake": 7.42
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.08,
+          "stake": 92.58
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339936",
+      "home": "Blackburn Rovers",
+      "away": "Wrexham AFC",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 4.5 Goals",
+      "profitPct": 0.126,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5",
+          "odds": 8,
+          "stake": 12.52
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 4.5",
+          "odds": 1.14,
+          "stake": 87.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339940",
+      "home": "Cardiff City",
+      "away": "Birmingham City",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.126,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 8,
+          "stake": 12.52
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.14,
+          "stake": 87.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73215802",
+      "home": "Al Ahli Saudi FC",
+      "away": "Al-Khaleej Club",
+      "tournament": "Saudi Pro League",
+      "kickoff": 1792778400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.126,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 8,
+          "stake": 12.52
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.14,
+          "stake": 87.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73019598",
+      "home": "Dodoma FC",
+      "away": "Young Africans SC",
+      "tournament": "Premier League",
+      "kickoff": 1792753200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.126,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 8,
+          "stake": 12.52
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.14,
+          "stake": 87.48
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72202704",
+      "home": "Partick Thistle FC",
+      "away": "Stenhousemuir FC",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.116,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 7.1,
+          "stake": 14.1
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.17,
+          "stake": 85.9
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339938",
+      "home": "Bolton Wanderers",
+      "away": "Middlesbrough FC",
+      "tournament": "Championship",
+      "kickoff": 1792782000000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.102,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 4.58,
+          "stake": 21.86
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.28,
+          "stake": 78.14
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72339944",
+      "home": "Lincoln City",
+      "away": "Burnley",
+      "tournament": "Championship",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 4.5 Goals",
+      "profitPct": 0.094,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5",
+          "odds": 6.4,
+          "stake": 15.64
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 4.5",
+          "odds": 1.19,
+          "stake": 84.36
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530964",
+      "home": "Alverca Futebol",
+      "away": "FC Arouca",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792861200000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.092,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12,
+          "stake": 8.34
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.66
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72530970",
+      "home": "Gil Vicente Barcelos",
+      "away": "Porto",
+      "tournament": "Liga Portugal",
+      "kickoff": 1792870200000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.092,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12,
+          "stake": 8.34
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.66
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72723284",
+      "home": "Samsunspor",
+      "away": "Amed Sportif Faaliyetler",
+      "tournament": "Super Lig",
+      "kickoff": 1792857600000,
+      "market": "Over/Under 5.5 Goals",
+      "profitPct": 0.092,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5",
+          "odds": 12,
+          "stake": 8.34
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Under 5.5",
+          "odds": 1.09,
+          "stake": 91.66
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478656",
+      "home": "Racing Santander",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1792851300000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.073,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 3.75,
+          "stake": 26.69
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.37,
+          "stake": 73.31
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75364020",
+      "home": "Penicuik Athletic FC",
+      "away": "Clyde FC",
+      "tournament": "Scottish Cup",
+      "kickoff": 1792780200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.052,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 8.5,
+          "stake": 11.77
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.13,
+          "stake": 88.23
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:75596530",
+      "home": "Al-Sailiya SC",
+      "away": "Al Rayyan SC",
+      "tournament": "Stars League",
+      "kickoff": 1792773900000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.052,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 8.5,
+          "stake": 11.77
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.13,
+          "stake": 88.23
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221334",
+      "home": "Aston Villa",
+      "away": "Man City",
+      "tournament": "Premier League",
+      "kickoff": 1792841400000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.048,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 4.44,
+          "stake": 22.53
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.29,
+          "stake": 77.47
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71945336",
+      "home": "Lazio",
+      "away": "Parma Calcio",
+      "tournament": "Serie A",
+      "kickoff": 1792867500000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.048,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 5.02,
+          "stake": 19.93
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.25,
+          "stake": 80.07
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221336",
+      "home": "Chelsea",
+      "away": "Tottenham",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Draw vs Home/Away (12)",
+      "profitPct": 0.047,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw",
+          "odds": 4.32,
+          "stake": 23.16
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Away (12)",
+          "odds": 1.3,
+          "stake": 76.84
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72149832",
+      "home": "Sanfrecce Hiroshima",
+      "away": "Shimizu S-Pulse",
+      "tournament": "J1 League",
+      "kickoff": 1792818000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.041,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 6.7,
+          "stake": 14.93
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.18,
+          "stake": 85.07
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:71463740",
+      "home": "HamKam",
+      "away": "Rosenborg BK",
+      "tournament": "Eliteserien",
+      "kickoff": 1792857600000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "profitPct": 0.022,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home Win",
+          "odds": 5.19,
+          "stake": 19.27
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Draw or Away (X2)",
+          "odds": 1.24,
+          "stake": 80.73
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221332",
+      "home": "Arsenal",
+      "away": "Everton",
+      "tournament": "Premier League",
+      "kickoff": 1792850400000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.009,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.33,
+          "stake": 75
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4,
+          "stake": 25
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72478658",
+      "home": "Rayo Vallecano",
+      "away": "Elche CF",
+      "tournament": "LaLiga",
+      "kickoff": 1792843200000,
+      "market": "Over/Under 1.5 Goals",
+      "profitPct": 0.009,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Over 1.5",
+          "odds": 1.33,
+          "stake": 75
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 1.5",
+          "odds": 4,
+          "stake": 25
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72221336",
+      "home": "Chelsea",
+      "away": "Tottenham",
+      "tournament": "Premier League",
+      "kickoff": 1792859400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.006,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 4.56,
+          "stake": 21.93
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.28,
+          "stake": 78.07
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:72608036",
+      "home": "Slavia Prague",
+      "away": "FK Mlada Boleslav",
+      "tournament": "1. Liga",
+      "kickoff": 1792857600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 0.003,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 9.1,
+          "stake": 10.99
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.12,
+          "stake": 89.01
+        }
+      ]
+    }
+  ]
 }
