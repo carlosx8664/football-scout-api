@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Fix for __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -11,10 +10,10 @@ const SPORTY_FILE = path.join(DATA_DIR, 'sportybet.json');
 const MSPORT_FILE = path.join(DATA_DIR, 'msport.json');
 
 // ⚠️ FAKE ODDS BOOST (For testing the math logic)
-const ODDS_BOOST_MULTIPLIER = 1.15; // 15% boost
+const ODDS_BOOST_MULTIPLIER = 1.15; 
 
 // ---------------------------------------------------------------------------
-// Normalization
+// Name Normalization
 // ---------------------------------------------------------------------------
 const ABBREV = {
   utd: 'united', nottm: 'nottingham', ath: 'athletic', wand: 'wanderers',
@@ -26,25 +25,22 @@ const ABBREV = {
 const DROP_TOKENS = new Set([
   'fc', 'cf', 'sc', 'afc', 'ac', 'as', 'ss', 'ssc', 'fk', 'pfk',
   'sk', 'sv', 'vfb', 'vfl', 'tsv', 'fsv', 'kv', 'kvc', 'kvv',
-  'club', 'calcio', 'cd', 'ca', 'ad', 'ec', 'sd',
-  'city', 'town', 'united', 'utd',
+  'club', 'calcio', 'cd', 'ca', 'ad', 'ec', 'sd', 'city', 'town', 'united', 'utd',
 ]);
 
 function normalizeName(raw) {
   if (!raw) return '';
-  let s = String(raw)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[’'´`]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
+  let s = String(raw).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/[’'´`]/g, '').replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ').trim();
   const tokens = s.split(' ').filter(Boolean).map(t => ABBREV[t] || t);
   const kept = tokens.filter(t => !DROP_TOKENS.has(t));
-  const final = kept.length ? kept : tokens;
-  return final.join('');
+  return (kept.length ? kept : tokens).join('');
+}
+
+// Helper to normalize market/outcome strings so Sporty and MSport match
+function cleanString(str) {
+  return String(str).toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 // ---------------------------------------------------------------------------
@@ -52,30 +48,33 @@ function normalizeName(raw) {
 // ---------------------------------------------------------------------------
 function extractSporty(file) {
   const out = [];
-  const tournaments = file?.data?.tournaments || [];
-  for (const t of tournaments) {
+  for (const t of file?.data?.tournaments || []) {
     for (const e of t.events || []) {
-      const market = (e.markets || []).find(m => String(m.id) === '1');
-      if (!market) continue;
-      const outcomes = market.outcomes || [];
-      const home = outcomes.find(o => String(o.id) === '1');
-      const draw = outcomes.find(o => String(o.id) === '2');
-      const away = outcomes.find(o => String(o.id) === '3');
-      if (!home || !draw || !away) continue;
+      const markets = {};
+      for (const m of e.markets || []) {
+        // Clean the market name (e.g., "Over/Under", "1X2", "GG/NG")
+        const mName = cleanString(m.name || m.description || '');
+        if (!mName) continue;
+
+        markets[mName] = {};
+        for (const o of m.outcomes || []) {
+          // Clean the outcome name (e.g., "Home", "Over 2.5", "Yes")
+          const oName = cleanString(o.description || o.desc || '');
+          if (!oName) continue;
+
+          markets[mName][oName] = {
+            bookie: 'SportyBet',
+            odds: parseFloat(o.odds),
+            specifier: m.specifiers || ''
+          };
+        }
+      }
       out.push({
-        source: 'sporty',
-        eventId: e.eventId,
-        homeTeam: e.homeTeamName,
-        awayTeam: e.awayTeamName,
-        homeNorm: normalizeName(e.homeTeamName),
-        awayNorm: normalizeName(e.awayTeamName),
+        homeTeam: e.homeTeamName, awayTeam: e.awayTeamName,
+        homeNorm: normalizeName(e.homeTeamName), awayNorm: normalizeName(e.awayTeamName),
         kickoff: e.estimateStartTime,
         tournament: e?.sport?.category?.tournament?.name || t.name,
-        odds: {
-          home: parseFloat(home.odds),
-          draw: parseFloat(draw.odds),
-          away: parseFloat(away.odds),
-        },
+        markets
       });
     }
   }
@@ -84,32 +83,31 @@ function extractSporty(file) {
 
 function extractMsport(file) {
   const out = [];
-  const tournaments = file?.data?.tournaments || [];
-  for (const t of tournaments) {
+  for (const t of file?.data?.tournaments || []) {
     for (const e of t.events || []) {
-      const market = (e.markets || []).find(m => Number(m.id) === 1);
-      if (!market) continue;
-      const outcomes = market.outcomes || [];
-      const home = outcomes.find(o => String(o.id) === '1');
-      const draw = outcomes.find(o => String(o.id) === '2');
-      const away = outcomes.find(o => String(o.id) === '3');
-      if (!home || !draw || !away) continue;
-      
-      // Apply the fake 15% boost here
+      const markets = {};
+      for (const m of e.markets || []) {
+        const mName = cleanString(m.name || m.description || '');
+        if (!mName) continue;
+
+        markets[mName] = {};
+        for (const o of m.outcomes || []) {
+          const oName = cleanString(o.description || o.desc || '');
+          if (!oName) continue;
+
+          markets[mName][oName] = {
+            bookie: 'MSport',
+            odds: parseFloat(o.odds) * ODDS_BOOST_MULTIPLIER, // Apply boost here
+            specifier: m.specifiers || ''
+          };
+        }
+      }
       out.push({
-        source: 'msport',
-        eventId: e.eventId,
-        homeTeam: e.homeTeam,
-        awayTeam: e.awayTeam,
-        homeNorm: normalizeName(e.homeTeam),
-        awayNorm: normalizeName(e.awayTeam),
+        homeTeam: e.homeTeam, awayTeam: e.awayTeam,
+        homeNorm: normalizeName(e.homeTeam), awayNorm: normalizeName(e.awayTeam),
         kickoff: e.startTime,
         tournament: e.tournament,
-        odds: {
-          home: parseFloat(home.odds) * ODDS_BOOST_MULTIPLIER,
-          draw: parseFloat(draw.odds) * ODDS_BOOST_MULTIPLIER,
-          away: parseFloat(away.odds) * ODDS_BOOST_MULTIPLIER,
-        },
+        markets
       });
     }
   }
@@ -122,39 +120,56 @@ function extractMsport(file) {
 const KICKOFF_TOLERANCE_MS = 30 * 60 * 1000; 
 
 function sameFixture(a, b) {
-  if (a.homeNorm !== b.homeNorm) return false;
-  if (a.awayNorm !== b.awayNorm) return false;
-  if (a.kickoff && b.kickoff && Math.abs(a.kickoff - b.kickoff) > KICKOFF_TOLERANCE_MS) {
-    return false;
-  }
+  if (a.homeNorm !== b.homeNorm || a.awayNorm !== b.awayNorm) return false;
+  if (a.kickoff && b.kickoff && Math.abs(a.kickoff - b.kickoff) > KICKOFF_TOLERANCE_MS) return false;
   return true;
 }
 
-function arbPercent(a, b) {
-  const bestHome = Math.max(a.odds.home, b.odds.home);
-  const bestDraw = Math.max(a.odds.draw, b.odds.draw);
-  const bestAway = Math.max(a.odds.away, b.odds.away);
+// Find 2-way arbs within a specific market
+function findArbsInMarket(sMarket, mMarket, marketName) {
+  const arbs = [];
+  const sOutcomes = Object.keys(sMarket);
+  
+  // Check every possible pair of outcomes (e.g., Home vs Away, Over vs Under)
+  for (let i = 0; i < sOutcomes.length; i++) {
+    for (let j = i + 1; j < sOutcomes.length; j++) {
+      const outA = sOutcomes[i];
+      const outB = sOutcomes[j];
 
-  const invSum = 1 / bestHome + 1 / bestDraw + 1 / bestAway;
-  const profitPct = (1 / invSum - 1) * 100;
-  return {
-    bestHome,
-    bestDraw,
-    bestAway,
-    profitPct,
-    isArb: invSum < 1,
-  };
+      // Make sure MSport actually has these same two outcomes
+      if (!mMarket[outA] || !mMarket[outB]) continue;
+
+      // 1. Get the best odds for Side A
+      const bestA = sMarket[outA].odds > mMarket[outA].odds 
+        ? sMarket[outA] : mMarket[outA];
+      
+      // 2. Get the best odds for Side B
+      const bestB = sMarket[outB].odds > mMarket[outB].odds 
+        ? sMarket[outB] : mMarket[outB];
+
+      // 3. Do the 2-way arb math
+      const invSum = (1 / bestA.odds) + (1 / bestB.odds);
+      
+      if (invSum < 1) {
+        const profitPct = ((1 / invSum) - 1) * 100;
+        arbs.push({
+          market: marketName,
+          profitPct: Number(profitPct.toFixed(3)),
+          legs: [
+            { bookmaker: bestA.bookie, outcome: outA, odds: bestA.odds },
+            { bookmaker: bestB.bookie, outcome: outB, odds: bestB.odds }
+          ]
+        });
+      }
+    }
+  }
+  return arbs;
 }
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 function main() {
-  if (!fs.existsSync(SPORTY_FILE) || !fs.existsSync(MSPORT_FILE)) {
-    console.error('Missing data files. Run fetch-odds.js first.');
-    process.exit(1);
-  }
-
   const sporty = extractSporty(JSON.parse(fs.readFileSync(SPORTY_FILE, 'utf8')));
   const msport = extractMsport(JSON.parse(fs.readFileSync(MSPORT_FILE, 'utf8')));
 
@@ -169,53 +184,52 @@ function main() {
     msportIndex.get(key).push(m);
   }
 
-  const matched = [];
-  for (const s of sporty) {
-    const key = `${s.homeNorm}|${s.awayNorm}`;
-    const candidates = msportIndex.get(key) || [];
-    const hit = candidates.find(c => sameFixture(s, c));
-    if (hit) matched.push([s, hit]);
-  }
+  const allArbs = [];
 
-  const arbs = [];
-  for (const [s, m] of matched) {
-    const r = arbPercent(s, m);
-    if (r.isArb) {
-      arbs.push({
-        home: s.homeTeam,
-        away: s.awayTeam,
-        tournament: s.tournament,
-        kickoff: s.kickoff,
-        sporty: s.odds,
-        msport: m.odds,
-        best: { home: r.bestHome, draw: r.bestDraw, away: r.bestAway },
-        profitPct: Number(r.profitPct.toFixed(3)),
-      });
+  for (const s of sporty) {
+    const candidates = msportIndex.get(`${s.homeNorm}|${s.awayNorm}`) || [];
+    const m = candidates.find(c => sameFixture(s, c));
+    if (!m) continue;
+
+    // Loop through every market SportyBet has
+    for (const marketName of Object.keys(s.markets)) {
+      // If MSport has this exact same market
+      if (m.markets[marketName]) {
+        const marketArbs = findArbsInMarket(s.markets[marketName], m.markets[marketName], marketName);
+        
+        // If we found an arb, attach the match details
+        for (const arb of marketArbs) {
+          allArbs.push({
+            home: s.homeTeam,
+            away: s.awayTeam,
+            tournament: s.tournament,
+            kickoff: s.kickoff,
+            ...arb
+          });
+        }
+      }
     }
   }
 
   // Sort arbs by highest profit first
-  arbs.sort((a, b) => b.profitPct - a.profitPct);
+  allArbs.sort((a, b) => b.profitPct - a.profitPct);
 
-  console.log(`Matched fixtures:   ${matched.length}`);
-  console.log(`Arbs found:         ${arbs.length}\n`);
+  console.log(`Total Arbs Found: ${allArbs.length}\n`);
 
-  if (arbs.length === 0) {
-    console.log('No arbitrage opportunities found even with the boost. Check your data.');
-  } else {
-    console.log(`💰 Arbitrage opportunities found:`);
-    for (const a of arbs) {
-      console.log(`  ${a.home} vs ${a.away} → ${a.profitPct}% (${a.tournament})`);
-      console.log(`     Bet Home @ ${a.best.home.toFixed(2)} | Draw @ ${a.best.draw.toFixed(2)} | Away @ ${a.best.away.toFixed(2)}`);
+  if (allArbs.length > 0) {
+    console.log(`💰 Top 5 Arbitrage Opportunities:`);
+    for (const a of allArbs.slice(0, 5)) { 
+      console.log(`  ${a.home} vs ${a.away} → ${a.profitPct}% [Market: ${a.market}]`);
+      console.log(`     ${a.legs[0].bookmaker}: ${a.legs[0].outcome} @ ${a.legs[0].odds.toFixed(2)}`);
+      console.log(`     ${a.legs[1].bookmaker}: ${a.legs[1].outcome} @ ${a.legs[1].odds.toFixed(2)}`);
     }
   }
 
-  // Write to the public folder so React can read it
   const outPath = path.join(__dirname, '..', 'public', 'arbs.json');
   fs.writeFileSync(outPath, JSON.stringify({
     generatedAt: new Date().toISOString(),
     boostApplied: ODDS_BOOST_MULTIPLIER,
-    arbs,
+    arbs: allArbs,
   }, null, 2));
   console.log(`\nWrote ${outPath}`);
 }
