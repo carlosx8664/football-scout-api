@@ -87,6 +87,12 @@
   color: var(--color-neutral-7);
 }
 .ai-box p { white-space: pre-line; }
+.ai-error-detail {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+}
 .ai-box strong {
   display: block;
   margin-bottom: 4px;

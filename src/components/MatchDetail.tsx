@@ -16,6 +16,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
     fixtureId: number;
     text: string | null;
     status: "ready" | "error";
+    error?: string;
   } | null>(null);
 
   // Analyses baked into the feed win; otherwise ask the Pages Function, which calls DeepSeek
@@ -51,7 +52,12 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
       .catch((error: Error) => {
         if (error.name === "AbortError") return;
         console.warn("Scout analysis failed:", error.message);
-        setRequest({ fixtureId: match.fixture.id, text: null, status: "error" });
+        setRequest({
+          fixtureId: match.fixture.id,
+          text: null,
+          status: "error",
+          error: error.message,
+        });
       });
 
     return () => controller.abort();
@@ -125,10 +131,19 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
         <section className="ai-box">
           <strong>🤖 Scout Analysis</strong>
           <p>
-            {analysisStatus === "loading"
-              ? "Reading the market and writing up a view…"
-              : (analysis ??
-                "Couldn't pull a write-up for this one. Refresh to try again, and check the team news yourself before you back it.")}
+            {analysisStatus === "loading" ? (
+              "Reading the market and writing up a view…"
+            ) : analysis ? (
+              analysis
+            ) : (
+              <>
+                Couldn't pull a write-up for this one. Refresh to try again, and check the team
+                news yourself before you back it.
+                {resolved?.error ? (
+                  <span className="ai-error-detail"> Reason: {resolved.error}</span>
+                ) : null}
+              </>
+            )}
           </p>
         </section>
       </article>
