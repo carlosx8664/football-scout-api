@@ -41,12 +41,10 @@ functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh 
 functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
 functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek note with live search
 functions/api/standings.js     GET /api/standings - league table via football-data.org
-functions/api/snapshot.js      Legacy GET /api/snapshot - reads snapshot-latest from KV
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
-scripts/sync.js                Legacy API-Football sync (no longer scheduled)
-src/App.tsx                    Route switch, snapshot loading, upcoming + league filters
+src/App.tsx                    Route switch, feed loading, upcoming + league filters
 src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail (+ CSS)
 src/lib/                       Fetch helper and formatting utils
 src/types.ts                   Snapshot payload types
@@ -244,7 +242,7 @@ cost a DeepSeek call per fixture every 15 minutes.
 
 Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day
 and this uses 192. GitHub runners use datacenter IPs, so bookmaker sites may block them even when
-the scripts work locally — check the first few scheduled runs.
+the scripts work locally — check the run logs if a feed comes back empty.
 
 ### Reliable trigger: Cloudflare Cron
 
@@ -266,9 +264,10 @@ cd ../.. && npm run worker:deploy
 - Cron Trigger: `*/15 * * * *` (UTC). Cloudflare allows 5 per account on the free plan, and the
   job is a single `fetch()` so it stays well inside the 10 ms CPU allowance.
 - Manual test: `curl -X POST "https://oddtor-dispatch-trigger.<subdomain>.workers.dev/?key=<TRIGGER_KEY>"`.
-- The workflow keeps its own `schedule` as a fallback; if GitHub does fire it, the `concurrency`
-  group prevents overlapping runs.
+- `odds-refresh.yml` has no `schedule:` of its own — the Worker is the only trigger, so a run can
+  never be duplicated. Its `concurrency` group still guards against overlap.
 - Secrets stay in Cloudflare; nothing is shared with a third-party scheduler.
+- The `GH_DISPATCH_TOKEN` has no expiry, so rotate it manually if it is ever exposed.
 
 ## Routes
 

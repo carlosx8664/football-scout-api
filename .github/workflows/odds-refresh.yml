@@ -1,9 +1,9 @@
 name: Odds refresh
 
 on:
-  schedule:
-    # Every 15 minutes. GitHub's minimum is 5; runs can start a few minutes late under load.
-    - cron: "*/15 * * * *"
+  # Dispatched every 15 minutes by the Cloudflare Cron Worker
+  # (workers/dispatch-trigger). No `schedule:` here: GitHub's scheduler ran hours late on
+  # this repo, and a stray scheduled run would collide with the Worker's.
   workflow_dispatch:
 
 # A slow run must never overlap the next one and double-write KV.
