@@ -170,7 +170,10 @@ function readBetBoroEvents(json) {
       away: fixture?.away,
       startTime: Number(fixture?.kickoff),
       competition: normalize(`${fixture?.region} ${fixture?.competition}`),
-      logos: { home: "", away: "" },
+      logos: {
+        home: fixture?.logos?.home ?? "",
+        away: fixture?.logos?.away ?? "",
+      },
       odds,
     });
   }

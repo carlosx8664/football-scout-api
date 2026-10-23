@@ -162,6 +162,8 @@ npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
 - Emits the best price per outcome plus a `book_odds` block. Each outcome carries
   `{ books: { <bookmaker>: price }, best, bookmaker }`, so the hover breakdown lists however many
   books quote it while the tile always shows the best price.
+- Crests come from whichever bookmaker has them: MSport team icons, otherwise BetBoro's
+  `participant_logos`, otherwise the card renders without a crest.
 - Adds DeepSeek analysis when `DEEPSEEK_API_KEY` is set (`--no-ai` skips it).
 - Leaves the existing feed untouched if nothing parses, so a failed run cannot blank the site.
 

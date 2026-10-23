@@ -5,7 +5,7 @@
     "from": "2026-10-23",
     "to": "2026-10-24"
   },
-  "generated_at": "2026-10-23T20:46:35.494Z",
+  "generated_at": "2026-10-23T21:09:36.066Z",
   "match_count": 56,
   "analysed_count": 0,
   "matches": [
@@ -48,8 +48,7 @@
         "home": {
           "books": {
             "SportyBet": 1.54,
-            "MSport": 1.51,
-            "BetBoro": 1.51
+            "MSport": 1.51
           },
           "best": 1.54,
           "bookmaker": "SportyBet"
@@ -57,8 +56,7 @@
         "draw": {
           "books": {
             "SportyBet": 4.93,
-            "MSport": 4.72,
-            "BetBoro": 4.32
+            "MSport": 4.72
           },
           "best": 4.93,
           "bookmaker": "SportyBet"
@@ -66,8 +64,7 @@
         "away": {
           "books": {
             "SportyBet": 5.59,
-            "MSport": 5.34,
-            "BetBoro": 5.09
+            "MSport": 5.34
           },
           "best": 5.59,
           "bookmaker": "SportyBet"
@@ -77,7 +74,7 @@
     },
     {
       "fixture": {
-        "id": 1881235473,
+        "id": 3444978789,
         "date": "2026-10-23T18:30:00.000Z"
       },
       "league": {
@@ -87,11 +84,11 @@
       },
       "teams": {
         "home": {
-          "name": "VfB Stuttgart",
+          "name": "Stuttgart",
           "logo": "https://static.msport.com/public/up/fc0457da-99bc-42ae-82b4-ddc533928938.png"
         },
         "away": {
-          "name": "Borussia Monchengladbach",
+          "name": "Borussia M´gladbach",
           "logo": "https://static.msport.com/public/up/67da0246-54e9-4cd8-8e2a-adf20f24b4cb.png"
         }
       },
@@ -114,8 +111,7 @@
         "home": {
           "books": {
             "SportyBet": 1.37,
-            "MSport": 1.36,
-            "BetBoro": 1.31
+            "MSport": 1.36
           },
           "best": 1.37,
           "bookmaker": "SportyBet"
@@ -123,8 +119,7 @@
         "draw": {
           "books": {
             "SportyBet": 6.3,
-            "MSport": 6.18,
-            "BetBoro": 5.28
+            "MSport": 6.18
           },
           "best": 6.3,
           "bookmaker": "SportyBet"
@@ -132,8 +127,7 @@
         "away": {
           "books": {
             "SportyBet": 7.69,
-            "MSport": 7.54,
-            "BetBoro": 7.2
+            "MSport": 7.54
           },
           "best": 7.69,
           "bookmaker": "SportyBet"
@@ -143,7 +137,7 @@
     },
     {
       "fixture": {
-        "id": 1692068673,
+        "id": 1996391028,
         "date": "2026-10-23T18:45:00.000Z"
       },
       "league": {
@@ -153,11 +147,11 @@
       },
       "teams": {
         "home": {
-          "name": "Torino FC",
+          "name": "Torino",
           "logo": "https://static.msport.com/public/up/33b1e64e-c846-4926-9a07-6845cf0dec58.png"
         },
         "away": {
-          "name": "AC Monza",
+          "name": "Monza",
           "logo": "https://static.msport.com/public/up/ecb77b18-7154-4e61-8419-ec54ac765552.png"
         }
       },
@@ -180,8 +174,7 @@
         "home": {
           "books": {
             "SportyBet": 2.17,
-            "MSport": 2.15,
-            "BetBoro": 2.02
+            "MSport": 2.15
           },
           "best": 2.17,
           "bookmaker": "SportyBet"
@@ -189,8 +182,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.55,
-            "MSport": 3.51,
-            "BetBoro": 3.31
+            "MSport": 3.51
           },
           "best": 3.55,
           "bookmaker": "SportyBet"
@@ -198,8 +190,7 @@
         "away": {
           "books": {
             "SportyBet": 3.62,
-            "MSport": 3.58,
-            "BetBoro": 3.36
+            "MSport": 3.58
           },
           "best": 3.62,
           "bookmaker": "SportyBet"
@@ -209,7 +200,7 @@
     },
     {
       "fixture": {
-        "id": 2285542856,
+        "id": 2234451843,
         "date": "2026-10-23T18:45:00.000Z"
       },
       "league": {
@@ -219,11 +210,11 @@
       },
       "teams": {
         "home": {
-          "name": "Stade Brestois 29",
+          "name": "Brest",
           "logo": "https://static.msport.com/ng/up/99e323e1-cb51-40e7-ad36-f27f14c9bd5d.png"
         },
         "away": {
-          "name": "OGC Nice",
+          "name": "Nice",
           "logo": "https://static.msport.com/public/up/cad3a9a8-98be-4fe8-bcaf-61dfffeeaf75.png"
         }
       },
@@ -246,8 +237,7 @@
         "home": {
           "books": {
             "SportyBet": 2.28,
-            "MSport": 2.26,
-            "BetBoro": 2.13
+            "MSport": 2.26
           },
           "best": 2.28,
           "bookmaker": "SportyBet"
@@ -255,8 +245,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.6,
-            "MSport": 3.56,
-            "BetBoro": 3.36
+            "MSport": 3.56
           },
           "best": 3.6,
           "bookmaker": "SportyBet"
@@ -264,8 +253,7 @@
         "away": {
           "books": {
             "SportyBet": 3.3,
-            "MSport": 3.27,
-            "BetBoro": 3.07
+            "MSport": 3.27
           },
           "best": 3.3,
           "bookmaker": "SportyBet"
@@ -312,8 +300,7 @@
         "home": {
           "books": {
             "SportyBet": 2.69,
-            "MSport": 2.67,
-            "BetBoro": 2.52
+            "MSport": 2.67
           },
           "best": 2.69,
           "bookmaker": "SportyBet"
@@ -321,8 +308,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.54,
-            "MSport": 3.51,
-            "BetBoro": 3.41
+            "MSport": 3.51
           },
           "best": 3.54,
           "bookmaker": "SportyBet"
@@ -330,8 +316,7 @@
         "away": {
           "books": {
             "SportyBet": 2.59,
-            "MSport": 2.57,
-            "BetBoro": 2.47
+            "MSport": 2.57
           },
           "best": 2.59,
           "bookmaker": "SportyBet"
@@ -378,8 +363,7 @@
         "home": {
           "books": {
             "SportyBet": 3.1,
-            "MSport": 3.07,
-            "BetBoro": 2.93
+            "MSport": 3.07
           },
           "best": 3.1,
           "bookmaker": "SportyBet"
@@ -387,8 +371,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.57,
-            "MSport": 3.53,
-            "BetBoro": 3.31
+            "MSport": 3.53
           },
           "best": 3.57,
           "bookmaker": "SportyBet"
@@ -396,8 +379,7 @@
         "away": {
           "books": {
             "SportyBet": 2.4,
-            "MSport": 2.37,
-            "BetBoro": 2.23
+            "MSport": 2.37
           },
           "best": 2.4,
           "bookmaker": "SportyBet"
@@ -407,7 +389,7 @@
     },
     {
       "fixture": {
-        "id": 2733507031,
+        "id": 997774811,
         "date": "2026-10-23T19:00:00.000Z"
       },
       "league": {
@@ -417,7 +399,7 @@
       },
       "teams": {
         "home": {
-          "name": "Deportivo Alaves",
+          "name": "CD Alaves",
           "logo": "https://static.msport.com/public/up/9052c4a0-c5fe-44c3-91b5-32311e922857.png"
         },
         "away": {
@@ -444,8 +426,7 @@
         "home": {
           "books": {
             "SportyBet": 1.69,
-            "MSport": 1.68,
-            "BetBoro": 1.6
+            "MSport": 1.68
           },
           "best": 1.69,
           "bookmaker": "SportyBet"
@@ -453,8 +434,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.92,
-            "MSport": 3.87,
-            "BetBoro": 3.5
+            "MSport": 3.87
           },
           "best": 3.92,
           "bookmaker": "SportyBet"
@@ -462,8 +442,7 @@
         "away": {
           "books": {
             "SportyBet": 5.74,
-            "MSport": 5.66,
-            "BetBoro": 5.28
+            "MSport": 5.66
           },
           "best": 5.74,
           "bookmaker": "SportyBet"
@@ -510,8 +489,7 @@
         "home": {
           "books": {
             "SportyBet": 4.8,
-            "MSport": 4.8,
-            "BetBoro": 4.46
+            "MSport": 4.8
           },
           "best": 4.8,
           "bookmaker": "SportyBet"
@@ -519,8 +497,7 @@
         "draw": {
           "books": {
             "SportyBet": 4.4,
-            "MSport": 4.4,
-            "BetBoro": 4.03
+            "MSport": 4.4
           },
           "best": 4.4,
           "bookmaker": "SportyBet"
@@ -528,8 +505,7 @@
         "away": {
           "books": {
             "SportyBet": 1.68,
-            "MSport": 1.68,
-            "BetBoro": 1.6
+            "MSport": 1.68
           },
           "best": 1.68,
           "bookmaker": "SportyBet"
@@ -703,7 +679,7 @@
           "books": {
             "SportyBet": 4.97,
             "MSport": 4.9,
-            "BetBoro": 4.61
+            "BetBoro": 4.56
           },
           "best": 4.97,
           "bookmaker": "SportyBet"
@@ -769,7 +745,7 @@
           "books": {
             "SportyBet": 3.22,
             "MSport": 3.22,
-            "BetBoro": 3.07
+            "BetBoro": 3.12
           },
           "best": 3.22,
           "bookmaker": "SportyBet"
@@ -778,7 +754,7 @@
           "books": {
             "SportyBet": 3.56,
             "MSport": 3.56,
-            "BetBoro": 3.31
+            "BetBoro": 3.36
           },
           "best": 3.56,
           "bookmaker": "SportyBet"
@@ -787,7 +763,7 @@
           "books": {
             "SportyBet": 2.28,
             "MSport": 2.28,
-            "BetBoro": 2.13
+            "BetBoro": 2.11
           },
           "best": 2.28,
           "bookmaker": "SportyBet"
@@ -835,7 +811,7 @@
           "books": {
             "SportyBet": 2.42,
             "MSport": 2.42,
-            "BetBoro": 2.35
+            "BetBoro": 2.4
           },
           "best": 2.42,
           "bookmaker": "SportyBet"
@@ -844,7 +820,7 @@
           "books": {
             "SportyBet": 3.48,
             "MSport": 3.48,
-            "BetBoro": 3.22
+            "BetBoro": 3.26
           },
           "best": 3.48,
           "bookmaker": "SportyBet"
@@ -853,7 +829,7 @@
           "books": {
             "SportyBet": 3.04,
             "MSport": 3.04,
-            "BetBoro": 2.8
+            "BetBoro": 2.71
           },
           "best": 3.04,
           "bookmaker": "SportyBet"
@@ -901,7 +877,7 @@
           "books": {
             "SportyBet": 1.88,
             "MSport": 1.88,
-            "BetBoro": 1.76
+            "BetBoro": 1.73
           },
           "best": 1.88,
           "bookmaker": "SportyBet"
@@ -910,7 +886,7 @@
           "books": {
             "SportyBet": 3.82,
             "MSport": 3.82,
-            "BetBoro": 3.5
+            "BetBoro": 3.65
           },
           "best": 3.82,
           "bookmaker": "SportyBet"
@@ -919,7 +895,7 @@
           "books": {
             "SportyBet": 4.26,
             "MSport": 4.26,
-            "BetBoro": 4.18
+            "BetBoro": 4.13
           },
           "best": 4.26,
           "bookmaker": "SportyBet"
@@ -1033,7 +1009,7 @@
           "books": {
             "SportyBet": 3.18,
             "MSport": 3.15,
-            "BetBoro": 3.07
+            "BetBoro": 2.78
           },
           "best": 3.18,
           "bookmaker": "SportyBet"
@@ -1042,7 +1018,7 @@
           "books": {
             "SportyBet": 3.18,
             "MSport": 3.14,
-            "BetBoro": 2.88
+            "BetBoro": 3.12
           },
           "best": 3.18,
           "bookmaker": "SportyBet"
@@ -1051,7 +1027,7 @@
           "books": {
             "SportyBet": 2.56,
             "MSport": 2.54,
-            "BetBoro": 2.37
+            "BetBoro": 2.42
           },
           "best": 2.56,
           "bookmaker": "SportyBet"
@@ -1099,7 +1075,7 @@
           "books": {
             "SportyBet": 1.53,
             "MSport": 1.52,
-            "BetBoro": 1.46
+            "BetBoro": 1.41
           },
           "best": 1.53,
           "bookmaker": "SportyBet"
@@ -1108,7 +1084,7 @@
           "books": {
             "SportyBet": 5.03,
             "MSport": 4.95,
-            "BetBoro": 4.51
+            "BetBoro": 4.56
           },
           "best": 5.03,
           "bookmaker": "SportyBet"
@@ -1117,7 +1093,7 @@
           "books": {
             "SportyBet": 5.95,
             "MSport": 5.85,
-            "BetBoro": 5.38
+            "BetBoro": 5.86
           },
           "best": 5.95,
           "bookmaker": "SportyBet"
@@ -1174,7 +1150,7 @@
           "books": {
             "SportyBet": 4.13,
             "MSport": 4.08,
-            "BetBoro": 3.89
+            "BetBoro": 3.84
           },
           "best": 4.13,
           "bookmaker": "SportyBet"
@@ -1240,7 +1216,7 @@
           "books": {
             "SportyBet": 3.86,
             "MSport": 3.82,
-            "BetBoro": 3.79
+            "BetBoro": 3.6
           },
           "best": 3.86,
           "bookmaker": "SportyBet"
@@ -1249,7 +1225,7 @@
           "books": {
             "SportyBet": 3.4,
             "MSport": 3.37,
-            "BetBoro": 3.07
+            "BetBoro": 3.17
           },
           "best": 3.4,
           "bookmaker": "SportyBet"
@@ -1297,7 +1273,7 @@
           "books": {
             "SportyBet": 1.79,
             "MSport": 1.78,
-            "BetBoro": 1.68
+            "BetBoro": 1.71
           },
           "best": 1.79,
           "bookmaker": "SportyBet"
@@ -1306,7 +1282,7 @@
           "books": {
             "SportyBet": 4.24,
             "MSport": 4.18,
-            "BetBoro": 4.03
+            "BetBoro": 3.89
           },
           "best": 4.24,
           "bookmaker": "SportyBet"
@@ -1487,7 +1463,7 @@
         },
         {
           "value": "Away",
-          "odd": "7.39"
+          "odd": "7.38"
         }
       ],
       "book_odds": {
@@ -1495,7 +1471,7 @@
           "books": {
             "SportyBet": 1.48,
             "MSport": 1.47,
-            "BetBoro": 1.39
+            "BetBoro": 1.41
           },
           "best": 1.48,
           "bookmaker": "SportyBet"
@@ -1504,7 +1480,7 @@
           "books": {
             "SportyBet": 4.82,
             "MSport": 4.75,
-            "BetBoro": 4.18
+            "BetBoro": 4.13
           },
           "best": 4.82,
           "bookmaker": "SportyBet"
@@ -1513,10 +1489,10 @@
           "books": {
             "SportyBet": 7.38,
             "MSport": 7.25,
-            "BetBoro": 7.39
+            "BetBoro": 6.91
           },
-          "best": 7.39,
-          "bookmaker": "BetBoro"
+          "best": 7.38,
+          "bookmaker": "SportyBet"
         }
       },
       "ai_analysis": null
@@ -1561,7 +1537,7 @@
           "books": {
             "SportyBet": 3.16,
             "MSport": 3.13,
-            "BetBoro": 2.93
+            "BetBoro": 2.98
           },
           "best": 3.16,
           "bookmaker": "SportyBet"
@@ -1579,7 +1555,7 @@
           "books": {
             "SportyBet": 2.35,
             "MSport": 2.33,
-            "BetBoro": 2.18
+            "BetBoro": 2.16
           },
           "best": 2.35,
           "bookmaker": "SportyBet"
@@ -1751,7 +1727,7 @@
         },
         {
           "value": "Away",
-          "odd": "2.38"
+          "odd": "2.40"
         }
       ],
       "book_odds": {
@@ -1759,7 +1735,7 @@
           "books": {
             "SportyBet": 3.06,
             "MSport": 3.06,
-            "BetBoro": 2.88
+            "BetBoro": 2.74
           },
           "best": 3.06,
           "bookmaker": "SportyBet"
@@ -1768,7 +1744,7 @@
           "books": {
             "SportyBet": 3.55,
             "MSport": 3.55,
-            "BetBoro": 3.26
+            "BetBoro": 3.22
           },
           "best": 3.55,
           "bookmaker": "SportyBet"
@@ -1777,10 +1753,10 @@
           "books": {
             "SportyBet": 2.38,
             "MSport": 2.38,
-            "BetBoro": 2.28
+            "BetBoro": 2.4
           },
-          "best": 2.38,
-          "bookmaker": "SportyBet"
+          "best": 2.4,
+          "bookmaker": "BetBoro"
         }
       },
       "ai_analysis": null
@@ -1825,7 +1801,7 @@
           "books": {
             "SportyBet": 3.77,
             "MSport": 3.77,
-            "BetBoro": 3.5
+            "BetBoro": 3.41
           },
           "best": 3.77,
           "bookmaker": "SportyBet"
@@ -1834,7 +1810,7 @@
           "books": {
             "SportyBet": 3.67,
             "MSport": 3.67,
-            "BetBoro": 3.46
+            "BetBoro": 3.41
           },
           "best": 3.67,
           "bookmaker": "SportyBet"
@@ -1843,7 +1819,7 @@
           "books": {
             "SportyBet": 2.03,
             "MSport": 2.03,
-            "BetBoro": 1.92
+            "BetBoro": 1.97
           },
           "best": 2.03,
           "bookmaker": "SportyBet"
@@ -1875,7 +1851,7 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "2.46"
+          "odd": "2.47"
         },
         {
           "value": "Draw",
@@ -1891,10 +1867,10 @@
           "books": {
             "SportyBet": 2.46,
             "MSport": 2.46,
-            "BetBoro": 2.32
+            "BetBoro": 2.47
           },
-          "best": 2.46,
-          "bookmaker": "SportyBet"
+          "best": 2.47,
+          "bookmaker": "BetBoro"
         },
         "draw": {
           "books": {
@@ -1909,7 +1885,7 @@
           "books": {
             "SportyBet": 2.98,
             "MSport": 2.98,
-            "BetBoro": 2.83
+            "BetBoro": 2.66
           },
           "best": 2.98,
           "bookmaker": "SportyBet"
@@ -1957,7 +1933,7 @@
           "books": {
             "SportyBet": 2.37,
             "MSport": 2.37,
-            "BetBoro": 2.26
+            "BetBoro": 2.35
           },
           "best": 2.37,
           "bookmaker": "SportyBet"
@@ -1966,7 +1942,7 @@
           "books": {
             "SportyBet": 3.52,
             "MSport": 3.52,
-            "BetBoro": 3.26
+            "BetBoro": 3.17
           },
           "best": 3.52,
           "bookmaker": "SportyBet"
@@ -1975,7 +1951,7 @@
           "books": {
             "SportyBet": 3.08,
             "MSport": 3.08,
-            "BetBoro": 2.93
+            "BetBoro": 2.83
           },
           "best": 3.08,
           "bookmaker": "SportyBet"
@@ -2089,7 +2065,7 @@
           "books": {
             "SportyBet": 1.37,
             "MSport": 1.37,
-            "BetBoro": 1.31
+            "BetBoro": 1.33
           },
           "best": 1.37,
           "bookmaker": "SportyBet"
@@ -2098,7 +2074,7 @@
           "books": {
             "SportyBet": 5.55,
             "MSport": 5.55,
-            "BetBoro": 4.99
+            "BetBoro": 4.8
           },
           "best": 5.55,
           "bookmaker": "SportyBet"
@@ -2107,7 +2083,7 @@
           "books": {
             "SportyBet": 8.53,
             "MSport": 8.53,
-            "BetBoro": 7.68
+            "BetBoro": 7.2
           },
           "best": 8.53,
           "bookmaker": "SportyBet"
@@ -2230,7 +2206,7 @@
           "books": {
             "SportyBet": 3.74,
             "MSport": 3.7,
-            "BetBoro": 3.5
+            "BetBoro": 3.46
           },
           "best": 3.74,
           "bookmaker": "SportyBet"
@@ -2239,7 +2215,7 @@
           "books": {
             "SportyBet": 2.88,
             "MSport": 2.85,
-            "BetBoro": 2.71
+            "BetBoro": 2.74
           },
           "best": 2.88,
           "bookmaker": "SportyBet"
@@ -2287,7 +2263,7 @@
           "books": {
             "SportyBet": 1.68,
             "MSport": 1.64,
-            "BetBoro": 1.6
+            "BetBoro": 1.58
           },
           "best": 1.68,
           "bookmaker": "SportyBet"
@@ -2296,7 +2272,7 @@
           "books": {
             "SportyBet": 4.42,
             "MSport": 4.25,
-            "BetBoro": 4.08
+            "BetBoro": 3.98
           },
           "best": 4.42,
           "bookmaker": "SportyBet"
@@ -2305,7 +2281,7 @@
           "books": {
             "SportyBet": 4.81,
             "MSport": 4.62,
-            "BetBoro": 4.51
+            "BetBoro": 4.7
           },
           "best": 4.81,
           "bookmaker": "SportyBet"
@@ -2455,7 +2431,7 @@
       "teams": {
         "home": {
           "name": "Oud-Heverlee Leuven",
-          "logo": ""
+          "logo": "https://cdn.feedthebet.com/logos/participants/506.png"
         },
         "away": {
           "name": "Lommel SK",
@@ -2548,7 +2524,7 @@
           "books": {
             "SportyBet": 1.77,
             "MSport": 1.79,
-            "BetBoro": 1.65
+            "BetBoro": 1.75
           },
           "best": 1.79,
           "bookmaker": "MSport"
@@ -2557,7 +2533,7 @@
           "books": {
             "SportyBet": 4.28,
             "MSport": 4.34,
-            "BetBoro": 4.03
+            "BetBoro": 3.84
           },
           "best": 4.34,
           "bookmaker": "MSport"
@@ -2566,7 +2542,7 @@
           "books": {
             "SportyBet": 4.49,
             "MSport": 4.55,
-            "BetBoro": 4.18
+            "BetBoro": 3.84
           },
           "best": 4.55,
           "bookmaker": "MSport"
@@ -2614,7 +2590,7 @@
           "books": {
             "SportyBet": 3.27,
             "MSport": 3.24,
-            "BetBoro": 3.02
+            "BetBoro": 3.17
           },
           "best": 3.27,
           "bookmaker": "SportyBet"
@@ -2623,7 +2599,7 @@
           "books": {
             "SportyBet": 3.7,
             "MSport": 3.66,
-            "BetBoro": 3.46
+            "BetBoro": 3.31
           },
           "best": 3.7,
           "bookmaker": "SportyBet"
@@ -2680,7 +2656,7 @@
           "books": {
             "SportyBet": 1.5,
             "MSport": 1.51,
-            "BetBoro": 1.44
+            "BetBoro": 1.46
           },
           "best": 1.51,
           "bookmaker": "MSport"
@@ -2689,7 +2665,7 @@
           "books": {
             "SportyBet": 5.39,
             "MSport": 5.48,
-            "BetBoro": 4.7
+            "BetBoro": 4.66
           },
           "best": 5.48,
           "bookmaker": "MSport"
@@ -2698,7 +2674,7 @@
           "books": {
             "SportyBet": 5.92,
             "MSport": 6.01,
-            "BetBoro": 5.38
+            "BetBoro": 5.18
           },
           "best": 6.01,
           "bookmaker": "MSport"
@@ -2867,7 +2843,7 @@
         },
         {
           "value": "Away",
-          "odd": "8.40"
+          "odd": "8.27"
         }
       ],
       "book_odds": {
@@ -2875,7 +2851,7 @@
           "books": {
             "SportyBet": 1.43,
             "MSport": 1.42,
-            "BetBoro": 1.34
+            "BetBoro": 1.36
           },
           "best": 1.43,
           "bookmaker": "SportyBet"
@@ -2884,7 +2860,7 @@
           "books": {
             "SportyBet": 5,
             "MSport": 4.91,
-            "BetBoro": 4.32
+            "BetBoro": 4.42
           },
           "best": 5,
           "bookmaker": "SportyBet"
@@ -2893,10 +2869,10 @@
           "books": {
             "SportyBet": 8.27,
             "MSport": 8.12,
-            "BetBoro": 8.4
+            "BetBoro": 7.68
           },
-          "best": 8.4,
-          "bookmaker": "BetBoro"
+          "best": 8.27,
+          "bookmaker": "SportyBet"
         }
       },
       "ai_analysis": null
@@ -2941,7 +2917,7 @@
           "books": {
             "SportyBet": 2.49,
             "MSport": 2.47,
-            "BetBoro": 2.32
+            "BetBoro": 2.35
           },
           "best": 2.49,
           "bookmaker": "SportyBet"
@@ -2959,7 +2935,7 @@
           "books": {
             "SportyBet": 2.87,
             "MSport": 2.84,
-            "BetBoro": 2.66
+            "BetBoro": 2.64
           },
           "best": 2.87,
           "bookmaker": "SportyBet"
@@ -2980,11 +2956,11 @@
       "teams": {
         "home": {
           "name": "KVC Westerlo",
-          "logo": ""
+          "logo": "https://cdn.feedthebet.com/logos/participants/502.png"
         },
         "away": {
           "name": "KV RS Waasland Beveren",
-          "logo": ""
+          "logo": "https://cdn.feedthebet.com/logos/participants/489.png"
         }
       },
       "goals": null,
@@ -3157,7 +3133,7 @@
           "books": {
             "SportyBet": 11.01,
             "MSport": 10.75,
-            "BetBoro": 10.32
+            "BetBoro": 10.56
           },
           "best": 11.01,
           "bookmaker": "SportyBet"

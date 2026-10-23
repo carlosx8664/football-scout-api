@@ -370,6 +370,11 @@ function collectBetBoro(responses) {
           eventId,
           home: f.participants[0],
           away: f.participants[1],
+          // BetBoro ships crests on the fixture; they fill gaps the other books leave blank.
+          logos: {
+            home: f.participant_logos?.home ?? '',
+            away: f.participant_logos?.away ?? '',
+          },
           kickoff,
           region: f.region_name,
           competition: f.competition_name,
