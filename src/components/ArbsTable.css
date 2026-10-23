@@ -56,7 +56,7 @@
 
 .arbs-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 820px;
   border-collapse: collapse;
   font-size: 0.8125rem;
 }
@@ -279,4 +279,16 @@
   color: var(--color-neutral-6);
   font-size: 0.65rem;
   font-weight: 500;
+}
+
+/* --- Profit per side at the chosen stake --- */
+.arb-leg-profit {
+  white-space: nowrap;
+  color: #15803d;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.arb-leg-profit.negative {
+  color: #b91c1c;
 }

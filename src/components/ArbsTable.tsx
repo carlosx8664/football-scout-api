@@ -200,6 +200,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       <th scope="col">Event</th>
                       <th scope="col">Market</th>
                       <th scope="col">Odds</th>
+                      <th scope="col">Profit (GHS)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -210,7 +211,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
 
                       return (
                         <Fragment key={arbKey(arb, legs)}>
-                          {legs.map((leg, legIndex) => (
+                          {legs.map((leg, legIndex) => {
+                            const legStake =
+                              typeof leg.stake === "number"
+                                ? (leg.stake / 100) * totalStake
+                                : null;
+                            // Payout on this side minus the full outlay: what you keep if it wins.
+                            const legProfit =
+                              legStake === null ? null : legStake * leg.odds - totalStake;
+
+                            return (
                             <tr className={rowClass} key={`${leg.bookmaker}-${leg.outcome}`}>
                               {legIndex === 0 && (
                                 <td className="arb-profit" rowSpan={LEGS_PER_MATCH}>
@@ -258,8 +268,19 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                   </span>
                                 )}
                               </td>
+
+                              <td
+                                className={`arb-leg-profit${
+                                  legProfit !== null && legProfit < 0 ? " negative" : ""
+                                }`}
+                              >
+                                {legProfit === null
+                                  ? "—"
+                                  : `${legProfit >= 0 ? "+" : ""}${legProfit.toFixed(2)}`}
+                              </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </Fragment>
                       );
                     })}
