@@ -28,14 +28,7 @@ export async function fetchArbsJson(signal?: AbortSignal): Promise<unknown | nul
     try {
       const response = await fetch(url, { cache: "no-store", signal });
       if (!response.ok) continue;
-      const body = await response.json();
-      
-      const count = Array.isArray(body) ? body.length : body?.arbs?.length ?? 0;
-      
-      // If KV returns 0 arbs, it might just mean the live scan found nothing.
-      // We accept this (return it) so the screen clears. 
-      // (If you want it to fall back to static file when KV is empty, change `return body` to `continue`).
-      return body;
+      return await response.json();
     } catch (error) {
       if (signal?.aborted) throw error;
     }
