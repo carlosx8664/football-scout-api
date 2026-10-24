@@ -481,6 +481,8 @@ function main() {
   }
 
   arbs.sort((x, y) => y.profitPct - x.profitPct);
+    // Send alert if arbs are found
+  await sendTelegramAlert(arbs);
   evals.sort((x, y) => y.profitPct - x.profitPct);
 
   console.log(`\nFixtures matched:            ${matched}`);
@@ -528,3 +530,30 @@ function main() {
 }
 
 main();
+
+async function sendTelegramAlert(arbs) {
+  const token = '8998952168:AAHxEtSUB2R8zQQ3F8oqV_nXYvvIN5uao3U'; // Paste your token here
+  const chatId = '5007863950';           // Paste your Chat ID here
+  
+  if (arbs.length === 0) return; 
+
+  let message = `🚨 *Found ${arbs.length} Arbitrage Opportunities!*\n\n`;
+  
+  arbs.slice(0, 5).forEach((arb) => {
+    message += `*${arb.home} vs ${arb.away}* (${arb.profitPct}%)\n`;
+    message += `└ ${arb.legs[0].bookmaker}: ${arb.legs[0].outcome} @ ${arb.legs[0].odds}\n`;
+    message += `└ ${arb.legs[1].bookmaker}: ${arb.legs[1].outcome} @ ${arb.legs[1].odds}\n\n`;
+  });
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
+    });
+    console.log('✈️ Telegram alert sent!');
+  } catch (err) {
+    console.error('Failed to send Telegram alert:', err.message);
+  }
+}
