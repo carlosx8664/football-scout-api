@@ -57,6 +57,45 @@ const normalizeTeam = (name) => {
     .trim();
 };
 
+// ============================================================================
+// Telegram Alert Function
+// ============================================================================
+async function sendTelegramAlert(arbs) {
+  const token = process.env.TELEGRAM_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID; 
+  
+  // If keys are missing or no arbs, exit quietly
+  if (!token || !chatId || arbs.length === 0) return; 
+
+  let message = `🚨 Found ${arbs.length} Arbitrage Opportunities!\n\n`;
+  
+  arbs.slice(0, 5).forEach((arb) => {
+    message += `${arb.home} vs ${arb.away} (${arb.profitPct}%)\n`;
+    message += `└ ${arb.legs[0].bookmaker}: ${arb.legs[0].outcome} @ ${arb.legs[0].odds}\n`;
+    message += `└ ${arb.legs[1].bookmaker}: ${arb.legs[1].outcome} @ ${arb.legs[1].odds}\n\n`;
+  });
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // Note: Removed parse_mode to prevent crashes on team names with _ or *
+      body: JSON.stringify({ chat_id: chatId, text: message }) 
+    });
+    if (!res.ok) {
+      console.error('Telegram API rejected the message:', await res.text());
+    } else {
+      console.log('✈️ Telegram alert sent!');
+    }
+  } catch (err) {
+    console.error('Failed to send Telegram alert:', err.message);
+  }
+}
+
+// ============================================================================
+// Data Parsing Functions
+// ============================================================================
 function readMarket(m) {
   const found = [];
   if (!m || !Array.isArray(m.outcomes)) return found;
@@ -341,7 +380,10 @@ function evaluate(pair, oa, ob) {
   return { profitPct, shareA, shareB };
 }
 
-function main() {
+// ============================================================================
+// Main Execution
+// ============================================================================
+async function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
   const betboro = loadBetBoro(BETBORO_FILE);
@@ -481,9 +523,10 @@ function main() {
   }
 
   arbs.sort((x, y) => y.profitPct - x.profitPct);
-    // Send alert if arbs are found
-  await sendTelegramAlert(arbs);
   evals.sort((x, y) => y.profitPct - x.profitPct);
+
+  // Send alert if arbs are found
+  await sendTelegramAlert(arbs);
 
   console.log(`\nFixtures matched:            ${matched}`);
   console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);
@@ -529,31 +572,4 @@ function main() {
   console.log(`\nWrote ${OUT_FILE}`);
 }
 
-main();
-
-async function sendTelegramAlert(arbs) {
-  const token = process.env.TELEGRAM_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID; 
-  
-  if (arbs.length === 0) return; 
-
-  let message = `🚨 *Found ${arbs.length} Arbitrage Opportunities!*\n\n`;
-  
-  arbs.slice(0, 5).forEach((arb) => {
-    message += `*${arb.home} vs ${arb.away}* (${arb.profitPct}%)\n`;
-    message += `└ ${arb.legs[0].bookmaker}: ${arb.legs[0].outcome} @ ${arb.legs[0].odds}\n`;
-    message += `└ ${arb.legs[1].bookmaker}: ${arb.legs[1].outcome} @ ${arb.legs[1].odds}\n\n`;
-  });
-
-  const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  try {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'Markdown' })
-    });
-    console.log('✈️ Telegram alert sent!');
-  } catch (err) {
-    console.error('Failed to send Telegram alert:', err.message);
-  }
-}
+main().catch(console.error);

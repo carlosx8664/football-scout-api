@@ -33,7 +33,7 @@ jobs:
     env:
       MODE: ${{ inputs.mode || 'hot' }}
       DAYS: ${{ (inputs.mode || 'hot') == 'horizon' && '6' || '2' }}
-      SUFFIX: ${{ (inputs.mode || 'hot') == 'horizon' && '-horizon' || '' }}
+      SUFFIX: ${{ (inputs.mode || 'horizon') == 'horizon' && '-horizon' || '' }}
 
     steps:
       - name: Checkout
@@ -58,8 +58,11 @@ jobs:
             node scripts/fetch-odds.js --days="$DAYS"
           fi
 
-      - name: Build arbitrage feed
+      - name: Build arbitrage feed and send alerts
         run: node scripts/find-arbs.js --suffix="$SUFFIX"
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Build match feed
         # Analysis is generated on demand by /api/analysis, so skip it here.
