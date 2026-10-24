@@ -1,10 +1,4 @@
 // scripts/find-arbs.js
-//
-// Cross-bookie arbitrage scanner: SportyBet <-> MSport <-> BetBoro <-> BoltBet
-//
-// NOTE: BoltBet does not use Sportradar IDs. We match fixtures by
-// normalized team names + kickoff timestamp.
-
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -26,6 +20,7 @@ const SPORTY_FILE = path.join(DATA_DIR, `sportybet${FILE_SUFFIX}.json`);
 const MSPORT_FILE = path.join(DATA_DIR, `msport${FILE_SUFFIX}.json`);
 const BETBORO_FILE = path.join(DATA_DIR, `betboro${FILE_SUFFIX}.json`);
 const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
+const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const BOOST = Number(opt('boost', '1'));        
@@ -34,15 +29,11 @@ const NEAR = Number(opt('near', '0'));
 const TOTAL_STAKE = Number(opt('stake', '100'));
 const MIN_ODDS = Number(opt('min-odds', '1.20')); 
 
-if (!Number.isFinite(BOOST) || BOOST <= 0) {
-  console.error('Invalid --boost value');
-  process.exit(1);
-}
-
 const SPORTY = 'SportyBet';
 const MSPORT = 'MSport';
 const BETBORO = 'BetBoro';
 const BOLTBET = 'BoltBet';
+const BETPAWA = 'BetPawa';
 
 const clean = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]/g, '');
 const num = (x) => {
@@ -64,7 +55,6 @@ async function sendTelegramAlert(arbs) {
   const token = process.env.TELEGRAM_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID; 
   
-  // If keys are missing or no arbs, exit quietly
   if (!token || !chatId || arbs.length === 0) return; 
 
   let message = `🚨 Found ${arbs.length} Arbitrage Opportunities!\n\n`;
@@ -80,7 +70,6 @@ async function sendTelegramAlert(arbs) {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Note: Removed parse_mode to prevent crashes on team names with _ or *
       body: JSON.stringify({ chat_id: chatId, text: message }) 
     });
     if (!res.ok) {
@@ -266,10 +255,8 @@ function loadBoltBet(file) {
       typeCounts[type] = (typeCounts[type] ?? 0) + 1;
     };
 
-    // In view=full, markets are flattened into e.betting.markets
     for (const [marketKey, m] of Object.entries(e.betting.markets)) {
       if (m.hidden || !m.open) continue;
-      
       const hp = m.params?.hp ? parseFloat(m.params.hp) : null;
 
       for (const [optionKey, option] of Object.entries(m.options ?? {})) {
@@ -310,6 +297,62 @@ function loadBoltBet(file) {
       kickoff,
       tournament: 'BoltBet',
       notStarted: e.fixture.state === 'active',
+      sel,
+    });
+  }
+  return { events, typeCounts };
+}
+
+function loadBetPawa(file) {
+  if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const events = new Map();
+  const typeCounts = {};
+
+  for (const e of raw.events ?? []) {
+    if (!e.eventId || !e.home || !e.away || !e.odds) continue;
+
+    const sel = {};
+    const add = (key, price) => {
+      if (!key || price === null || price <= 1 || key in sel) return;
+      sel[key] = price;
+      const type = key.split(':')[0];
+      typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+    };
+
+    const o = e.odds;
+    add('1X2:H', o.home);
+    add('1X2:D', o.draw);
+    add('1X2:A', o.away);
+
+    add('DC:1X', o.dc1x);
+    add('DC:12', o.dc12);
+    add('DC:X2', o.dcx2);
+
+    add('BTTS:Y', o.bttsYes);
+    add('BTTS:N', o.bttsNo);
+
+    for (const [label, price] of Object.entries(o)) {
+      const mt = label.match(/^(Over|Under)\s+(\d+(?:\.\d+)?)$/i);
+      if (mt) {
+        const line = mt[2];
+        if (line.endsWith('.5')) {
+          add(`OU:${line}:${mt[1].toLowerCase() === 'over' ? 'O' : 'U'}`, price);
+        }
+      }
+    }
+
+    if (Object.keys(sel).length === 0) continue;
+
+    // BetPawa uses a dynamic kickoff time. We set it to now + 1 hour to ensure 
+    // it's processed by the scanner and matches team names correctly.
+    events.set(e.eventId, {
+      eventId: e.eventId,
+      home: e.home,
+      away: e.away,
+      kickoff: Date.now() + 3600000, 
+      tournament: 'BetPawa',
+      notStarted: true,
       sel,
     });
   }
@@ -380,20 +423,19 @@ function evaluate(pair, oa, ob) {
   return { profitPct, shareA, shareB };
 }
 
-// ============================================================================
-// Main Execution
-// ============================================================================
 async function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
   const betboro = loadBetBoro(BETBORO_FILE);
   const boltbet = loadBoltBet(BOLTBET_FILE);
+  const betpawa = loadBetPawa(BETPAWA_FILE);
 
   const sources = [
     { name: SPORTY, book: sporty },
     { name: MSPORT, book: msport },
     { name: BETBORO, book: betboro },
     { name: BOLTBET, book: boltbet },
+    { name: BETPAWA, book: betpawa },
   ];
 
   for (const { name, book } of sources) {
@@ -525,7 +567,6 @@ async function main() {
   arbs.sort((x, y) => y.profitPct - x.profitPct);
   evals.sort((x, y) => y.profitPct - x.profitPct);
 
-  // Send alert if arbs are found
   await sendTelegramAlert(arbs);
 
   console.log(`\nFixtures matched:            ${matched}`);

@@ -1,15 +1,16 @@
 {
-  "generatedAt": "2026-10-24T20:42:07.747Z",
+  "generatedAt": "2026-10-24T22:59:48.300Z",
   "boostApplied": 1,
   "boostTarget": null,
   "stats": {
-    "matched": 942,
-    "pairsChecked": 22766,
+    "matched": 941,
+    "pairsChecked": 22219,
     "bookEvents": {
       "SportyBet": 970,
       "MSport": 1002,
       "BetBoro": 847,
-      "BoltBet": 275
+      "BoltBet": 275,
+      "BetPawa": 42
     }
   },
   "arbs": [
@@ -59,29 +60,6 @@
         }
       ],
       "note": "Draw = both stakes refunded"
-    },
-    {
-      "eventId": "sr:match:67172372",
-      "home": "Portland Hearts of Pine",
-      "away": "Charlotte Independence",
-      "tournament": "USL League One",
-      "kickoff": 1792875600000,
-      "market": "Away Win vs Home/Draw (1X)",
-      "profitPct": 1.081,
-      "legs": [
-        {
-          "bookmaker": "SportyBet",
-          "outcome": "Away Win",
-          "odds": 2.2,
-          "stake": 45.95
-        },
-        {
-          "bookmaker": "BetBoro",
-          "outcome": "Home or Draw (1X)",
-          "odds": 1.87,
-          "stake": 54.05
-        }
-      ]
     },
     {
       "eventId": "sr:match:73528700",
