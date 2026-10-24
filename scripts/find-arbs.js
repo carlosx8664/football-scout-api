@@ -1,21 +1,9 @@
 // scripts/find-arbs.js
 //
-// Cross-bookie arbitrage scanner: SportyBet <-> MSport <-> BetBoro (2-outcome arbs only).
+// Cross-bookie arbitrage scanner: SportyBet <-> MSport <-> BetBoro <-> BoltBet
 //
-// How it works
-//  1. Both bookies use Sportradar event IDs ("sr:match:72221344"), so fixtures are
-//     matched by eventId. No team-name guessing.
-//  2. Every market we understand is turned into "selections" with a simple key,
-//     e.g. 1X2:H, DC:X2, DNB:A, BTTS:Y, OU:2.5:O
-//  3. Complementary selections are paired (Over 2.5 + Under 2.5, Home + X2, ...).
-//     Each pair is checked with the two legs on DIFFERENT bookies.
-//  4. Anything with profit above MIN_PROFIT is written to public/arbs.json.
-//
-// Usage
-//   node scripts/find-arbs.js                  real odds (boost = 1.00)
-//   node scripts/find-arbs.js --boost=1.05     TEST ONLY: multiplies MSport odds
-//   node scripts/find-arbs.js --near=10        also print the 10 closest misses
-//   node scripts/find-arbs.js --stake=500      stake split shown per arb (default 100)
+// NOTE: BoltBet does not use Sportradar IDs. We match fixtures by
+// normalized team names + kickoff timestamp.
 
 import fs from 'fs';
 import path from 'path';
@@ -25,24 +13,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
-const SPORTY_FILE = path.join(DATA_DIR, 'sportybet.json');
-const MSPORT_FILE = path.join(DATA_DIR, 'msport.json');
-const BETBORO_FILE = path.join(DATA_DIR, 'betboro.json');
-const OUT_FILE = path.resolve(__dirname, '..', 'public', 'arbs.json');
 
-// ---------------------------------------------------------------------------
-// Options
-// ---------------------------------------------------------------------------
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
   const hit = argv.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : fallback;
 };
 
-const BOOST = Number(opt('boost', '1'));        // test-only boost applied to MSport odds
-const MIN_PROFIT = Number(opt('min', '0'));     // only keep arbs above this %
-const NEAR = Number(opt('near', '0'));          // print N closest misses
+const FILE_SUFFIX = opt('suffix', '');
+
+const SPORTY_FILE = path.join(DATA_DIR, `sportybet${FILE_SUFFIX}.json`);
+const MSPORT_FILE = path.join(DATA_DIR, `msport${FILE_SUFFIX}.json`);
+const BETBORO_FILE = path.join(DATA_DIR, `betboro${FILE_SUFFIX}.json`);
+const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
+const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
+
+const BOOST = Number(opt('boost', '1'));        
+const MIN_PROFIT = Number(opt('min', '0'));     
+const NEAR = Number(opt('near', '0'));          
 const TOTAL_STAKE = Number(opt('stake', '100'));
+const MIN_ODDS = Number(opt('min-odds', '1.20')); 
 
 if (!Number.isFinite(BOOST) || BOOST <= 0) {
   console.error('Invalid --boost value');
@@ -52,22 +42,25 @@ if (!Number.isFinite(BOOST) || BOOST <= 0) {
 const SPORTY = 'SportyBet';
 const MSPORT = 'MSport';
 const BETBORO = 'BetBoro';
+const BOLTBET = 'BoltBet';
 
-// ---------------------------------------------------------------------------
-// Market parsing -> selections
-// Market IDs are the standard Sportradar ones used by both bookies:
-//   1 = 1X2, 10 = Double Chance, 11 = Draw No Bet, 18 = Over/Under, 29 = GG/NG
-// ---------------------------------------------------------------------------
 const clean = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]/g, '');
 const num = (x) => {
   const n = parseFloat(x);
   return Number.isFinite(n) ? n : null;
 };
 
+const normalizeTeam = (name) => {
+  return String(name).toLowerCase()
+    .replace(/\b(fc|sc|afc|cf|united|utd|city|club|women|wom|wfc|lfc)\b/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+};
+
 function readMarket(m) {
   const found = [];
   if (!m || !Array.isArray(m.outcomes)) return found;
-  if (m.status != null && Number(m.status) !== 0) return found; // suspended/closed market
+  if (m.status != null && Number(m.status) !== 0) return found; 
 
   const id = String(m.id);
 
@@ -76,7 +69,6 @@ function readMarket(m) {
     const odds = num(o.odds);
     if (odds === null || odds <= 1) continue;
 
-    // SportyBet labels outcomes with "desc", MSport with "description"
     const label = clean(o.desc ?? o.description);
     const oid = String(o.id);
     let key;
@@ -96,19 +88,42 @@ function readMarket(m) {
     } else if (id === '29') {
       key = { yes: 'BTTS:Y', no: 'BTTS:N' }[label];
     } else if (id === '18') {
-      const mt = label.match(/^(over|under)(\d+(?:\.\d+)?)$/);
-      // only .5 lines are true 2-way (whole-number lines can push/refund)
-      if (mt && mt[2].endsWith('.5')) key = `OU:${mt[2]}:${mt[1] === 'over' ? 'O' : 'U'}`;
+      const mt = label.match(/^(over|under)(\d+)(\d?)$/); 
+      if (mt) {
+        const line = mt[2] + (mt[3] ? `.${mt[3]}` : '.0');
+        if (line.endsWith('.5')) key = `OU:${line}:${mt[1] === 'over' ? 'O' : 'U'}`;
+      }
+    } else if (id === '16') { 
+      const spec = m.specifiers ?? '';
+      const match = spec.match(/(?:hcp=)?(-?\d+(?:\.\d+)?)/);
+      const line = match ? parseFloat(match[1]) : null;
+      if (line !== null) {
+        if (oid === '1714' || label.includes('home')) key = `AH:${line}:H`;
+        if (oid === '1715' || label.includes('away')) key = `AH:${line}:A`;
+      }
+    } else if (id === '139') { 
+      const spec = m.specifiers ?? '';
+      const match = spec.match(/(?:total=)?(-?\d+(?:\.\d+)?)/);
+      const line = match ? parseFloat(match[1]) : null;
+      if (line !== null && line < 15 && line.toString().endsWith('.5')) {
+        if (label === 'over') key = `BOOK:${line}:O`;
+        if (label === 'under') key = `BOOK:${line}:U`;
+      }
+    } else if (id === '166') { 
+      const spec = m.specifiers ?? '';
+      const match = spec.match(/(?:total=)?(-?\d+(?:\.\d+)?)/);
+      const line = match ? parseFloat(match[1]) : null;
+      if (line !== null && line.toString().endsWith('.5')) {
+        if (label === 'over') key = `CORN:${line}:O`;
+        if (label === 'under') key = `CORN:${line}:U`;
+      }
     }
 
-    if (key) found.push([key, odds]);
+    if (key) found.push({ key, odds });
   }
   return found;
 }
 
-// ---------------------------------------------------------------------------
-// Load a bookie file -> Map(eventId -> event)
-// ---------------------------------------------------------------------------
 function loadBookie(file, bookie) {
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
   const events = new Map();
@@ -117,17 +132,15 @@ function loadBookie(file, bookie) {
   for (const t of raw?.data?.tournaments ?? []) {
     for (const e of t.events ?? []) {
       if (!e.eventId) continue;
-
       const sel = {};
       for (const m of e.markets ?? []) {
-        for (const [key, odds] of readMarket(m)) {
+        for (const { key, odds } of readMarket(m)) {
           if (key in sel) continue;
           sel[key] = bookie === MSPORT ? odds * BOOST : odds;
           const type = key.split(':')[0];
           typeCounts[type] = (typeCounts[type] ?? 0) + 1;
         }
       }
-
       const isSporty = bookie === SPORTY;
       events.set(e.eventId, {
         eventId: e.eventId,
@@ -143,9 +156,6 @@ function loadBookie(file, bookie) {
   return { events, typeCounts };
 }
 
-// ---------------------------------------------------------------------------
-// BetBoro: `{ fixtures: [...] }`, markets keyed by name
-// ---------------------------------------------------------------------------
 const betBoroPrice = (node) => {
   if (!node || (node.status && node.status !== 'available')) return null;
   const p = num(node.price);
@@ -159,7 +169,6 @@ function loadBetBoro(file) {
 
   for (const f of raw?.fixtures ?? []) {
     if (!f?.eventId) continue;
-
     const sel = {};
     const add = (key, price) => {
       if (!key || price === null || key in sel) return;
@@ -174,16 +183,16 @@ function loadBetBoro(file) {
     add('1X2:A', betBoroPrice(result['2']));
 
     const dc = f.markets?.double_chance ?? {};
-    add('DC:1X', betBoroPrice(dc['0'])); // "1 or X"
-    add('DC:12', betBoroPrice(dc['1'])); // "1 or 2"
-    add('DC:X2', betBoroPrice(dc['2'])); // "X or 2"
+    add('DC:1X', betBoroPrice(dc['0']));
+    add('DC:12', betBoroPrice(dc['1']));
+    add('DC:X2', betBoroPrice(dc['2']));
 
     const btts = f.markets?.both_teams_to_score ?? {};
     add('BTTS:Y', betBoroPrice(btts['0']));
     add('BTTS:N', betBoroPrice(btts['1']));
 
     for (const [line, node] of Object.entries(f.markets?.total_goals ?? {})) {
-      if (!line.endsWith('.5')) continue; // whole-number lines can push
+      if (!line.endsWith('.5')) continue;
       add(`OU:${line}:O`, betBoroPrice(node?.['0']));
       add(`OU:${line}:U`, betBoroPrice(node?.['1']));
     }
@@ -198,24 +207,85 @@ function loadBetBoro(file) {
       sel,
     });
   }
-
   return { events, typeCounts };
 }
 
-// ---------------------------------------------------------------------------
-// Pairs: two selections that together cover every possible result
-// ---------------------------------------------------------------------------
+function loadBoltBet(file) {
+  if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const events = new Map();
+  const typeCounts = {};
+
+  for (const e of raw.events ?? []) {
+    if (!e.fixture || !e.betting || !e.betting.markets) continue;
+
+    const sel = {};
+    const add = (key, price) => {
+      if (!key || price === null || price <= 1 || key in sel) return;
+      sel[key] = price;
+      const type = key.split(':')[0];
+      typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+    };
+
+    // In view=full, markets are flattened into e.betting.markets
+    for (const [marketKey, m] of Object.entries(e.betting.markets)) {
+      if (m.hidden || !m.open) continue;
+      
+      const hp = m.params?.hp ? parseFloat(m.params.hp) : null;
+
+      for (const [optionKey, option] of Object.entries(m.options ?? {})) {
+        if (option.state !== 'active') continue;
+        const odds = num(option.odds);
+        
+        if (m.type === 'winner3') {
+          if (optionKey === 'home') add('1X2:H', odds);
+          if (optionKey === 'draw') add('1X2:D', odds);
+          if (optionKey === 'away') add('1X2:A', odds);
+        } else if (m.type === '1005499') {
+          if (optionKey === 'home_or_draw') add('DC:1X', odds);
+          if (optionKey === 'home_or_away') add('DC:12', odds);
+          if (optionKey === 'draw_or_away') add('DC:X2', odds);
+        } else if (m.type === '1005500' && hp !== null) {
+          if (optionKey === 'over') add(`OU:${hp}:O`, odds);
+          if (optionKey === 'under') add(`OU:${hp}:U`, odds);
+        } else if (m.type === '1005508') {
+          if (optionKey === 'yes') add('BTTS:Y', odds);
+          if (optionKey === 'no') add('BTTS:N', odds);
+        } else if (m.type === '1005503' && hp !== null) {
+          if (optionKey === 'home') add(`AH:${hp}:H`, odds);
+          if (optionKey === 'away') add(`AH:${hp}:A`, odds);
+        }
+      }
+    }
+
+    const home = e.fixture.translations?.en?.[0]?.values?.home ?? '';
+    const away = e.fixture.translations?.en?.[0]?.values?.away ?? '';
+    const kickoff = new Date(e.fixture.metadata?.startedAt ?? e.fixture.startsAt).getTime();
+
+    if (!home || !away) continue;
+
+    events.set(e.fixture.uuid, {
+      eventId: e.fixture.uuid,
+      home,
+      away,
+      kickoff,
+      tournament: 'BoltBet',
+      notStarted: e.fixture.state === 'active',
+      sel,
+    });
+  }
+  return { events, typeCounts };
+}
+
 const RESULT = ['H', 'D', 'A'];
 
 const FIXED_PAIRS = [
   { a: '1X2:H', b: 'DC:X2', scen: RESULT, market: 'Home Win vs Draw/Away (X2)' },
   { a: '1X2:A', b: 'DC:1X', scen: RESULT, market: 'Away Win vs Home/Draw (1X)' },
   { a: '1X2:D', b: 'DC:12', scen: RESULT, market: 'Draw vs Home/Away (12)' },
-  // DNB Home refunds on a draw, X2 wins on a draw -> every result is covered
   { a: 'DNB:H', b: 'DC:X2', scen: RESULT, market: 'DNB Home vs Draw/Away (X2)' },
   { a: 'DNB:A', b: 'DC:1X', scen: RESULT, market: 'DNB Away vs Home/Draw (1X)' },
-  // Both refunded on a draw: no loss on a draw, profit if either team wins
-  { a: 'DNB:H', b: 'DNB:A', scen: RESULT, profitScen: ['H', 'A'], market: 'Draw No Bet: Home vs Away', note: 'Draw = both stakes refunded (profit only if a team wins)' },
+  { a: 'DNB:H', b: 'DNB:A', scen: RESULT, profitScen: ['H', 'A'], market: 'Draw No Bet: Home vs Away', note: 'Draw = both stakes refunded' },
   { a: 'BTTS:Y', b: 'BTTS:N', scen: ['Y', 'N'], market: 'Both Teams to Score' },
 ];
 
@@ -225,23 +295,33 @@ const LABELS = {
   'DNB:H': 'Home (DNB)', 'DNB:A': 'Away (DNB)',
   'BTTS:Y': 'BTTS Yes', 'BTTS:N': 'BTTS No',
 };
+
 const labelOf = (key) => {
   if (LABELS[key]) return LABELS[key];
-  const [, line, side] = key.split(':'); // OU:2.5:O
-  return `${side === 'O' ? 'Over' : 'Under'} ${line}`;
+  const parts = key.split(':');
+  const type = parts[0];
+  
+  if (type === 'OU') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Goals`;
+  if (type === 'AH') return `${parts[2] === 'H' ? 'Home' : 'Away'} (${parts[1]})`;
+  if (type === 'BOOK') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Bookings`;
+  if (type === 'CORN') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Corners`;
+  return key;
 };
 
-// What a leg pays back (per 1 staked) for a given scenario
 function payout(key, odds, scen) {
   const parts = key.split(':');
   const type = parts[0];
   const sel = parts[parts.length - 1];
+  
   switch (type) {
     case '1X2': return sel === scen ? odds : 0;
     case 'DC': return sel.includes({ H: '1', D: 'X', A: '2' }[scen]) ? odds : 0;
     case 'DNB': return scen === 'D' ? 1 : (sel === scen ? odds : 0);
     case 'BTTS': return sel === scen ? odds : 0;
-    case 'OU': return sel === scen ? odds : 0;
+    case 'OU': case 'BOOK': case 'CORN':
+      return sel === scen ? odds : 0;
+    case 'AH': 
+      return sel === scen ? odds : 0; 
     default: return 0;
   }
 }
@@ -249,7 +329,7 @@ function payout(key, odds, scen) {
 function evaluate(pair, oa, ob) {
   const ia = 1 / oa;
   const ib = 1 / ob;
-  const shareA = ia / (ia + ib); // stake split that equalises the two "main" results
+  const shareA = ia / (ia + ib); 
   const shareB = 1 - shareA;
 
   const returns = {};
@@ -261,18 +341,17 @@ function evaluate(pair, oa, ob) {
   return { profitPct, shareA, shareB };
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
 function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
   const betboro = loadBetBoro(BETBORO_FILE);
+  const boltbet = loadBoltBet(BOLTBET_FILE);
 
   const sources = [
     { name: SPORTY, book: sporty },
     { name: MSPORT, book: msport },
     { name: BETBORO, book: betboro },
+    { name: BOLTBET, book: boltbet },
   ];
 
   for (const { name, book } of sources) {
@@ -288,24 +367,37 @@ function main() {
     console.log(`  ${name.padEnd(10)} ${fmtCounts(book.typeCounts)}`);
   }
 
-  const sportyHasMore = Object.keys(sporty.typeCounts).some((t) => t !== '1X2');
-  if (!sportyHasMore) {
-    console.log(
-      '\n⚠️  SportyBet data only contains 1X2. BTTS / Over-Under / Double Chance / DNB cannot be\n' +
-      '    compared until fetch-odds.js asks SportyBet for more markets (see marketId in the URL).'
-    );
-  }
+  const fixturesBySrId = new Map();
+  const fixturesByTeam = new Map();
 
-  // One record per fixture, holding each bookmaker's selections.
-  const fixtures = new Map();
   for (const { name, book } of sources) {
     for (const ev of book.events.values()) {
-      if (!ev.notStarted) continue; // skip live / started games
-      const record = fixtures.get(ev.eventId) ?? { event: ev, books: {} };
-      record.books[name] = ev.sel;
-      fixtures.set(ev.eventId, record);
+      if (!ev.notStarted) continue;
+
+      const srKey = ev.eventId && ev.eventId.startsWith('sr:match:') ? ev.eventId : null;
+      const teamKey = `${normalizeTeam(ev.home)}|${normalizeTeam(ev.away)}|${Math.floor(ev.kickoff / 60000)}`;
+
+      let fixture = null;
+
+      if (srKey && fixturesBySrId.has(srKey)) {
+        fixture = fixturesBySrId.get(srKey);
+      } else if (fixturesByTeam.has(teamKey)) {
+        fixture = fixturesByTeam.get(teamKey);
+      }
+
+      if (!fixture) {
+        fixture = { event: ev, books: {} };
+        if (srKey) fixturesBySrId.set(srKey, fixture);
+        fixturesByTeam.set(teamKey, fixture);
+      }
+
+      fixture.books[name] = ev.sel;
     }
   }
+
+  const fixtures = new Map();
+  for (const f of fixturesBySrId.values()) fixtures.set(f.event.eventId, f);
+  for (const f of fixturesByTeam.values()) fixtures.set(f.event.eventId, f);
 
   const arbs = [];
   const evals = [];
@@ -314,85 +406,108 @@ function main() {
 
   for (const { event, books } of fixtures.values()) {
     const names = Object.keys(books);
-    if (names.length < 2) continue; // an arb needs two bookmakers
+    if (names.length < 2) continue; 
     matched++;
 
-    const lines = new Set();
+    const ouLines = new Set();
+    const ahLines = new Set();
+    const bookLines = new Set();
+    const cornLines = new Set();
+
     for (const name of names) {
       for (const k of Object.keys(books[name])) {
-        if (k.startsWith('OU:')) lines.add(k.split(':')[1]);
+        if (k.startsWith('OU:')) ouLines.add(k.split(':')[1]);
+        if (k.startsWith('AH:')) ahLines.add(k.split(':')[1]);
+        if (k.startsWith('BOOK:')) bookLines.add(k.split(':')[1]);
+        if (k.startsWith('CORN:')) cornLines.add(k.split(':')[1]);
       }
     }
+
     const pairs = [...FIXED_PAIRS];
-    for (const line of lines) {
-      pairs.push({
-        a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'],
-        market: `Over/Under ${line} Goals`,
+    
+    for (const line of ouLines) pairs.push({ a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Goals` });
+    for (const line of bookLines) pairs.push({ a: `BOOK:${line}:O`, b: `BOOK:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Bookings`, needsRuleReview: true });
+    for (const line of cornLines) pairs.push({ a: `CORN:${line}:O`, b: `CORN:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Corners`, needsRuleReview: true });
+    
+    for (const line of ahLines) {
+      const oppositeLine = line.startsWith('-') ? line.substring(1) : `-${line}`;
+      pairs.push({ 
+        a: `AH:${line}:H`, 
+        b: `AH:${oppositeLine}:A`, 
+        scen: ['H', 'A'], 
+        market: `Asian Handicap ${line}` 
       });
     }
 
     for (const pair of pairs) {
-      // Each ordered pair of different bookmakers, one leg on each.
       for (const bookA of names) {
         for (const bookB of names) {
           if (bookA === bookB) continue;
           const oa = books[bookA][pair.a];
           const ob = books[bookB][pair.b];
           if (!oa || !ob) continue;
+          if (oa < MIN_ODDS || ob < MIN_ODDS) continue; 
+
           pairsChecked++;
 
           const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
-          const record = {
-            eventId: event.eventId,
-            home: event.home,
-            away: event.away,
-            tournament: event.tournament,
-            kickoff: event.kickoff,
-            market: pair.market,
-            profitPct: Number(profitPct.toFixed(3)),
-            legs: [
-              { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
-              { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
-            ],
-          };
-          if (pair.note) record.note = pair.note;
+          
+          if (profitPct > MIN_PROFIT || NEAR > 0) {
+            const record = {
+              eventId: event.eventId,
+              home: event.home,
+              away: event.away,
+              tournament: event.tournament,
+              kickoff: event.kickoff,
+              market: pair.market,
+              profitPct: Number(profitPct.toFixed(3)),
+              legs: [
+                { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
+                { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
+              ],
+            };
+            if (pair.note) record.note = pair.note;
+            if (pair.needsRuleReview) {
+              record.needsRuleReview = true;
+              record.warning = "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.";
+            }
 
-          evals.push(record);
-          if (profitPct > MIN_PROFIT) arbs.push(record);
+            evals.push(record);
+            if (profitPct > MIN_PROFIT) arbs.push(record);
+          }
         }
       }
     }
   }
 
   arbs.sort((x, y) => y.profitPct - x.profitPct);
+  evals.sort((x, y) => y.profitPct - x.profitPct);
 
-  console.log(`\nFixtures matched by eventId: ${matched}`);
+  console.log(`\nFixtures matched:            ${matched}`);
   console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);
   console.log(`Arbs found:                  ${arbs.length}\n`);
 
   const printArb = (a) => {
-    console.log(`  ${a.home} vs ${a.away}  →  ${a.profitPct}%  [${a.market}]  (${a.tournament})`);
+    const reviewFlag = a.needsRuleReview ? ' ⚠️ [VERIFY RULES]' : '';
+    console.log(`  ${a.home} vs ${a.away}  →  ${a.profitPct}%  [${a.market}]${reviewFlag}  (${a.tournament})`);
     for (const l of a.legs) {
       console.log(`     ${l.bookmaker}: ${l.outcome} @ ${l.odds.toFixed(2)}  (stake ${l.stake})`);
     }
     if (a.note) console.log(`     note: ${a.note}`);
+    if (a.warning) console.log(`     warn: ${a.warning}`);
   };
 
   if (arbs.length) {
     console.log('💰 Top opportunities:');
     arbs.slice(0, 10).forEach(printArb);
-    if (BOOST === 1 && arbs[0].profitPct > 10) {
-      console.log('\n⚠️  Anything above ~10% on real odds is usually a stale price or a data mismatch. Verify on both sites before betting.');
-    }
   } else if (BOOST === 1) {
-    console.log('No arbs right now with real odds. That is normal: the books are priced tightly.');
+    console.log('No arbs right now with real odds.');
   }
 
   if (NEAR > 0) {
     console.log(`\nClosest ${NEAR} near-misses:`);
     evals
       .filter((r) => r.profitPct <= MIN_PROFIT)
-      .sort((x, y) => y.profitPct - x.profitPct)
       .slice(0, NEAR)
       .forEach(printArb);
   }

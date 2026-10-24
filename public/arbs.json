@@ -1,15 +1,111 @@
 {
-  "generatedAt": "2026-10-23T20:46:36.887Z",
+  "generatedAt": "2026-10-24T20:42:07.747Z",
   "boostApplied": 1,
   "boostTarget": null,
   "stats": {
-    "matched": 923,
-    "pairsChecked": 35212,
+    "matched": 942,
+    "pairsChecked": 22766,
     "bookEvents": {
-      "SportyBet": 1161,
-      "MSport": 672,
-      "BetBoro": 1040
+      "SportyBet": 970,
+      "MSport": 1002,
+      "BetBoro": 847,
+      "BoltBet": 275
     }
   },
-  "arbs": []
+  "arbs": [
+    {
+      "eventId": "sr:match:67172372",
+      "home": "Portland Hearts of Pine",
+      "away": "Charlotte Independence",
+      "tournament": "USL League One",
+      "kickoff": 1792875600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 2.238,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 2.2,
+          "stake": 46.47
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.91,
+          "stake": 53.53
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:67172372",
+      "home": "Portland Hearts of Pine",
+      "away": "Charlotte Independence",
+      "tournament": "USL League One",
+      "kickoff": 1792875600000,
+      "market": "Draw No Bet: Home vs Away",
+      "profitPct": 1.315,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home (DNB)",
+          "odds": 2.6,
+          "stake": 38.97
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away (DNB)",
+          "odds": 1.66,
+          "stake": 61.03
+        }
+      ],
+      "note": "Draw = both stakes refunded"
+    },
+    {
+      "eventId": "sr:match:67172372",
+      "home": "Portland Hearts of Pine",
+      "away": "Charlotte Independence",
+      "tournament": "USL League One",
+      "kickoff": 1792875600000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "profitPct": 1.081,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away Win",
+          "odds": 2.2,
+          "stake": 45.95
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Home or Draw (1X)",
+          "odds": 1.87,
+          "stake": 54.05
+        }
+      ]
+    },
+    {
+      "eventId": "sr:match:73528700",
+      "home": "FC Penya d`Andorra",
+      "away": "CF Esperanca D Andorra",
+      "tournament": "Primera Divisio",
+      "kickoff": 1792922400000,
+      "market": "Draw No Bet: Home vs Away",
+      "profitPct": 0.183,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home (DNB)",
+          "odds": 2.8,
+          "stake": 35.78
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Away (DNB)",
+          "odds": 1.56,
+          "stake": 64.22
+        }
+      ],
+      "note": "Draw = both stakes refunded"
+    }
+  ]
 }

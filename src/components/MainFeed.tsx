@@ -16,6 +16,7 @@ interface MainFeedProps {
 const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: "today", label: "Today's Matches" },
   { id: "tomorrow", label: "Tomorrow's Matches" },
+  { id: "week", label: "This Week" },
 ];
 
 const PAGE_SIZE = 8;
@@ -27,6 +28,7 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
   const counts: Record<FeedTab, number> = {
     today: matchesForTab(matches, "today", now).length,
     tomorrow: matchesForTab(matches, "tomorrow", now).length,
+    week: matchesForTab(matches, "week", now).length,
   };
   const visibleMatches = matchesForTab(matches, activeTab, now);
 
@@ -68,7 +70,9 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
           <div className="empty-state">
             {activeTab === "today"
               ? "No more matches today for this league."
-              : "No matches tomorrow for this league."}
+              : activeTab === "tomorrow"
+                ? "No matches tomorrow for this league."
+                : "No matches later this week for this league."}
           </div>
         ) : (
           pageMatches.map((match) => {

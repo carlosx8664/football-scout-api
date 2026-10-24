@@ -13,8 +13,15 @@
 const REPO = "carlosx8664/football-scout-api";
 const WORKFLOW = "odds-refresh.yml";
 const REF = "main";
+// Must match the second entry in wrangler.jsonc `triggers.crons`.
+const HORIZON_CRON = "0 */3 * * *";
 
-async function dispatch(env) {
+/**
+ * `mode=hot` refreshes the 2-day feed every 15 minutes; `mode=horizon` rebuilds the 6-day
+ * feed with a single market pass every 3 hours. They write different KV keys, so neither
+ * can overwrite the other.
+ */
+async function dispatch(env, mode = "hot") {
   if (!env.GH_DISPATCH_TOKEN) {
     throw new Error("GH_DISPATCH_TOKEN is not configured");
   }
@@ -30,7 +37,7 @@ async function dispatch(env) {
         "User-Agent": "oddtor-dispatch-trigger",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref: REF }),
+      body: JSON.stringify({ ref: REF, inputs: { mode } }),
     },
   );
 
@@ -40,23 +47,25 @@ async function dispatch(env) {
     throw new Error(`GitHub dispatch failed (HTTP ${response.status}): ${detail}`);
   }
 
-  console.log(`Dispatched ${WORKFLOW} on ${REF}`);
+  console.log(`Dispatched ${WORKFLOW} (${mode}) on ${REF}`);
 }
 
 export default {
-  async scheduled(_controller, env, ctx) {
+  async scheduled(controller, env, ctx) {
+    const mode = controller.cron === HORIZON_CRON ? "horizon" : "hot";
+
     // waitUntil keeps the invocation alive until the dispatch settles. Errors are logged
     // rather than thrown so a transient GitHub hiccup does not surface as a Worker crash.
     ctx.waitUntil(
-      dispatch(env).catch((error) => {
+      dispatch(env, mode).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`Scheduled dispatch failed: ${message}`);
+        console.error(`Scheduled ${mode} dispatch failed: ${message}`);
       }),
     );
   },
 
   /**
-   * Manual trigger for testing: POST /?key=<TRIGGER_KEY>
+   * Manual trigger for testing: POST /?key=<TRIGGER_KEY>[&mode=horizon]
    * Returns 403 when TRIGGER_KEY is configured and does not match.
    */
   async fetch(request, env) {
@@ -64,16 +73,20 @@ export default {
       return new Response("POST to trigger the odds refresh.\n", { status: 405 });
     }
 
+    const url = new URL(request.url);
+
     if (env.TRIGGER_KEY) {
-      const key = new URL(request.url).searchParams.get("key");
+      const key = url.searchParams.get("key");
       if (key !== env.TRIGGER_KEY) {
         return Response.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
+    const mode = url.searchParams.get("mode") === "horizon" ? "horizon" : "hot";
+
     try {
-      await dispatch(env);
-      return Response.json({ dispatched: true, workflow: WORKFLOW, ref: REF });
+      await dispatch(env, mode);
+      return Response.json({ dispatched: true, workflow: WORKFLOW, ref: REF, mode });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(message);

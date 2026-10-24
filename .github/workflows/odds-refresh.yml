@@ -1,14 +1,24 @@
 name: Odds refresh
 
 on:
-  # Dispatched every 15 minutes by the Cloudflare Cron Worker
-  # (workers/dispatch-trigger). No `schedule:` here: GitHub's scheduler ran hours late on
-  # this repo, and a stray scheduled run would collide with the Worker's.
+  # Dispatched by the Cloudflare Cron Worker (workers/dispatch-trigger). No `schedule:`
+  # here: GitHub's scheduler ran hours late on this repo.
+  #
+  # mode=hot      (every 15 min)  -> 2-day window, all markets, key `feed-*`
+  # mode=horizon  (every 3 hours) -> 6-day window, 1X2 only, key `feed-*-horizon`
+  # The two never share a KV key, so a hot run cannot wipe far-out fixtures.
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "hot (2-day, 15 min) or horizon (6-day, 3 h)"
+        type: choice
+        options: [hot, horizon]
+        default: hot
 
-# A slow run must never overlap the next one and double-write KV.
+# Slow runs must never overlap and double-write KV. The modes are grouped separately so a
+# long horizon run cannot block the 15-minute hot feed.
 concurrency:
-  group: odds-refresh
+  group: odds-refresh-${{ inputs.mode || 'hot' }}
   cancel-in-progress: false
 
 permissions:
@@ -19,6 +29,11 @@ jobs:
     name: Fetch odds, rebuild feeds, publish to KV
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    env:
+      MODE: ${{ inputs.mode || 'hot' }}
+      DAYS: ${{ (inputs.mode || 'hot') == 'horizon' && '6' || '2' }}
+      SUFFIX: ${{ (inputs.mode || 'hot') == 'horizon' && '-horizon' || '' }}
 
     steps:
       - name: Checkout
@@ -34,18 +49,25 @@ jobs:
         run: npm ci
 
       - name: Fetch odds from the bookmakers
-        run: node scripts/fetch-odds.js
+        run: |
+          if [ "$MODE" = "horizon" ]; then
+            # One market pass over 6 days instead of five over 2 days: far more coverage
+            # without more requests.
+            node scripts/fetch-odds.js --days="$DAYS" --markets=1x2 --suffix="$SUFFIX"
+          else
+            node scripts/fetch-odds.js --days="$DAYS"
+          fi
 
       - name: Build arbitrage feed
-        run: node scripts/find-arbs.js
+        run: node scripts/find-arbs.js --suffix="$SUFFIX"
 
       - name: Build match feed
         # Analysis is generated on demand by /api/analysis, so skip it here.
-        run: node scripts/build-match-feed.js --no-ai
+        run: node scripts/build-match-feed.js --no-ai --days="$DAYS" --suffix="$SUFFIX"
 
       - name: Verify feeds were written
         run: |
-          for file in public/matches.json public/arbs.json; do
+          for file in "public/matches${SUFFIX}.json" "public/arbs${SUFFIX}.json"; do
             if [ ! -s "$file" ]; then
               echo "::error::$file is missing or empty; refusing to overwrite KV."
               exit 1
@@ -53,7 +75,50 @@ jobs:
             echo "$file: $(wc -c < "$file") bytes"
           done
 
+      - name: Compare against the live feed (circuit breaker)
+        id: guard
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          # A blocked scraper usually returns a handful of events instead of an error, so
+          # compare this run against what the site already serves. Below half, keep the old
+          # feed: stale but complete beats fresh but gutted.
+          live=$(curl -sS --fail \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-matches${SUFFIX}" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" 2>/dev/null || true)
+
+          counts=$(LIVE="$live" node -e '
+            const fs = require("fs");
+            const count = (raw) => {
+              try { return (JSON.parse(raw).matches ?? []).length; } catch { return null; }
+            };
+            const before = count(process.env.LIVE ?? "");
+            const after = count(fs.readFileSync(`public/matches${process.env.SUFFIX}.json`, "utf8"));
+            console.log(before ?? "none", after ?? 0);
+          ')
+
+          set -- $counts
+          before=$1
+          after=$2
+          echo "live feed: ${before} matches, this run: ${after} matches"
+
+          if [ "$before" = "none" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          threshold=$(( before / 2 ))
+          if [ "$after" -lt "$threshold" ]; then
+            echo "::error::Only ${after} matches vs ${before} live. Likely blocked; keeping the old feed."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish feeds to KV
+        if: steps.guard.outputs.skip != 'true'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
@@ -70,5 +135,5 @@ jobs:
             echo " -> wrote ${key}"
           }
 
-          upload "feed-matches" "public/matches.json"
-          upload "feed-arbs" "public/arbs.json"
+          upload "feed-matches${SUFFIX}" "public/matches${SUFFIX}.json"
+          upload "feed-arbs${SUFFIX}" "public/arbs${SUFFIX}.json"

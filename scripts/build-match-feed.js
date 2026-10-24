@@ -403,6 +403,7 @@ async function main() {
     options: {
       days: { type: "string", default: "2" },
       out: { type: "string", default: OUTPUT_FILE },
+      suffix: { type: "string", default: "" },
       "no-ai": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
@@ -412,8 +413,8 @@ async function main() {
 
   if (values.help) {
     console.log(
-      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--no-ai]\n\n" +
-        "Reads data/sportybet.json and data/msport.json.\n" +
+      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--suffix=-horizon] [--no-ai]\n\n" +
+        "Reads data/sportybet.json, data/msport.json and data/betboro.json.\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL",
     );
     return;
@@ -421,12 +422,18 @@ async function main() {
 
   const windowDays = Math.max(1, Number(values.days) || 2);
   const leagueIndex = buildLeagueIndex();
+  // `--suffix=-horizon` reads the horizon snapshots only, so a stale committed hot file
+  // can never be merged into the horizon feed.
+  const sources = SOURCES.map((source) => ({
+    ...source,
+    file: values.suffix ? source.file.replace(/\.json$/, `${values.suffix}.json`) : source.file,
+  }));
   // Every bookmaker uses Sportradar ids ("sr:match:..."), so join on that. The league+kickoff
   // bucket with name similarity stays as a fallback for events without an id.
   const bySrId = new Map();
   const buckets = new Map();
 
-  for (const source of SOURCES) {
+  for (const source of sources) {
     let json;
     try {
       json = JSON.parse(await readFile(source.file, "utf8"));

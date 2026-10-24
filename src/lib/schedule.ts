@@ -4,7 +4,7 @@ export const KICKOFF_REFRESH_WINDOW_MS = 60 * 60 * 1000;
 export const SNAPSHOT_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type FeedTab = "today" | "tomorrow";
+export type FeedTab = "today" | "tomorrow" | "week";
 
 /** UTC day key (`YYYY-MM-DD`) for an ISO kickoff string. */
 export function utcDayKey(iso: string): string {
@@ -27,15 +27,17 @@ export function hasMatchStartingSoon(
 
 /**
  * Matches for a feed tab. Today hides matches that already kicked off; tomorrow shows all of
- * tomorrow's fixtures (none of which can have started yet).
+ * tomorrow's fixtures (none of which can have started yet). "week" is everything after
+ * tomorrow, which the 6-day horizon feed supplies.
  */
 export function matchesForTab(matches: Match[], tab: FeedTab, now: number): Match[] {
   const todayKey = new Date(now).toISOString().slice(0, 10);
   const tomorrowKey = new Date(now + DAY_MS).toISOString().slice(0, 10);
-  const targetKey = tab === "today" ? todayKey : tomorrowKey;
 
   return matches.filter((match) => {
-    if (utcDayKey(match.fixture.date) !== targetKey) return false;
+    const dayKey = utcDayKey(match.fixture.date);
+    if (tab === "week") return dayKey > tomorrowKey;
+    if (dayKey !== (tab === "today" ? todayKey : tomorrowKey)) return false;
     if (tab === "today") return new Date(match.fixture.date).getTime() > now;
     return true;
   });
