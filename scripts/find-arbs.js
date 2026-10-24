@@ -532,8 +532,8 @@ function main() {
 main();
 
 async function sendTelegramAlert(arbs) {
-  const token = '8998952168:AAHxEtSUB2R8zQQ3F8oqV_nXYvvIN5uao3U'; // Paste your token here
-  const chatId = '5007863950';           // Paste your Chat ID here
+  const token = process.env.TELEGRAM_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID; 
   
   if (arbs.length === 0) return; 
 
