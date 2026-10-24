@@ -19,17 +19,31 @@ export async function fetchSnapshot(signal?: AbortSignal): Promise<SnapshotData>
   return feed;
 }
 
-const ARBS_SOURCES = ["/api/arbs", "/arbs.json"];
+// 1. Static file FIRST (for local testing), KV feed SECOND.
+const ARBS_SOURCES = ["/arbs.json", "/api/arbs"];
 
-/** KV-backed arbitrage feed first, static file second. Returns null when neither answers. */
+/** Static file first, KV-backed second. Returns null when neither answers. */
 export async function fetchArbsJson(signal?: AbortSignal): Promise<unknown | null> {
   for (const url of ARBS_SOURCES) {
     try {
       const response = await fetch(url, { cache: "no-store", signal });
       if (!response.ok) continue;
-      return await response.json();
+      const body = await response.json();
+      
+      // Diagnostic logging
+      const count = Array.isArray(body) ? body.length : body?.arbs?.length ?? 0;
+      console.log(`[arbs] ${url} → ${count} arbs`);
+      
+      // If the static file is empty, don't block the KV fallback.
+      if (count === 0 && url === "/arbs.json") {
+        console.warn("[arbs] Static file empty, trying KV");
+        continue;
+      }
+      
+      return body;
     } catch (error) {
       if (signal?.aborted) throw error;
+      console.warn(`[arbs] ${url} failed`, error);
     }
   }
   return null;
