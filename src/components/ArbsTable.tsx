@@ -35,8 +35,9 @@ const ROUNDING_STEPS = [5, 10, 20, 50, 100, 200];
 
 /**
  * Rounds each leg to a multiple of `step` while keeping the pair within the requested total.
- * Each leg is considered at both its floor and ceil multiple, and the combination with the
- * best worst-case profit wins, so coarse steps do not silently leave a leg under-funded.
+ * Each leg is considered at both its floor and ceil multiple; the combination that uses the
+ * largest total wins, with best worst-case profit breaking ties, so coarse steps still deploy
+ * the full stake instead of silently shrinking the book.
  */
 function roundStakes(
   rawStakes: Array<number | null>,
@@ -71,8 +72,8 @@ function roundStakes(
       const currentBest = search.best;
       const better =
         currentBest === null ||
-        worst > currentBest.worst + 1e-9 ||
-        (Math.abs(worst - currentBest.worst) <= 1e-9 && total > currentBest.total);
+        total > currentBest.total + 1e-9 ||
+        (Math.abs(total - currentBest.total) <= 1e-9 && worst > currentBest.worst + 1e-9);
       if (better) search.best = { stakes: [...current], worst, total };
       return;
     }
