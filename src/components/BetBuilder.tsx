@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { normalizeTeam } from "../../shared/teams.js";
 import { extractBetslip } from "../lib/betBuilder";
 import type {
   BetBuilderResponse,
+  ExtractedLeg,
+  Match,
   MatchedCandidate,
   MatchedLeg,
   UnresolvedLeg,
@@ -18,6 +21,12 @@ const REASON_LABEL: Record<UnresolvedLeg["reason"], string> = {
 };
 
 const MAX_CANDIDATES = 3;
+/** A drop this steep is worth warning about. */
+const ODDS_WARN_PCT = 5;
+
+/** Markets whose selection is not one of the 1X2 outcomes that `book_odds` carries. */
+const NON_RESULT_MARKET =
+  /over|under|handicap|corner|card|booking|both teams|btts|double chance|clean sheet|correct score|odd\/even|odd or even|multi ?goal|half|win to nil|penalt/i;
 
 function kickoffLabel(iso: string): string {
   const date = new Date(iso);
@@ -35,31 +44,119 @@ function openLink(url: string | null) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-const LinkButtons = ({ links }: { links: MatchedLeg["links"] }) => (
+type ResultSide = "home" | "draw" | "away";
+
+/** Which 1X2 outcome a leg is on, or null when the market is not a plain match result. */
+function selectionSide(leg: ExtractedLeg, match: Match): ResultSide | null {
+  if (NON_RESULT_MARKET.test(leg.market ?? "")) return null;
+
+  const selection = (leg.selection ?? "").trim().toLowerCase();
+  if (!selection) return null;
+  // "Draw or Away (X2)" and friends cannot be priced from a single 1X2 column.
+  if (/\bor\b/.test(selection)) return null;
+
+  if (selection === "1" || /^home\b/.test(selection)) return "home";
+  if (selection === "x" || selection === "tie" || /^draw\b/.test(selection)) return "draw";
+  if (selection === "2" || /^away\b/.test(selection)) return "away";
+
+  // Some slips print the team name instead of Home/Away.
+  const picked = normalizeTeam(selection);
+  if (picked) {
+    if (picked === normalizeTeam(match.teams.home.name)) return "home";
+    if (picked === normalizeTeam(match.teams.away.name)) return "away";
+  }
+
+  return null;
+}
+
+function priceFor(match: Match, side: ResultSide, bookmaker: string): number | null {
+  const price = match?.book_odds?.[side]?.books?.[bookmaker];
+  return Number.isFinite(price) ? Number(price) : null;
+}
+
+/**
+ * Compares the slip's price with the best price still on offer. Null means there is nothing to
+ * say: no `book_odds` for this side, or the price moved less than 5% down and did not rise.
+ */
+function oddsMovement(original: number | null, prices: Record<string, number | null>) {
+  if (!Number.isFinite(original) || Number(original) <= 0) return null;
+
+  const available = Object.values(prices).filter(
+    (price): price is number => Number.isFinite(price),
+  );
+  if (available.length === 0) return null;
+
+  const best = Math.max(...available);
+  const pct = ((best - Number(original)) / Number(original)) * 100;
+
+  if (pct <= -ODDS_WARN_PCT) {
+    return { tone: "down" as const, original: Number(original), best, pct };
+  }
+  if (pct > 0) {
+    return { tone: "up" as const, original: Number(original), best, pct };
+  }
+  return null;
+}
+
+const BookButton = ({
+  variant,
+  url,
+  label,
+  price,
+}: {
+  variant: "brand" | "ghost";
+  url: string | null;
+  label: string;
+  price: number | null;
+}) => (
+  <button
+    type="button"
+    className={`bb-btn bb-btn-${variant}`}
+    onClick={() => openLink(url)}
+    disabled={!url}
+  >
+    {label}
+    {price !== null && <span className="bb-btn-price">@ {price.toFixed(2)}</span>}
+    <span aria-hidden="true">↗</span>
+  </button>
+);
+
+const LinkButtons = ({
+  links,
+  prices,
+}: {
+  links: MatchedLeg["links"];
+  prices?: Record<string, number | null> | null;
+}) => (
   <div className="bb-actions">
-    <button
-      type="button"
-      className="bb-btn bb-btn-brand"
-      onClick={() => openLink(links.sportybet)}
-      disabled={!links.sportybet}
-    >
-      SportyBet
-      <span aria-hidden="true">↗</span>
-    </button>
-    <button
-      type="button"
-      className="bb-btn bb-btn-ghost"
-      onClick={() => openLink(links.msport)}
-      disabled={!links.msport}
-    >
-      MSport
-      <span aria-hidden="true">↗</span>
-    </button>
+    <BookButton
+      variant="brand"
+      url={links.sportybet}
+      label="SportyBet"
+      price={prices?.SportyBet ?? null}
+    />
+    <BookButton
+      variant="ghost"
+      url={links.msport}
+      label="MSport"
+      price={prices?.MSport ?? null}
+    />
   </div>
 );
 
 const MatchedRow = ({ entry }: { entry: MatchedLeg }) => {
   const { leg, match } = entry;
+
+  // `book_odds` only carries 1X2 prices, so anything else gets the plain buttons.
+  const side = selectionSide(leg, match);
+  const prices = side
+    ? {
+        SportyBet: priceFor(match, side, "SportyBet"),
+        MSport: priceFor(match, side, "MSport"),
+      }
+    : null;
+  const movement = prices ? oddsMovement(leg.odds, prices) : null;
+
   return (
     <article className="bb-card">
       <div className="bb-card-main">
@@ -79,7 +176,20 @@ const MatchedRow = ({ entry }: { entry: MatchedLeg }) => {
           {entry.flipped && <span className="bb-flag">Home/Away reversed</span>}
         </div>
       </div>
-      <LinkButtons links={entry.links} />
+
+      <div className="bb-side">
+        <LinkButtons links={entry.links} prices={prices} />
+        {movement && (
+          <span
+            className={`bb-odds-badge ${movement.tone}`}
+            title={`Slip ${movement.original.toFixed(2)} → best now ${movement.best.toFixed(2)}`}
+          >
+            {movement.tone === "down" ? "Odds dropped!" : "Odds boosted!"}{" "}
+            {movement.pct > 0 ? "+" : ""}
+            {movement.pct.toFixed(1)}%
+          </span>
+        )}
+      </div>
     </article>
   );
 };

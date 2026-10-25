@@ -320,6 +320,49 @@
   color: var(--color-brand);
 }
 
+/* --- Odds verification --- */
+.bb-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.bb-btn-price {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.bb-btn-ghost .bb-btn-price {
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-7);
+}
+
+.bb-odds-badge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bb-odds-badge.down {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.bb-odds-badge.up {
+  border: 1px solid #86efac;
+  background: #dcfce7;
+  color: #15803d;
+}
+
 /* --- Needs review candidates --- */
 .bb-candidates {
   display: flex;
@@ -386,6 +429,15 @@
   .bb-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .bb-side {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .bb-odds-badge {
+    align-self: flex-start;
   }
 
   .bb-actions {
