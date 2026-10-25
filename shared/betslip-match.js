@@ -297,12 +297,23 @@ function overUnderOutcome(selection) {
   return null;
 }
 
-/** "Over 2.5" -> "2.5"; falls back to the market label ("Over/Under 2.5 Goals"). */
+/** "Over 2.5" -> "2.5"; falls back to the market label, then to the raw slip row. */
 function totalLine(leg) {
-  const fromSelection = /(\d+(?:\.\d+)?)/.exec(String(leg?.selection ?? ""));
+  const number = /(\d+(?:\.\d+)?)/;
+
+  const fromSelection = number.exec(String(leg?.selection ?? ""));
   if (fromSelection) return fromSelection[1];
-  const fromMarket = /(\d+(?:\.\d+)?)/.exec(String(leg?.market ?? ""));
-  return fromMarket ? fromMarket[1] : null;
+
+  const fromMarket = number.exec(String(leg?.market ?? ""));
+  if (fromMarket) return fromMarket[1];
+
+  // OCR sometimes leaves the line only in the raw row text: "Over 2.5 @ 1.85".
+  const raw = String(leg?.rawText ?? "");
+  const fromRawOverUnder = /(?:over|under)\s*(\d+(?:\.\d+)?)/i.exec(raw);
+  if (fromRawOverUnder) return fromRawOverUnder[1];
+
+  const fromRaw = number.exec(raw);
+  return fromRaw ? fromRaw[1] : null;
 }
 
 function doubleChanceOutcome(selection) {

@@ -27,7 +27,7 @@ const EMPTY_FEED: Feed = { arbs: [], history: [], generatedAt: null, boost: null
 const LEGS_PER_MATCH = 2;
 const PAST_LIMIT = 50;
 /** 90 minutes plus half-time and stoppage; used to label a kicked-off match. */
-const MATCH_DURATION_MS = 135 * 60_000;
+const MATCH_DURATION_MS = 120 * 60_000;
 const REFRESH_MS = 5 * 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;

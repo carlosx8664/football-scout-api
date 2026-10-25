@@ -190,21 +190,37 @@ const CandidateRow = ({ candidate }: { candidate: MatchedCandidate }) => (
   </div>
 );
 
-const ReviewCard = ({ entry }: { entry: UnresolvedLeg }) => (
-  <article className="bb-card bb-card-review">
-    <div className="bb-card-main">
-      <div className="bb-card-teams">
-        {entry.leg.home && entry.leg.away
-          ? `${entry.leg.home} vs ${entry.leg.away}`
-          : (entry.leg.rawText ?? "Unreadable match")}
-      </div>
-      <div className="bb-card-selection">
-        <span className="bb-market">{entry.leg.market || "Market"}</span>
-        <span className="bb-pick">{entry.leg.selection}</span>
-        {Number.isFinite(entry.leg.odds) && (
-          <span className="bb-odds">@ {Number(entry.leg.odds).toFixed(2)}</span>
+/**
+ * Needs Review legs are by definition unverified, and the model sometimes attaches a neighbouring
+ * card's header to them. So the verbatim slip text is the headline; the model's reading is only
+ * shown as a hint.
+ */
+function reviewHeadline(leg: UnresolvedLeg["leg"]): string {
+  const raw = String(leg.rawText ?? "").replace(/\s+/g, " ").trim();
+  if (raw) return raw.length > 120 ? `${raw.slice(0, 118)}..` : raw;
+  if (leg.home && leg.away) return `${leg.home} vs ${leg.away}`;
+  return "Unreadable match";
+}
+
+const ReviewCard = ({ entry }: { entry: UnresolvedLeg }) => {
+  const raw = String(entry.leg.rawText ?? "").replace(/\s+/g, " ").trim();
+  const guess =
+    entry.leg.home && entry.leg.away ? `${entry.leg.home} vs ${entry.leg.away}` : null;
+
+  return (
+    <article className="bb-card bb-card-review">
+      <div className="bb-card-main">
+        <div className="bb-card-teams">{reviewHeadline(entry.leg)}</div>
+        {guess && guess !== raw && (
+          <span className="bb-card-guess">Model read: {guess}</span>
         )}
-      </div>
+        <div className="bb-card-selection">
+          <span className="bb-market">{entry.leg.market || "Market"}</span>
+          <span className="bb-pick">{entry.leg.selection}</span>
+          {Number.isFinite(entry.leg.odds) && (
+            <span className="bb-odds">@ {Number(entry.leg.odds).toFixed(2)}</span>
+          )}
+        </div>
       <span className="bb-reason">{REASON_LABEL[entry.reason] ?? entry.reason}</span>
 
       {entry.candidates.length === 0 ? (

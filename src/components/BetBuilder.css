@@ -221,6 +221,13 @@
   font-size: 0.72rem;
 }
 
+/* Muted hint for Needs Review: what the model thought it read. */
+.bb-card-guess {
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-style: italic;
+}
+
 .bb-card-selection {
   display: flex;
   flex-wrap: wrap;

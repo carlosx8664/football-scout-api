@@ -317,6 +317,22 @@ export async function onRequestPost(context) {
   const notes = [];
 
   if (skipped.length > 0) {
+    // Workers logs: `npx wrangler pages deployment tail`. Shows exactly why a leg was not booked.
+    console.log(
+      "bet-builder: skipped SportyBet selections",
+      JSON.stringify(
+        skipped.map(({ leg, reason }) => ({
+          reason,
+          market: leg?.market ?? null,
+          selection: leg?.selection ?? null,
+          odds: leg?.odds ?? null,
+          rawText: leg?.rawText ?? null,
+        })),
+      ),
+    );
+  }
+
+  if (skipped.length > 0) {
     notes.push(
       `${skipped.length} leg${skipped.length === 1 ? "" : "s"} can't be added to a SportyBet betslip automatically.`,
     );
