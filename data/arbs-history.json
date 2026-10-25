@@ -1102,7 +1102,7 @@
       "openProfitPct": 0.198,
       "peakProfitPct": 0.198,
       "profitPct": 0.198,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.198,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1110,7 +1110,7 @@
           "stake": 45.54,
           "openOdds": 2.2,
           "lastOdds": 2.2,
-          "finalOdds": null
+          "finalOdds": 2.2
         },
         {
           "bookmaker": "MSport",
@@ -1118,7 +1118,7 @@
           "stake": 54.46,
           "openOdds": 1.84,
           "lastOdds": 1.84,
-          "finalOdds": null
+          "finalOdds": 1.84
         }
       ]
     },

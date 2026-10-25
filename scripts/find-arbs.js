@@ -192,6 +192,20 @@ function readSportyMarket(m) {
         key = `CORN:${line}:${side}`;
       }
     }
+    // Total Tackles
+    else if (id === '900319') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `TACKLE:${line}:${side}`;
+      }
+    }
+    // Total Throw-Ins
+    else if (id === '900322') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `THROW:${line}:${side}`;
+      }
+    }
     // Total Shots
     else if (id === '900394') {
       const line = extractLine(spec);
@@ -442,6 +456,20 @@ function loadBetBoro(file) {
       add(`BOOK:${line}:U`, betBoroPrice(node?.['1']));
     }
 
+    // BetBoro's `total_tackles`
+    for (const [line, node] of Object.entries(f.markets?.total_tackles ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`TACKLE:${line}:O`, betBoroPrice(node?.['0']));
+      add(`TACKLE:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    // BetBoro's `total_throw_ins`
+    for (const [line, node] of Object.entries(f.markets?.total_throw_ins ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`THROW:${line}:O`, betBoroPrice(node?.['0']));
+      add(`THROW:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
     // BetBoro's `total_shots` (if present in overview_markets)
     for (const [line, node] of Object.entries(f.markets?.total_shots ?? {})) {
       if (!line.endsWith('.5')) continue;
@@ -625,6 +653,8 @@ const labelOf = (key) => {
   if (type === 'AH') return `${parts[2] === 'H' ? 'Home' : 'Away'} (${parts[1]})`;
   if (type === 'BOOK') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Bookings`;
   if (type === 'CORN') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Corners`;
+  if (type === 'TACKLE') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Tackles`;
+  if (type === 'THROW') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Throw-Ins`;
   if (type === 'SHOTS') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots`;
   if (type === 'SOT') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots on Target`;
   if (type === 'H1_SHOTS') return `1st Half ${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots`;
@@ -652,7 +682,7 @@ function payout(key, odds, scen) {
     case 'DC': return sel.includes({ H: '1', D: 'X', A: '2' }[scen]) ? odds : 0;
     case 'DNB': return scen === 'D' ? 1 : (sel === scen ? odds : 0);
     case 'BTTS': return sel === scen ? odds : 0;
-    case 'OU': case 'BOOK': case 'CORN': case 'SHOTS': case 'SOT': case 'H1_SHOTS': case 'H1_SOT':
+    case 'OU': case 'BOOK': case 'CORN': case 'TACKLE': case 'THROW': case 'SHOTS': case 'SOT': case 'H1_SHOTS': case 'H1_SOT':
     case 'TEAM_OU': case 'H1_TEAM_OU': case 'H2_TEAM_OU': case 'TEAM_SHOTS': case 'TEAM_SOT': case 'TEAM_BOOK': case 'H1_TEAM_BOOK':
       return sel === scen ? odds : 0;
     case 'AH': 
@@ -835,6 +865,8 @@ async function main() {
     const ahLines = new Set();
     const bookLines = new Set();
     const cornLines = new Set();
+    const tackleLines = new Set();
+    const throwLines = new Set();
     const shotsLines = new Set();
     const sotLines = new Set();
     const h1ShotsLines = new Set();
@@ -855,6 +887,8 @@ async function main() {
         if (k.startsWith('AH:')) ahLines.add(k.split(':')[1]);
         if (k.startsWith('BOOK:')) bookLines.add(k.split(':')[1]);
         if (k.startsWith('CORN:')) cornLines.add(k.split(':')[1]);
+        if (k.startsWith('TACKLE:')) tackleLines.add(k.split(':')[1]);
+        if (k.startsWith('THROW:')) throwLines.add(k.split(':')[1]);
         if (k.startsWith('SHOTS:')) shotsLines.add(k.split(':')[1]);
         if (k.startsWith('SOT:')) sotLines.add(k.split(':')[1]);
         if (k.startsWith('H1_SHOTS:')) h1ShotsLines.add(k.split(':')[1]);
@@ -875,6 +909,8 @@ async function main() {
     for (const line of ouLines) pairs.push({ a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Goals` });
     for (const line of bookLines) pairs.push({ a: `BOOK:${line}:O`, b: `BOOK:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Bookings`, needsRuleReview: true });
     for (const line of cornLines) pairs.push({ a: `CORN:${line}:O`, b: `CORN:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Corners`, needsRuleReview: true });
+    for (const line of tackleLines) pairs.push({ a: `TACKLE:${line}:O`, b: `TACKLE:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Tackles`, needsRuleReview: true });
+    for (const line of throwLines) pairs.push({ a: `THROW:${line}:O`, b: `THROW:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Throw-Ins`, needsRuleReview: true });
     for (const line of shotsLines) pairs.push({ a: `SHOTS:${line}:O`, b: `SHOTS:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Shots` });
     for (const line of sotLines) pairs.push({ a: `SOT:${line}:O`, b: `SOT:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Shots on Target` });
     for (const line of h1ShotsLines) pairs.push({ a: `H1_SHOTS:${line}:O`, b: `H1_SHOTS:${line}:U`, scen: ['O', 'U'], market: `1st Half Over/Under ${line} Shots` });

@@ -43,11 +43,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // live `liveFixtureBook` payload — BetBoro only exposes per-player shots/SOT
 // (external_id 2564/2565), which find-arbs.js does not currently consume.
 //
-//   '900394', '900393', '900552', '900553',
-//   '900546', '900547', '900556', '900550',
-//
 const SPORTY_MARKETS = [
   '1', '10', '11', '18', '29', '16', '139', '166',
+  '900319', // Total Tackles
+  '900322', // Total Throw-Ins
+  // '900394', '900393', '900552', '900553',
+  // '900546', '900547', '900556', '900550',
 ];
 
 async function fetchSportyBetPage(pageNum, marketIds) {
@@ -168,7 +169,10 @@ async function fetchSportyBetWithMarkets() {
     }
   }
 
-  const rescueIds = ['16'];
+  // Rescue: ensure critical markets are present even if the combined request
+  // dropped them. Tackles (900319) and Throw-Ins (900322) only appear close
+  // to kickoff, so we always check coverage and refetch if missing.
+  const rescueIds = ['16', '900319', '900322'];
   for (const id of rescueIds) {
     if (!marketIds.includes(id)) continue;
 
@@ -194,6 +198,7 @@ async function fetchSportyBetWithMarkets() {
   const labels = {
     '1': '1X2', '10': 'Double Chance', '11': 'DNB', '18': 'O/U Goals',
     '29': 'BTTS', '16': 'Asian Handicap', '139': 'Bookings O/U', '166': 'Corners O/U',
+    '900319': 'Tackles O/U', '900322': 'Throw-Ins O/U',
   };
   for (const id of marketIds) {
     const count = cov.get(id) || 0;
@@ -419,7 +424,7 @@ async function fetchAllBetBoro(competitionIds) {
 }
 
 // ---------------------------------------------------------------------------
-// liveFixtureBook → flat markets (unchanged from v3)
+// liveFixtureBook → flat markets (v5 — adds total_tackles & total_throw_ins)
 // ---------------------------------------------------------------------------
 const BETBORO_FLAT_KEY_MAP = {
   '1':   { key: 'match_result',        kind: 'result' },
@@ -435,6 +440,9 @@ const BETBORO_FLAT_KEY_MAP = {
 
   '1189': { key: 'total_shots',           kind: 'ou' },
   '1162': { key: 'total_shots_on_target', kind: 'ou' },
+
+  '1244': { key: 'total_tackles',         kind: 'ou' },
+  '1243': { key: 'total_throw_ins',       kind: 'ou' },
 };
 
 function parseBetBoroOuSide(odd) {
@@ -515,15 +523,13 @@ function flattenLiveFixtureBook(payload) {
 }
 
 // ---------------------------------------------------------------------------
-// WebSocket enrichment (v4)
+// WebSocket enrichment (v5)
 //
 // Browser capture confirmed the correct emit shape:
 //   socket.emit('join-liveFixtureBook', '93917479')
-// i.e. event name is `join-liveFixtureBook`, payload is a STRING.
 //
-// We don't know the `93917479`-style broadcast id from REST — so v4 tries
-// every known id shape as a string, across the correct event name only.
-// The payload matcher accepts whichever id shape the server echoes back.
+// v5 expands DEEP_IDS to include Tackles (900319) and Throw-Ins (900322)
+// so the WS subscribes to fixtures that SportyBet has these markets for.
 // ---------------------------------------------------------------------------
 function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
   if (!fixtures || fixtures.length === 0) return Promise.resolve(new Map());
@@ -532,7 +538,7 @@ function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
     return Promise.resolve(new Map());
   }
 
-  const DEEP_IDS = new Set(['139', '166']);
+  const DEEP_IDS = new Set(['139', '166', '900319', '900322']);
   const deepIds = new Set();
   for (const t of sportyTournaments) {
     for (const e of t.events ?? []) {
@@ -588,8 +594,6 @@ function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
         if (i >= targets.length || resolved) return;
         const t = targets[i++];
 
-        // Every id shape we know — as STRINGS, because the browser sends
-        // the payload as a quoted string: 42/sb-en,["join-liveFixtureBook","93917479"]
         const idCandidates = [];
         if (t.betBoroId)             idCandidates.push(String(t.betBoroId));
         if (t.betBoroVirtualLiveId)  idCandidates.push(String(t.betBoroVirtualLiveId));
@@ -608,7 +612,6 @@ function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
       sendNext();
     });
 
-    // Full payloads
     socket.on('liveFixtureBook', (payload) => {
       if (!payload) return;
       const keys = [];
@@ -636,13 +639,9 @@ function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
       }
     });
 
-    // Optional: log delta updates so we can see the stream is alive
     socket.on('liveFixtureBookUpdate', (payload) => {
       if (!payload) return;
-      // Not merged into the final map; the full liveFixtureBook payload is authoritative.
-      if (payload.id != null && payloads.has(`betBoro:${payload.id}`)) {
-        // Update arrived for a fixture we already have — no-op for now.
-      }
+      // Deltas aren't merged — the full liveFixtureBook payload is authoritative.
     });
 
     socket.on('connect_error', (err) => {
