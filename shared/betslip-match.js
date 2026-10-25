@@ -222,10 +222,18 @@ function oddsScoreFor(leg, match) {
 
 function buildLinks(match) {
   const eventId = match?.sr_id ?? null;
+  // League + team names let `directUrl` build the full slug path (tier 1).
+  const context = {
+    home: match?.teams?.home?.name ?? null,
+    away: match?.teams?.away?.name ?? null,
+    league: match?.league?.name ?? null,
+    ...(match?.book_ids?.betboro ?? {}),
+  };
+
   return {
-    sportybet: directUrl(SPORTY, eventId),
-    msport: directUrl(MSPORT, eventId),
-    betboro: directUrl(BETBORO, eventId, match?.book_ids?.betboro ?? {}),
+    sportybet: directUrl(SPORTY, eventId, context),
+    msport: directUrl(MSPORT, eventId, context),
+    betboro: directUrl(BETBORO, eventId, context),
   };
 }
 

@@ -108,18 +108,26 @@ const BookButton = ({
   url: string | null;
   label: string;
   price: number | null;
-}) => (
-  <button
-    type="button"
-    className={`bb-btn bb-btn-${variant}`}
-    onClick={() => openLink(url)}
-    disabled={!url}
-  >
-    {label}
-    {price !== null && <span className="bb-btn-price">@ {price.toFixed(2)}</span>}
-    <span aria-hidden="true">↗</span>
-  </button>
-);
+}) => {
+  // Tier 3 links are Google searches, so they get a magnifier instead of the external arrow.
+  const isSearch = Boolean(url && url.includes("google.com/search"));
+
+  return (
+    <button
+      type="button"
+      className={`bb-btn bb-btn-${variant}`}
+      onClick={() => openLink(url)}
+      disabled={!url}
+      title={isSearch ? `Search ${label} for this fixture` : `Open this fixture on ${label}`}
+    >
+      {label}
+      {price !== null && <span className="bb-btn-price">@ {price.toFixed(2)}</span>}
+      <span className={`bb-btn-icon${isSearch ? " search" : ""}`} aria-hidden="true">
+        {isSearch ? "🔍" : "↗"}
+      </span>
+    </button>
+  );
+};
 
 const LinkButtons = ({
   links,

@@ -338,6 +338,17 @@
   letter-spacing: 0.01em;
 }
 
+.bb-btn-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* Google-search fallback reads as an action, not an outbound link. */
+.bb-btn-icon.search {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
 .bb-btn-ghost .bb-btn-price {
   background: var(--color-neutral-3);
   color: var(--color-neutral-7);

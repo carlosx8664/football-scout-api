@@ -984,14 +984,14 @@ async function main() {
                   outcome: labelOf(pair.a), 
                   odds: Number(oa.toFixed(2)), 
                   stake: Number((TOTAL_STAKE * shareA).toFixed(2)),
-                  url: buildUrl(bookA, event.eventId, event.home, event.away, raw[bookA])
+                  url: buildUrl(bookA, event.eventId, event.home, event.away, { ...raw[bookA], league: event.tournament })
                 },
                 { 
                   bookmaker: bookB, 
                   outcome: labelOf(pair.b), 
                   odds: Number(ob.toFixed(2)), 
                   stake: Number((TOTAL_STAKE * shareB).toFixed(2)),
-                  url: buildUrl(bookB, event.eventId, event.home, event.away, raw[bookB])
+                  url: buildUrl(bookB, event.eventId, event.home, event.away, { ...raw[bookB], league: event.tournament })
                 },
               ],
             };

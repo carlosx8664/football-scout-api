@@ -28,28 +28,78 @@ export function srMatchId(eventId) {
   return /^\d+$/.test(id) ? id : null;
 }
 
+const SEARCH_SITES = {
+  [SPORTY]: "sportybet.com",
+  [MSPORT]: "msport.com",
+  [BETBORO]: "betboro.com.gh",
+  [BOLTBET]: "boltbet.com.gh",
+  [BETPAWA]: "betpawa.com.gh",
+};
+
+/** "Premier League" -> "Premier_League"; encoded so accents survive the path. */
+function slugify(value) {
+  const text = String(value ?? "").trim();
+  return text ? encodeURIComponent(text.replace(/\s+/g, "_")) : "";
+}
+
+/** Tier 1 path segment: `{league}/{home}_vs_{away}`. Null when any piece is missing. */
+function fixturePath(context) {
+  const league = slugify(context?.league);
+  const home = slugify(context?.home);
+  const away = slugify(context?.away);
+  if (!league || !home || !away) return null;
+  return `${league}/${home}_vs_${away}`;
+}
+
+/** Tier 3: a Google site search, which always opens something useful. */
+function searchUrl(bookmaker, home, away) {
+  const site = SEARCH_SITES[bookmaker];
+  if (!site || !home || !away) return null;
+  const query = encodeURIComponent(`site:${site} "${home}" "${away}"`);
+  return `https://www.google.com/search?q=${query}`;
+}
+
 /**
- * Direct fixture URL on a bookmaker that supports deep linking. Returns null instead of a
- * search fallback, so callers can hide the button rather than send users somewhere vague.
+ * Fixture URL on a bookmaker, in three tiers:
+ *
+ *   1. slug path  .../football/{league}/{home}_vs_{away}/sr:match:{id}
+ *   2. bare id    .../football/sr:match:{id}                  (old shape; often 404s)
+ *   3. Google     site:bookmaker.com "{home}" "{away}"        (always opens something)
+ *
+ * Returns null only for bookmakers with neither a URL pattern nor a search site.
  *
  * @param {string} bookmaker
  * @param {string | null | undefined} eventId Sportradar id, e.g. "sr:match:72478654"
- * @param {{ betBoroId?: string | number, regionId?: string | number, competitionId?: string | number }} [rawFixture]
+ * @param {{
+ *   home?: string | null,
+ *   away?: string | null,
+ *   league?: string | null,
+ *   betBoroId?: string | number,
+ *   regionId?: string | number,
+ *   competitionId?: string | number,
+ * }} [context]
  * @returns {string | null}
  */
-export function directUrl(bookmaker, eventId, rawFixture = {}) {
+export function directUrl(bookmaker, eventId, context = {}) {
   const id = srMatchId(eventId);
+  const { home, away } = context ?? {};
 
-  if (bookmaker === SPORTY && id) {
-    return `https://www.sportybet.com/gh/sport/football/sr:match:${id}`;
-  }
+  if (bookmaker === SPORTY || bookmaker === MSPORT) {
+    if (id) {
+      const base =
+        bookmaker === SPORTY
+          ? "https://www.sportybet.com/gh/sport/football"
+          : "https://www.msport.com/gh/web/sports/Soccer";
+      const path = fixturePath(context);
+      return path ? `${base}/${path}/sr:match:${id}` : `${base}/sr:match:${id}`;
+    }
 
-  if (bookmaker === MSPORT && id) {
-    return `https://www.msport.com/gh/web/sports/Soccer/sr:match:${id}`;
+    // No Sportradar id: fall straight through to the search that always resolves.
+    return searchUrl(bookmaker, home, away);
   }
 
   if (bookmaker === BETBORO) {
-    const { betBoroId, regionId, competitionId } = rawFixture ?? {};
+    const { betBoroId, regionId, competitionId } = context ?? {};
     if (betBoroId && regionId && competitionId) {
       return `https://betboro.com.gh/pre-sports/1/region/${regionId}/competition/${competitionId}/fixture/${betBoroId}`;
     }
@@ -59,32 +109,19 @@ export function directUrl(bookmaker, eventId, rawFixture = {}) {
 }
 
 /**
- * Link used in the arbitrage feed. Same as `directUrl`, but falls back to a site search for
- * bookmakers without a stable per-fixture URL (BoltBet, BetPawa) or when BetBoro's raw ids
- * are missing, so existing arbs.json links never disappear.
+ * Link used in the arbitrage feed: `directUrl`, then a site search for every bookmaker, so an
+ * arbs.json row always has something clickable.
  *
  * @param {string} bookmaker
  * @param {string | null | undefined} eventId
  * @param {string} home
  * @param {string} away
- * @param {{ betBoroId?: string | number, regionId?: string | number, competitionId?: string | number }} [rawFixture]
+ * @param {{ league?: string | null, betBoroId?: string | number, regionId?: string | number, competitionId?: string | number }} [rawFixture]
  * @returns {string | null}
  */
 export function buildUrl(bookmaker, eventId, home, away, rawFixture = {}) {
-  const direct = directUrl(bookmaker, eventId, rawFixture);
-  if (direct) return direct;
-
-  const searchQuery = encodeURIComponent(`"${home}" "${away}"`);
-
-  if (bookmaker === BETBORO) {
-    return `https://www.google.com/search?q=site:betboro.com.gh+${searchQuery}`;
-  }
-  if (bookmaker === BOLTBET) {
-    return `https://www.google.com/search?q=site:boltbet.com.gh+${searchQuery}`;
-  }
-  if (bookmaker === BETPAWA) {
-    return `https://www.google.com/search?q=site:betpawa.com.gh+${searchQuery}`;
-  }
-
-  return null;
+  return (
+    directUrl(bookmaker, eventId, { ...rawFixture, home, away }) ??
+    searchUrl(bookmaker, home, away)
+  );
 }
