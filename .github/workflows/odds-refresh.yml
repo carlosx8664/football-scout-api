@@ -1,24 +1,13 @@
 name: Odds refresh
 
 on:
-  # Dispatched by the Cloudflare Cron Worker (workers/dispatch-trigger). No `schedule:`
-  # here: GitHub's scheduler ran hours late on this repo.
-  #
-  # mode=hot      (every 15 min)  -> 2-day window, all markets, key `feed-*`
-  # mode=horizon  (every 3 hours) -> 6-day window, 1X2 only, key `feed-*-horizon`
-  # The two never share a KV key, so a hot run cannot wipe far-out fixtures.
+  # Dispatched by the Cloudflare Cron Worker (workers/dispatch-trigger).
+  # The Cloudflare Cron fires every 15 minutes.
   workflow_dispatch:
-    inputs:
-      mode:
-        description: "hot (2-day, 15 min) or horizon (6-day, 3 h)"
-        type: choice
-        options: [hot, horizon]
-        default: hot
 
-# Slow runs must never overlap and double-write KV. The modes are grouped separately so a
-# long horizon run cannot block the 15-minute hot feed.
+# Slow runs must never overlap and double-write KV.
 concurrency:
-  group: odds-refresh-${{ inputs.mode || 'hot' }}
+  group: odds-refresh
   cancel-in-progress: false
 
 permissions:
@@ -31,9 +20,7 @@ jobs:
     timeout-minutes: 20
 
     env:
-      MODE: ${{ inputs.mode || 'hot' }}
-      DAYS: ${{ (inputs.mode || 'hot') == 'horizon' && '6' || '2' }}
-      SUFFIX: ${{ (inputs.mode || 'horizon') == 'horizon' && '-horizon' || '' }}
+      DAYS: 2
 
     steps:
       - name: Checkout
@@ -45,32 +32,30 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: npm ci
 
-      - name: Fetch odds from the bookmakers
-        run: |
-          if [ "$MODE" = "horizon" ]; then
-            # One market pass over 6 days instead of five over 2 days: far more coverage
-            # without more requests.
-            node scripts/fetch-odds.js --days="$DAYS" --markets=1x2 --suffix="$SUFFIX"
-          else
-            node scripts/fetch-odds.js --days="$DAYS"
-          fi
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Fetch odds from the 4 fast bookmakers
+        run: node scripts/fetch-odds.js --days="$DAYS"
+
+      - name: Fetch odds from BetPawa (Playwright)
+        run: node scripts/fetch-betpawa.js
 
       - name: Build arbitrage feed and send alerts
-        run: node scripts/find-arbs.js --suffix="$SUFFIX"
+        run: node scripts/find-arbs.js
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
       - name: Build match feed
-        # Analysis is generated on demand by /api/analysis, so skip it here.
-        run: node scripts/build-match-feed.js --no-ai --days="$DAYS" --suffix="$SUFFIX"
+        run: node scripts/build-match-feed.js --no-ai --days="$DAYS"
 
       - name: Verify feeds were written
         run: |
-          for file in "public/matches${SUFFIX}.json" "public/arbs${SUFFIX}.json"; do
+          for file in "public/matches.json" "public/arbs.json"; do
             if [ ! -s "$file" ]; then
               echo "::error::$file is missing or empty; refusing to overwrite KV."
               exit 1
@@ -85,11 +70,8 @@ jobs:
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          # A blocked scraper usually returns a handful of events instead of an error, so
-          # compare this run against what the site already serves. Below half, keep the old
-          # feed: stale but complete beats fresh but gutted.
           live=$(curl -sS --fail \
-            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-matches${SUFFIX}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-matches" \
             -H "Authorization: Bearer ${CF_API_TOKEN}" 2>/dev/null || true)
 
           counts=$(LIVE="$live" node -e '
@@ -98,7 +80,7 @@ jobs:
               try { return (JSON.parse(raw).matches ?? []).length; } catch { return null; }
             };
             const before = count(process.env.LIVE ?? "");
-            const after = count(fs.readFileSync(`public/matches${process.env.SUFFIX}.json`, "utf8"));
+            const after = count(fs.readFileSync("public/matches.json", "utf8"));
             console.log(before ?? "none", after ?? 0);
           ')
 
@@ -127,7 +109,6 @@ jobs:
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          # Freshness comes from KV, so the site never needs a redeploy.
           upload() {
             local key="$1" file="$2"
             curl -sS --fail-with-body -X PUT \
@@ -138,5 +119,5 @@ jobs:
             echo " -> wrote ${key}"
           }
 
-          upload "feed-matches${SUFFIX}" "public/matches${SUFFIX}.json"
-          upload "feed-arbs${SUFFIX}" "public/arbs${SUFFIX}.json"
+          upload "feed-matches" "public/matches.json"
+          upload "feed-arbs" "public/arbs.json"
