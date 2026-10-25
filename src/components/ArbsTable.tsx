@@ -193,6 +193,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const [feed, setFeed] = useState<Feed | null>(null);
   const [totalStake, setTotalStake] = useState(100);
   const [rounding, setRounding] = useState(0);
+  const [activeTab, setActiveTab] = useState<"live" | "past">("live");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -271,13 +272,31 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             </div>
           )}
 
-          <div className="arbs-section">
-            <div className="arbs-section-head">
-              <h2 className="arbs-section-title">Live Arbs</h2>
-              <span className="arbs-section-count">{liveRows.length}</span>
-            </div>
+          <div className="arbs-tabs" role="tablist" aria-label="Arbitrage windows">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "live"}
+              className={`arbs-tab${activeTab === "live" ? " active" : ""}`}
+              onClick={() => setActiveTab("live")}
+            >
+              Live Arbs
+              <span className="tab-count">{liveRows.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "past"}
+              className={`arbs-tab${activeTab === "past" ? " active" : ""}`}
+              onClick={() => setActiveTab("past")}
+            >
+              Past Arbs
+              <span className="tab-count">{pastRows.length}</span>
+            </button>
+          </div>
 
-            {liveRows.length === 0 ? (
+          {activeTab === "live" ? (
+            liveRows.length === 0 ? (
               <div className="arbs-state">No live arbitrage opportunities at this time.</div>
             ) : (
               <>
@@ -433,17 +452,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   : ` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
               </p>
             </div>
-            </>
-          )}
-          </div>
-
-          <div className="arbs-section">
-            <div className="arbs-section-head">
-              <h2 className="arbs-section-title">Past Arbs</h2>
-              <span className="arbs-section-count">{pastRows.length}</span>
-            </div>
-
-            {pastRows.length === 0 ? (
+              </>
+            )
+          ) : pastRows.length === 0 ? (
               <div className="arbs-state">
                 No past arbitrage opportunities yet. Every arb the scanner sees is kept here after
                 kickoff, along with how its prices moved.
@@ -584,8 +595,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   {" · prices frozen at kickoff"}
                 </p>
               </div>
-            )}
-          </div>
+          )}
         </>
       )}
     </section>

@@ -303,33 +303,57 @@
   color: #b91c1c;
 }
 
-/* --- Live Arbs / Past Arbs sections --- */
-.arbs-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* --- Live Arbs / Past Arbs tabs --- */
+.arbs-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-neutral-3);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  align-self: flex-start;
 }
 
-.arbs-section-head {
-  display: flex;
+.arbs-tab {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.arbs-section-title {
-  margin: 0;
-  color: #0a2540;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.arbs-section-count {
-  padding: 1px 8px;
+  padding: 8px 20px;
+  border: 0;
   border-radius: 999px;
-  background: var(--color-neutral-3);
+  background: transparent;
+  color: var(--color-neutral-6);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.arbs-tab:hover {
   color: var(--color-neutral-7);
-  font-size: 0.7rem;
+}
+
+.arbs-tab.active {
+  background: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(211, 36, 252, 0.35);
+}
+
+.arbs-tab .tab-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
   font-weight: 700;
+  text-align: center;
+}
+
+.arbs-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
 }
 
 /* --- Past arbs: match status badge --- */
