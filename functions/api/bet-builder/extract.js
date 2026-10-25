@@ -1,5 +1,9 @@
 import { matchBetslipLegs, toSportyBetSelections } from "../../../shared/betslip-match.js";
 import {
+  MAX_SHARE_SELECTIONS,
+  createSportyBetShare,
+} from "../../../shared/sportybet.js";
+import {
   PROMPT_VERSION,
   SYSTEM_PROMPT,
   USER_PROMPT,
@@ -31,11 +35,6 @@ const SUPPORTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image
 
 const CACHE_PREFIX = "betslip";
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
-
-/** SportyBet's booking endpoint turns selections into a share code / share URL. */
-const SHARE_URL = "https://www.sportybet.com/api/gh/orders/share";
-const SHARE_TIMEOUT_MS = 15_000;
-const MAX_SHARE_SELECTIONS = 20;
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -191,54 +190,6 @@ async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
   }
 
   return { parsed, cached: false };
-}
-
-/**
- * Books the selections on SportyBet to obtain a share code / share URL.
- *
- * The code is minted by SportyBet, so this call is the only way to produce it. Failures are
- * non-fatal: the caller keeps the matched legs and surfaces the message as a warning, because
- * rejected odds are a normal outcome, not a bug.
- */
-async function createSportyBetShare(selections) {
-  const response = await fetch(SHARE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      // SportyBet answers 403 without a browser-ish origin.
-      Origin: "https://www.sportybet.com",
-      Referer: "https://www.sportybet.com/gh/sport/football",
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-    },
-    body: JSON.stringify({ selections }),
-    signal: AbortSignal.timeout(SHARE_TIMEOUT_MS),
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(`SportyBet rejected the betslip (HTTP ${response.status}).`);
-  }
-
-  let body;
-  try {
-    body = JSON.parse(text);
-  } catch {
-    throw new Error("SportyBet returned a non-JSON booking response.");
-  }
-
-  const data = body?.data ?? body ?? {};
-  const url = data.shareURL ?? data.shareUrl ?? null;
-  const code = data.shareCode ?? null;
-  const unavailable = Array.isArray(data.unavailableOutcomes) ? data.unavailableOutcomes : [];
-
-  if (!url) {
-    throw new Error("SportyBet did not return a share link; the odds may have been suspended.");
-  }
-
-  return { url: String(url), code: code == null ? null : String(code), unavailable };
 }
 
 export async function onRequestPost(context) {

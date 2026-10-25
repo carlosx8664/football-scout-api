@@ -57,6 +57,16 @@ export interface ArbLeg {
   odds: number;
   /** Suggested stake for this leg (scripts/find-arbs.js, default total 100). */
   stake?: number;
+  /**
+   * SportyBet booking ids, captured by `scripts/find-arbs.js`. Present on SportyBet legs only;
+   * POST them to `/api/arbs/share` to get a share code.
+   */
+  sportybet?: {
+    eventId: string;
+    marketId: string;
+    outcomeId: string;
+    specifier: string;
+  } | null;
   /** Deep link to the match/market on the bookmaker's site. */
   url?: string;
 }

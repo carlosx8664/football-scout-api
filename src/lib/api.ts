@@ -1,4 +1,32 @@
-import type { SnapshotData } from "../types";
+import type { ArbLeg, SnapshotData } from "../types";
+
+/**
+ * Books one arb's SportyBet legs and returns the share URL to open.
+ * The ids come from `arbs.json` (`leg.sportybet`), captured by the scanner.
+ */
+export async function createArbShare(
+  selections: NonNullable<ArbLeg["sportybet"]>[],
+  signal?: AbortSignal,
+): Promise<string> {
+  const response = await fetch("/api/arbs/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selections }),
+    signal,
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { shareURL?: string; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.shareURL) {
+    throw new Error(
+      payload?.error ?? `Could not build a SportyBet betslip (HTTP ${response.status}).`,
+    );
+  }
+
+  return payload.shareURL;
+}
 
 async function readJson<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   const response = await fetch(url, { signal });

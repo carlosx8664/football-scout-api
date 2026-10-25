@@ -267,7 +267,8 @@ function readSportyMarket(m) {
       if (line !== null && side) key = `H1_TEAM_BOOK:A:${line}:${side}`;
     }
 
-    if (key) found.push({ key, odds });
+    // SportyBet's own ids travel with the selection so the UI can book it later.
+    if (key) found.push({ key, odds, marketId: id, outcomeId: oid, specifier: spec });
   }
   return found;
 }
@@ -373,10 +374,13 @@ function loadBookie(file, bookie) {
     for (const e of t.events ?? []) {
       if (!e.eventId) continue;
       const sel = {};
+      const selIds = {};
       for (const m of e.markets ?? []) {
-        for (const { key, odds } of parseFn(m)) {
+        for (const { key, odds, marketId, outcomeId, specifier } of parseFn(m)) {
           if (key in sel) continue;
           sel[key] = bookie === MSPORT ? odds * BOOST : odds;
+          // Only the SportyBet parser returns ids; they drive the booking-code endpoint.
+          if (marketId) selIds[key] = { marketId, outcomeId, specifier: specifier ?? '' };
           const type = key.split(':')[0];
           typeCounts[type] = (typeCounts[type] ?? 0) + 1;
         }
@@ -390,6 +394,7 @@ function loadBookie(file, bookie) {
         tournament: isSporty ? (e?.sport?.category?.tournament?.name ?? t.name) : (e.tournament ?? t.tournament),
         notStarted: Number(e.status ?? 0) === 0,
         sel,
+        selIds,
         raw: e, // Store raw data for deep linking
       });
     }
@@ -838,13 +843,14 @@ async function main() {
       }
 
       if (!fixture) {
-        fixture = { event: ev, books: {}, raw: {} };
+        fixture = { event: ev, books: {}, raw: {}, selIds: {} };
         if (srKey) fixturesBySrId.set(srKey, fixture);
         fixturesByTeam.set(teamKey, fixture);
       }
 
       fixture.books[name] = ev.sel;
       fixture.raw[name] = ev.raw || {};
+      fixture.selIds[name] = ev.selIds || {};
     }
   }
 
@@ -857,7 +863,7 @@ async function main() {
   let matched = 0;
   let pairsChecked = 0;
 
-  for (const { event, books, raw } of fixtures.values()) {
+  for (const { event, books, raw, selIds } of fixtures.values()) {
     const names = Object.keys(books);
     if (names.length < 2) continue; 
     matched++;
@@ -970,6 +976,12 @@ async function main() {
           const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
           
           if (profitPct > MIN_PROFIT || NEAR > 0) {
+            // SportyBet ids make the leg bookable in one click; other books only get deep links.
+            const bookingFor = (book, key) => {
+              const ids = selIds?.[book]?.[key];
+              return ids ? { sportybet: { eventId: event.eventId, ...ids } } : {};
+            };
+
             const record = {
               eventId: event.eventId,
               home: event.home,
@@ -984,14 +996,16 @@ async function main() {
                   outcome: labelOf(pair.a), 
                   odds: Number(oa.toFixed(2)), 
                   stake: Number((TOTAL_STAKE * shareA).toFixed(2)),
-                  url: buildUrl(bookA, event.eventId, event.home, event.away, { ...raw[bookA], league: event.tournament })
+                  url: buildUrl(bookA, event.eventId, event.home, event.away, { ...raw[bookA], league: event.tournament }),
+                  ...bookingFor(bookA, pair.a)
                 },
                 { 
                   bookmaker: bookB, 
                   outcome: labelOf(pair.b), 
                   odds: Number(ob.toFixed(2)), 
                   stake: Number((TOTAL_STAKE * shareB).toFixed(2)),
-                  url: buildUrl(bookB, event.eventId, event.home, event.away, { ...raw[bookB], league: event.tournament })
+                  url: buildUrl(bookB, event.eventId, event.home, event.away, { ...raw[bookB], league: event.tournament }),
+                  ...bookingFor(bookB, pair.b)
                 },
               ],
             };
