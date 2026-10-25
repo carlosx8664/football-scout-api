@@ -143,7 +143,7 @@
   flex: 0 0 auto;
 }
 
-/* --- Bookmaker --- */
+/* --- Bookmaker (Updated for Deep Links) --- */
 .arb-bookmaker {
   white-space: nowrap;
 }
@@ -156,6 +156,14 @@
   color: var(--color-neutral-7);
   font-size: 0.7rem;
   font-weight: 600;
+  text-decoration: none; /* Removes the default blue link underline */
+  transition: background 0.15s, transform 0.1s; /* Smooth hover effect */
+}
+
+.arb-bookmaker-pill:hover {
+  background: var(--color-brand-weak);
+  transform: scale(1.05);
+  cursor: pointer;
 }
 
 /* --- Event --- */

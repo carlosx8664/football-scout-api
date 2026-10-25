@@ -44,6 +44,8 @@ export interface ArbLeg {
   odds: number;
   /** Suggested stake for this leg (scripts/find-arbs.js, default total 100). */
   stake?: number;
+  /** Deep link to the match/market on the bookmaker's site. */
+  url?: string;
 }
 
 export interface ArbOpportunity {
@@ -59,6 +61,9 @@ export interface ArbOpportunity {
   legs: ArbLeg[];
   /** Extra caveat, e.g. "Draw = both stakes refunded". */
   note?: string;
+  /** Set if find-arbs.js flags the market for rule verification (e.g., Corners). */
+  needsRuleReview?: boolean;
+  warning?: string;
 }
 
 /** One leg of a tracked arb, with the prices it traded at over time. */
@@ -72,6 +77,8 @@ export interface ArbHistoryLeg {
   lastOdds: number;
   /** Last price before kickoff, frozen once the match started. */
   finalOdds?: number | null;
+  /** Deep link to the match/market on the bookmaker's site (if added to history). */
+  url?: string;
 }
 
 /** An arb the scanner has seen at any point, kept after kickoff for the Past Arbs table. */
@@ -96,6 +103,9 @@ export interface ArbHistoryRecord {
   /** Profit % at the last pre-kickoff price, set once the match starts. */
   finalProfitPct?: number | null;
   legs: ArbHistoryLeg[];
+  /** Set if find-arbs.js flags the market for rule verification (e.g., Corners). */
+  needsRuleReview?: boolean;
+  warning?: string;
 }
 
 /** Static snapshot written by the arbitrage scanner to `public/arbs.json`. */

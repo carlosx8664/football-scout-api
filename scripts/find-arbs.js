@@ -59,6 +59,36 @@ const normalizeTeam = (name) => {
 };
 
 // ============================================================================
+// Deep Link Generation
+// ============================================================================
+function buildUrl(bookmaker, eventId, home, away, rawFixture = {}) {
+  const searchQuery = encodeURIComponent(`"${home}" "${away}"`);
+  
+  if (bookmaker === SPORTY) {
+    const id = eventId.replace('sr:match:', '');
+    return `https://www.sportybet.com/gh/sport/football/sr:match:${id}`;
+  }
+  if (bookmaker === MSPORT) {
+    const id = eventId.replace('sr:match:', '');
+    return `https://www.msport.com/gh/web/sports/Soccer/sr:match:${id}`;
+  }
+  if (bookmaker === BETBORO) {
+    const { betBoroId, regionId, competitionId } = rawFixture;
+    if (betBoroId && regionId && competitionId) {
+      return `https://betboro.com.gh/pre-sports/1/region/${regionId}/competition/${competitionId}/fixture/${betBoroId}`;
+    }
+    return `https://www.google.com/search?q=site:betboro.com.gh+${searchQuery}`;
+  }
+  if (bookmaker === BOLTBET) {
+    return `https://www.google.com/search?q=site:boltbet.com.gh+${searchQuery}`;
+  }
+  if (bookmaker === BETPAWA) {
+    return `https://www.google.com/search?q=site:betpawa.com.gh+${searchQuery}`;
+  }
+  return null;
+}
+
+// ============================================================================
 // Telegram Alert
 // ============================================================================
 async function sendTelegramAlert(arbs) {
@@ -394,6 +424,7 @@ function loadBookie(file, bookie) {
         tournament: isSporty ? (e?.sport?.category?.tournament?.name ?? t.name) : (e.tournament ?? t.tournament),
         notStarted: Number(e.status ?? 0) === 0,
         sel,
+        raw: e, // Store raw data for deep linking
       });
     }
   }
@@ -492,6 +523,7 @@ function loadBetBoro(file) {
       tournament: `${f.region ?? ''} · ${f.competition ?? ''}`.trim(),
       notStarted: Number(f.kickoff) > Date.now(),
       sel,
+      raw: { betBoroId: f.betBoroId, regionId: f.regionId, competitionId: f.competitionId },
     });
   }
   return { events, typeCounts };
@@ -563,6 +595,7 @@ function loadBoltBet(file) {
       tournament: 'BoltBet',
       notStarted: e.fixture.state === 'active',
       sel,
+      raw: { uuid: e.fixture.uuid },
     });
   }
   return { events, typeCounts };
@@ -617,6 +650,7 @@ function loadBetPawa(file) {
       tournament: 'BetPawa',
       notStarted: true,
       sel,
+      raw: { eventId: e.eventId },
     });
   }
   return { events, typeCounts };
@@ -838,12 +872,13 @@ async function main() {
       }
 
       if (!fixture) {
-        fixture = { event: ev, books: {} };
+        fixture = { event: ev, books: {}, raw: {} };
         if (srKey) fixturesBySrId.set(srKey, fixture);
         fixturesByTeam.set(teamKey, fixture);
       }
 
       fixture.books[name] = ev.sel;
+      fixture.raw[name] = ev.raw || {};
     }
   }
 
@@ -856,7 +891,7 @@ async function main() {
   let matched = 0;
   let pairsChecked = 0;
 
-  for (const { event, books } of fixtures.values()) {
+  for (const { event, books, raw } of fixtures.values()) {
     const names = Object.keys(books);
     if (names.length < 2) continue; 
     matched++;
@@ -978,8 +1013,20 @@ async function main() {
               market: pair.market,
               profitPct: Number(profitPct.toFixed(3)),
               legs: [
-                { bookmaker: bookA, outcome: labelOf(pair.a), odds: Number(oa.toFixed(2)), stake: Number((TOTAL_STAKE * shareA).toFixed(2)) },
-                { bookmaker: bookB, outcome: labelOf(pair.b), odds: Number(ob.toFixed(2)), stake: Number((TOTAL_STAKE * shareB).toFixed(2)) },
+                { 
+                  bookmaker: bookA, 
+                  outcome: labelOf(pair.a), 
+                  odds: Number(oa.toFixed(2)), 
+                  stake: Number((TOTAL_STAKE * shareA).toFixed(2)),
+                  url: buildUrl(bookA, event.eventId, event.home, event.away, raw[bookA])
+                },
+                { 
+                  bookmaker: bookB, 
+                  outcome: labelOf(pair.b), 
+                  odds: Number(ob.toFixed(2)), 
+                  stake: Number((TOTAL_STAKE * shareB).toFixed(2)),
+                  url: buildUrl(bookB, event.eventId, event.home, event.away, raw[bookB])
+                },
               ],
             };
             if (pair.note) record.note = pair.note;

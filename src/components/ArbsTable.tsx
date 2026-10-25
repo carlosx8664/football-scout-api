@@ -408,7 +408,18 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                               )}
 
                               <td className="arb-bookmaker">
-                                <span className="arb-bookmaker-pill">{leg.bookmaker}</span>
+                                {leg.url ? (
+                                  <a 
+                                    href={leg.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="arb-bookmaker-pill"
+                                  >
+                                    {leg.bookmaker}
+                                  </a>
+                                ) : (
+                                  <span className="arb-bookmaker-pill">{leg.bookmaker}</span>
+                                )}
                               </td>
 
                               {legIndex === 0 && (
