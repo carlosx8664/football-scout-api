@@ -1,4 +1,4 @@
-import { matchBetslipLegs } from "../../../shared/betslip-match.js";
+import { matchBetslipLegs, toSportyBetSelections } from "../../../shared/betslip-match.js";
 import {
   PROMPT_VERSION,
   SYSTEM_PROMPT,
@@ -31,6 +31,11 @@ const SUPPORTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image
 
 const CACHE_PREFIX = "betslip";
 const CACHE_TTL_SECONDS = 60 * 60 * 24;
+
+/** SportyBet's booking endpoint turns selections into a share code / share URL. */
+const SHARE_URL = "https://www.sportybet.com/api/gh/orders/share";
+const SHARE_TIMEOUT_MS = 15_000;
+const MAX_SHARE_SELECTIONS = 20;
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -188,6 +193,54 @@ async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
   return { parsed, cached: false };
 }
 
+/**
+ * Books the selections on SportyBet to obtain a share code / share URL.
+ *
+ * The code is minted by SportyBet, so this call is the only way to produce it. Failures are
+ * non-fatal: the caller keeps the matched legs and surfaces the message as a warning, because
+ * rejected odds are a normal outcome, not a bug.
+ */
+async function createSportyBetShare(selections) {
+  const response = await fetch(SHARE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      // SportyBet answers 403 without a browser-ish origin.
+      Origin: "https://www.sportybet.com",
+      Referer: "https://www.sportybet.com/gh/sport/football",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    },
+    body: JSON.stringify({ selections }),
+    signal: AbortSignal.timeout(SHARE_TIMEOUT_MS),
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`SportyBet rejected the betslip (HTTP ${response.status}).`);
+  }
+
+  let body;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error("SportyBet returned a non-JSON booking response.");
+  }
+
+  const data = body?.data ?? body ?? {};
+  const url = data.shareURL ?? data.shareUrl ?? null;
+  const code = data.shareCode ?? null;
+  const unavailable = Array.isArray(data.unavailableOutcomes) ? data.unavailableOutcomes : [];
+
+  if (!url) {
+    throw new Error("SportyBet did not return a share link; the odds may have been suspended.");
+  }
+
+  return { url: String(url), code: code == null ? null : String(code), unavailable };
+}
+
 export async function onRequestPost(context) {
   const { request, env, waitUntil } = context;
 
@@ -259,17 +312,55 @@ export async function onRequestPost(context) {
   const legs = Array.isArray(extracted.parsed.legs) ? extracted.parsed.legs : [];
   const { matched, unresolved } = matchBetslipLegs(legs, fixtures);
 
+  // --- SportyBet share code -------------------------------------------------
+  const { selections, skipped } = toSportyBetSelections(matched);
+  const notes = [];
+
+  if (skipped.length > 0) {
+    notes.push(
+      `${skipped.length} leg${skipped.length === 1 ? "" : "s"} can't be added to a SportyBet betslip automatically.`,
+    );
+  }
+
+  const bookable = selections.slice(0, MAX_SHARE_SELECTIONS);
+  if (selections.length > MAX_SHARE_SELECTIONS) {
+    notes.push(`Only the first ${MAX_SHARE_SELECTIONS} selections were booked.`);
+  }
+
+  let sportybetAccaUrl = null;
+  let sportybetAccaCode = null;
+
+  if (bookable.length > 0) {
+    try {
+      const share = await createSportyBetShare(bookable);
+      sportybetAccaUrl = share.url;
+      sportybetAccaCode = share.code;
+
+      if (share.unavailable.length > 0) {
+        notes.push(
+          `${share.unavailable.length} outcome${share.unavailable.length === 1 ? " was" : "s were"} unavailable, so the betslip may load partially.`,
+        );
+      }
+    } catch (error) {
+      notes.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
   return json({
     bookmaker: extracted.parsed.bookmaker ?? null,
     warnings: Array.isArray(extracted.parsed.warnings) ? extracted.parsed.warnings : [],
     matched,
     unresolved,
+    sportybetAccaUrl,
+    sportybetAccaCode,
+    sportybetAccaWarning: notes.length > 0 ? notes.join(" ") : null,
     cached: extracted.cached,
     stats: {
       legs: legs.length,
       matched: matched.length,
       unresolved: unresolved.length,
       fixtures: fixtures.length,
+      bookable: bookable.length,
     },
   });
 }

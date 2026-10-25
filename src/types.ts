@@ -209,6 +209,11 @@ export interface BetBuilderResponse {
   warnings: string[];
   matched: MatchedLeg[];
   unresolved: UnresolvedLeg[];
+  /** SportyBet booking link that loads every mapped selection into the betslip. */
+  sportybetAccaUrl?: string | null;
+  sportybetAccaCode?: string | null;
+  /** Why the betslip is missing legs, partial, or could not be built at all. */
+  sportybetAccaWarning?: string | null;
   /** True when the extraction came from the KV cache. */
   cached?: boolean;
   stats?: {
@@ -216,5 +221,7 @@ export interface BetBuilderResponse {
     matched: number;
     unresolved: number;
     fixtures: number;
+    /** Selections SportyBet accepted for the share code. */
+    bookable?: number;
   };
 }

@@ -374,6 +374,30 @@
   color: #15803d;
 }
 
+/* --- "Add all to SportyBet" bar --- */
+.bb-acca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  background: var(--color-brand-weak);
+}
+
+.bb-btn-acca {
+  padding: 10px 18px;
+  font-size: 0.85rem;
+}
+
+.bb-acca-warn {
+  flex: 1 1 240px;
+  color: #92400e;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 /* --- Needs review candidates --- */
 .bb-candidates {
   display: flex;

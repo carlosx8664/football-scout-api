@@ -237,6 +237,166 @@ function buildLinks(match) {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * SportyBet betslip booking (share code)
+ * ------------------------------------------------------------------ */
+
+/** Markets whose selection is not one of the 1X2 outcomes that `book_odds` carries. */
+const NON_RESULT_MARKET =
+  /over|under|handicap|corner|card|booking|both teams|btts|double chance|clean sheet|correct score|odd\/even|odd or even|multi ?goal|half|win to nil|penalt/i;
+
+/**
+ * Which 1X2 outcome a leg is on, or null when the market is not a plain match result.
+ *
+ * @param {{ market?: string, selection?: string }} leg
+ * @param {{ teams?: { home?: { name?: string }, away?: { name?: string } } }} match
+ * @returns {"home" | "draw" | "away" | null}
+ */
+export function selectionSide(leg, match) {
+  if (NON_RESULT_MARKET.test(leg?.market ?? "")) return null;
+
+  const selection = (leg?.selection ?? "").trim().toLowerCase();
+  if (!selection) return null;
+  // "Draw or Away (X2)" and friends cannot be priced from a single 1X2 column.
+  if (/\bor\b/.test(selection)) return null;
+
+  if (selection === "1" || /^home\b/.test(selection)) return "home";
+  if (selection === "x" || selection === "tie" || /^draw\b/.test(selection)) return "draw";
+  if (selection === "2" || /^away\b/.test(selection)) return "away";
+
+  // Some slips print the team name instead of Home/Away.
+  const picked = normalizeTeam(selection);
+  if (picked) {
+    if (picked === normalizeTeam(match?.teams?.home?.name)) return "home";
+    if (picked === normalizeTeam(match?.teams?.away?.name)) return "away";
+  }
+
+  return null;
+}
+
+/**
+ * SportyBet booking ids, verified against `data/sportybet.json`:
+ *
+ *   market 1    1X2              outcomes 1 Home / 2 Draw / 3 Away
+ *   market 18   Over/Under       outcomes 12 Over / 13 Under,  specifier total=<line>
+ *   market 166  Corners O/U      outcomes 12 Over / 13 Under,  specifier total=<line>
+ *   market 139  Bookings O/U     outcomes 12 Over / 13 Under,  specifier total=<line>
+ *   market 10   Double Chance    outcomes 9 1X / 10 12 / 11 X2
+ *   market 11   Draw No Bet      outcomes 4 Home / 5 Away
+ *   market 29   GG/NG            outcomes 74 Yes / 76 No
+ *
+ * Unlisted markets are skipped rather than guessed: a wrong outcome id silently books the
+ * wrong bet.
+ */
+const RESULT_OUTCOME = { home: "1", draw: "2", away: "3" };
+
+function overUnderOutcome(selection) {
+  const text = String(selection ?? "").toLowerCase();
+  if (/\bover\b/.test(text)) return "12";
+  if (/\bunder\b/.test(text)) return "13";
+  return null;
+}
+
+/** "Over 2.5" -> "2.5"; falls back to the market label ("Over/Under 2.5 Goals"). */
+function totalLine(leg) {
+  const fromSelection = /(\d+(?:\.\d+)?)/.exec(String(leg?.selection ?? ""));
+  if (fromSelection) return fromSelection[1];
+  const fromMarket = /(\d+(?:\.\d+)?)/.exec(String(leg?.market ?? ""));
+  return fromMarket ? fromMarket[1] : null;
+}
+
+function doubleChanceOutcome(selection) {
+  const text = String(selection ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (text === "1x" || text.includes("homeordraw")) return "9";
+  if (text === "12" || text.includes("homeoraway")) return "10";
+  if (text === "x2" || text.includes("draworaway")) return "11";
+  return null;
+}
+
+/** One leg -> `{ marketId, outcomeId, specifier }`, or null if it cannot be booked reliably. */
+function sportybetSelection(leg, match) {
+  const market = String(leg?.market ?? "").toLowerCase();
+  const selection = String(leg?.selection ?? "").toLowerCase();
+
+  // Order matters: corners/bookings are also "over/under".
+  if (/corner/.test(market)) {
+    const outcomeId = overUnderOutcome(selection);
+    const line = totalLine(leg);
+    return outcomeId && line ? { marketId: "166", outcomeId, specifier: `total=${line}` } : null;
+  }
+
+  if (/booking|card/.test(market)) {
+    const outcomeId = overUnderOutcome(selection);
+    const line = totalLine(leg);
+    return outcomeId && line ? { marketId: "139", outcomeId, specifier: `total=${line}` } : null;
+  }
+
+  if (/\bover\b|\bunder\b/.test(market)) {
+    const outcomeId = overUnderOutcome(selection);
+    const line = totalLine(leg);
+    return outcomeId && line ? { marketId: "18", outcomeId, specifier: `total=${line}` } : null;
+  }
+
+  if (/double chance/.test(market)) {
+    const outcomeId = doubleChanceOutcome(selection);
+    return outcomeId ? { marketId: "10", outcomeId, specifier: "" } : null;
+  }
+
+  if (/draw no bet/.test(market)) {
+    const side = selectionSide(leg, match);
+    if (side === "home") return { marketId: "11", outcomeId: "4", specifier: "" };
+    if (side === "away") return { marketId: "11", outcomeId: "5", specifier: "" };
+    return null;
+  }
+
+  if (/gg\/ng|both teams/.test(market)) {
+    if (/\byes\b/.test(selection)) return { marketId: "29", outcomeId: "74", specifier: "" };
+    if (/\bno\b/.test(selection)) return { marketId: "29", outcomeId: "76", specifier: "" };
+    return null;
+  }
+
+  const side = selectionSide(leg, match);
+  if (side) return { marketId: "1", outcomeId: RESULT_OUTCOME[side], specifier: "" };
+
+  return null;
+}
+
+/**
+ * Maps matched legs to SportyBet's booking payload.
+ *
+ * @param {Array<{ leg: object, match: object }>} matchedLegs entries from `matchBetslipLegs`
+ * @returns {{ selections: Array<{ eventId: string, marketId: string, outcomeId: string, specifier: string }>, skipped: Array<{ leg: object, reason: string }> }}
+ */
+export function toSportyBetSelections(matchedLegs) {
+  const selections = [];
+  const skipped = [];
+  const seen = new Set();
+
+  for (const entry of Array.isArray(matchedLegs) ? matchedLegs : []) {
+    const leg = entry?.leg ?? entry;
+    const eventId = entry?.match?.sr_id ?? null;
+
+    if (!eventId) {
+      skipped.push({ leg, reason: "missing-event-id" });
+      continue;
+    }
+
+    const mapped = sportybetSelection(leg, entry?.match);
+    if (!mapped) {
+      skipped.push({ leg, reason: "unsupported-market" });
+      continue;
+    }
+
+    const key = `${eventId}|${mapped.marketId}|${mapped.outcomeId}|${mapped.specifier}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    selections.push({ eventId, ...mapped });
+  }
+
+  return { selections, skipped };
+}
+
 function toCandidate(leg, scored) {
   return {
     status: "candidate",

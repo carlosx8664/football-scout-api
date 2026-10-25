@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { normalizeTeam } from "../../shared/teams.js";
+import { selectionSide } from "../../shared/betslip-match.js";
 import { extractBetslip } from "../lib/betBuilder";
 import type {
   BetBuilderResponse,
-  ExtractedLeg,
   Match,
   MatchedCandidate,
   MatchedLeg,
@@ -24,10 +23,6 @@ const MAX_CANDIDATES = 3;
 /** A drop this steep is worth warning about. */
 const ODDS_WARN_PCT = 5;
 
-/** Markets whose selection is not one of the 1X2 outcomes that `book_odds` carries. */
-const NON_RESULT_MARKET =
-  /over|under|handicap|corner|card|booking|both teams|btts|double chance|clean sheet|correct score|odd\/even|odd or even|multi ?goal|half|win to nil|penalt/i;
-
 function kickoffLabel(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -44,30 +39,7 @@ function openLink(url: string | null) {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-type ResultSide = "home" | "draw" | "away";
-
-/** Which 1X2 outcome a leg is on, or null when the market is not a plain match result. */
-function selectionSide(leg: ExtractedLeg, match: Match): ResultSide | null {
-  if (NON_RESULT_MARKET.test(leg.market ?? "")) return null;
-
-  const selection = (leg.selection ?? "").trim().toLowerCase();
-  if (!selection) return null;
-  // "Draw or Away (X2)" and friends cannot be priced from a single 1X2 column.
-  if (/\bor\b/.test(selection)) return null;
-
-  if (selection === "1" || /^home\b/.test(selection)) return "home";
-  if (selection === "x" || selection === "tie" || /^draw\b/.test(selection)) return "draw";
-  if (selection === "2" || /^away\b/.test(selection)) return "away";
-
-  // Some slips print the team name instead of Home/Away.
-  const picked = normalizeTeam(selection);
-  if (picked) {
-    if (picked === normalizeTeam(match.teams.home.name)) return "home";
-    if (picked === normalizeTeam(match.teams.away.name)) return "away";
-  }
-
-  return null;
-}
+type ResultSide = NonNullable<ReturnType<typeof selectionSide>>;
 
 function priceFor(match: Match, side: ResultSide, bookmaker: string): number | null {
   const price = match?.book_odds?.[side]?.books?.[bookmaker];
@@ -433,6 +405,25 @@ const BetBuilder = () => {
               <h2 className="bb-section-title">Matched</h2>
               <span className="bb-count">{matched.length}</span>
             </div>
+
+            {matched.length > 0 && (
+              <div className="bb-acca">
+                <button
+                  type="button"
+                  className="bb-btn bb-btn-brand bb-btn-acca"
+                  onClick={() => openLink(result?.sportybetAccaUrl ?? null)}
+                  disabled={!result?.sportybetAccaUrl}
+                >
+                  Add all {result?.stats?.bookable ?? matched.length} to SportyBet betslip
+                  <span className="bb-btn-icon" aria-hidden="true">↗</span>
+                </button>
+                {result?.sportybetAccaWarning && (
+                  <span className="bb-acca-warn" role="status">
+                    {result.sportybetAccaWarning}
+                  </span>
+                )}
+              </div>
+            )}
 
             {matched.length === 0 ? (
               <div className="bb-empty">No selections matched a fixture in the feed.</div>

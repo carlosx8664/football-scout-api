@@ -82,6 +82,9 @@ export async function extractBetslip(
     warnings: payload.warnings ?? [],
     matched: payload.matched,
     unresolved: payload.unresolved ?? [],
+    sportybetAccaUrl: payload.sportybetAccaUrl ?? null,
+    sportybetAccaCode: payload.sportybetAccaCode ?? null,
+    sportybetAccaWarning: payload.sportybetAccaWarning ?? null,
     cached: payload.cached,
     stats: payload.stats,
   };
