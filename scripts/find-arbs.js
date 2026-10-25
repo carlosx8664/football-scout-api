@@ -23,14 +23,10 @@ const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
 const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
-// Arb history: every opportunity ever seen, so the Past Arbs table survives kickoff.
-// The workflow restores this file from KV before each run and uploads it afterwards.
-// Only yesterday and today are kept; older entries are dropped on every run.
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
 const HISTORY_DAYS = Number(opt('history-days', '1'));
 const HISTORY_LIMIT = Number(opt('history-limit', '500'));
 
-/** Start of the day `days` before today, local time. */
 const historyCutoff = (nowMs, days = HISTORY_DAYS) => {
   const start = new Date(nowMs);
   start.setHours(0, 0, 0, 0);
@@ -63,7 +59,7 @@ const normalizeTeam = (name) => {
 };
 
 // ============================================================================
-// Telegram Alert Function
+// Telegram Alert
 // ============================================================================
 async function sendTelegramAlert(arbs) {
   const token = process.env.TELEGRAM_TOKEN;
@@ -97,67 +93,253 @@ async function sendTelegramAlert(arbs) {
 }
 
 // ============================================================================
-// Data Parsing Functions
+// Helpers
 // ============================================================================
-function readMarket(m) {
+/** Extracts the numeric line (e.g. 2.5, -1.5) from a specifier string. */
+function extractLine(spec) {
+  if (!spec || typeof spec !== 'string') return null;
+  // Handles "total=2.5", "hcp=-1.5", "total=12.5"
+  const m = spec.match(/(?:total=|hcp=)?(-?\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+/** Determines if a description string is Over/Under/Home/Away. */
+function pickSide(desc) {
+  const c = clean(desc);
+  if (c.startsWith('over')) return 'O';
+  if (c.startsWith('under')) return 'U';
+  if (c.startsWith('home')) return 'H';
+  if (c.startsWith('away')) return 'A';
+  if (c === 'yes') return 'Y';
+  if (c === 'no') return 'N';
+  if (c === 'draw') return 'D';
+  if (c === '1') return 'H';
+  if (c === '2') return 'A';
+  if (c === 'x') return 'D';
+  return null;
+}
+
+// ============================================================================
+// SportyBet Parser
+// ============================================================================
+function readSportyMarket(m) {
   const found = [];
   if (!m || !Array.isArray(m.outcomes)) return found;
   if (m.status != null && Number(m.status) !== 0) return found; 
 
   const id = String(m.id);
+  // SportyBet uses `specifier` (singular). Fall back to `specifiers` just in case.
+  const spec = m.specifier ?? m.specifiers ?? '';
 
   for (const o of m.outcomes) {
     if (!o || o.isActive === 0) continue;
     const odds = num(o.odds);
     if (odds === null || odds <= 1) continue;
 
-    const label = clean(o.desc ?? o.description);
+    const desc = o.desc ?? o.description ?? '';
+    const side = pickSide(desc);
+    const oid = String(o.id);
+    let key;
+
+    // 1X2
+    if (id === '1') {
+      if (side === 'H') key = '1X2:H';
+      else if (side === 'D') key = '1X2:D';
+      else if (side === 'A') key = '1X2:A';
+    }
+    // Double Chance
+    else if (id === '10') {
+      const c = clean(desc);
+      if (c === '1x' || c === 'homeordraw') key = 'DC:1X';
+      else if (c === '12' || c === 'homeoraway') key = 'DC:12';
+      else if (c === 'x2' || c === 'draworaway') key = 'DC:X2';
+    }
+    // DNB
+    else if (id === '11') {
+      if (side === 'H') key = 'DNB:H';
+      else if (side === 'A') key = 'DNB:A';
+    }
+    // BTTS
+    else if (id === '29') {
+      if (side === 'Y') key = 'BTTS:Y';
+      else if (side === 'N') key = 'BTTS:N';
+    }
+    // O/U Goals
+    else if (id === '18') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `OU:${line}:${side}`;
+      }
+    }
+    // Asian Handicap
+    else if (id === '16') {
+      const line = extractLine(spec);
+      if (line !== null && side) {
+        key = `AH:${line}:${side}`;
+      }
+    }
+    // Total Bookings
+    else if (id === '139') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `BOOK:${line}:${side}`;
+      }
+    }
+    // Total Corners
+    else if (id === '166') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `CORN:${line}:${side}`;
+      }
+    }
+    // Total Shots
+    else if (id === '900394') {
+      const line = extractLine(spec);
+      if (line !== null && side) {
+        key = `SHOTS:${line}:${side}`;
+      }
+    }
+    // Total Shots on Target
+    else if (id === '900393') {
+      const line = extractLine(spec);
+      if (line !== null && side) {
+        key = `SOT:${line}:${side}`;
+      }
+    }
+    // Home Team Shots
+    else if (id === '900552') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_SHOTS:H:${line}:${side}`;
+    }
+    // Away Team Shots
+    else if (id === '900553') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_SHOTS:A:${line}:${side}`;
+    }
+    // Home Team Shots on Target
+    else if (id === '900546') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_SOT:H:${line}:${side}`;
+    }
+    // Away Team Shots on Target
+    else if (id === '900547') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_SOT:A:${line}:${side}`;
+    }
+    // 1st Half Shots
+    else if (id === '900556') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `H1_SHOTS:${line}:${side}`;
+    }
+    // 1st Half Shots on Target
+    else if (id === '900550') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `H1_SOT:${line}:${side}`;
+    }
+    // Home Team Total Bookings
+    else if (id === '900304') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_BOOK:H:${line}:${side}`;
+    }
+    // Away Team Total Bookings
+    else if (id === '900305') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `TEAM_BOOK:A:${line}:${side}`;
+    }
+    // 1st Half Home Team Bookings
+    else if (id === '900306') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `H1_TEAM_BOOK:H:${line}:${side}`;
+    }
+    // 1st Half Away Team Bookings
+    else if (id === '900307') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `H1_TEAM_BOOK:A:${line}:${side}`;
+    }
+
+    if (key) found.push({ key, odds });
+  }
+  return found;
+}
+
+// ============================================================================
+// MSport Parser
+// ============================================================================
+function readMSportMarket(m) {
+  const found = [];
+  if (!m || !Array.isArray(m.outcomes)) return found;
+  if (m.status != null && Number(m.status) !== 0) return found;
+
+  const id = String(m.id);
+  const spec = m.specifier ?? m.specifiers ?? '';
+
+  for (const o of m.outcomes) {
+    if (!o || o.isActive === 0) continue;
+    const odds = num(o.odds);
+    if (odds === null || odds <= 1) continue;
+
+    const desc = o.description ?? o.desc ?? '';
+    const side = pickSide(desc);
     const oid = String(o.id);
     let key;
 
     if (id === '1') {
-      key = { home: '1X2:H', draw: '1X2:D', away: '1X2:A' }[label]
-        ?? { 1: '1X2:H', 2: '1X2:D', 3: '1X2:A' }[oid];
-    } else if (id === '10') {
-      key = {
-        '1x': 'DC:1X', homeordraw: 'DC:1X',
-        '12': 'DC:12', homeoraway: 'DC:12',
-        x2: 'DC:X2', draworaway: 'DC:X2',
-      }[label];
-    } else if (id === '11') {
-      key = { home: 'DNB:H', away: 'DNB:A', 1: 'DNB:H', 2: 'DNB:A' }[label]
-        ?? { 4: 'DNB:H', 5: 'DNB:A' }[oid];
-    } else if (id === '29') {
-      key = { yes: 'BTTS:Y', no: 'BTTS:N' }[label];
-    } else if (id === '18') {
-      const mt = label.match(/^(over|under)(\d+)(\d?)$/); 
-      if (mt) {
-        const line = mt[2] + (mt[3] ? `.${mt[3]}` : '.0');
-        if (line.endsWith('.5')) key = `OU:${line}:${mt[1] === 'over' ? 'O' : 'U'}`;
+      if (side === 'H') key = '1X2:H';
+      else if (side === 'D') key = '1X2:D';
+      else if (side === 'A') key = '1X2:A';
+    }
+    else if (id === '10') {
+      const c = clean(desc);
+      if (c === '1x' || c === 'homeordraw') key = 'DC:1X';
+      else if (c === '12' || c === 'homeoraway') key = 'DC:12';
+      else if (c === 'x2' || c === 'draworaway') key = 'DC:X2';
+    }
+    else if (id === '11') {
+      if (side === 'H') key = 'DNB:H';
+      else if (side === 'A') key = 'DNB:A';
+    }
+    else if (id === '29') {
+      if (side === 'Y') key = 'BTTS:Y';
+      else if (side === 'N') key = 'BTTS:N';
+    }
+    else if (id === '18') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) key = `OU:${line}:${side}`;
+    }
+    else if (id === '16') {
+      const line = extractLine(spec);
+      if (line !== null && side) key = `AH:${line}:${side}`;
+    }
+    else if (id === '139') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) key = `BOOK:${line}:${side}`;
+    }
+    else if (id === '166') {
+      const line = extractLine(spec);
+      if (line !== null && line.toString().endsWith('.5') && side) key = `CORN:${line}:${side}`;
+    }
+    // MSport Team Total Goals (19,20)
+    else if (id === '19' || id === '20') {
+      const line = extractLine(spec);
+      const team = id === '19' ? 'H' : 'A';
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `TEAM_OU:${team}:${line}:${side}`;
       }
-    } else if (id === '16') { 
-      const spec = m.specifiers ?? '';
-      const match = spec.match(/(?:hcp=)?(-?\d+(?:\.\d+)?)/);
-      const line = match ? parseFloat(match[1]) : null;
-      if (line !== null) {
-        if (oid === '1714' || label.includes('home')) key = `AH:${line}:H`;
-        if (oid === '1715' || label.includes('away')) key = `AH:${line}:A`;
+    }
+    // MSport 1st Half Team Total Goals (69,70)
+    else if (id === '69' || id === '70') {
+      const line = extractLine(spec);
+      const team = id === '69' ? 'H' : 'A';
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `H1_TEAM_OU:${team}:${line}:${side}`;
       }
-    } else if (id === '139') { 
-      const spec = m.specifiers ?? '';
-      const match = spec.match(/(?:total=)?(-?\d+(?:\.\d+)?)/);
-      const line = match ? parseFloat(match[1]) : null;
-      if (line !== null && line < 15 && line.toString().endsWith('.5')) {
-        if (label === 'over') key = `BOOK:${line}:O`;
-        if (label === 'under') key = `BOOK:${line}:U`;
-      }
-    } else if (id === '166') { 
-      const spec = m.specifiers ?? '';
-      const match = spec.match(/(?:total=)?(-?\d+(?:\.\d+)?)/);
-      const line = match ? parseFloat(match[1]) : null;
-      if (line !== null && line.toString().endsWith('.5')) {
-        if (label === 'over') key = `CORN:${line}:O`;
-        if (label === 'under') key = `CORN:${line}:U`;
+    }
+    // MSport 2nd Half Team Total Goals (91,92)
+    else if (id === '91' || id === '92') {
+      const line = extractLine(spec);
+      const team = id === '91' ? 'H' : 'A';
+      if (line !== null && line.toString().endsWith('.5') && side) {
+        key = `H2_TEAM_OU:${team}:${line}:${side}`;
       }
     }
 
@@ -166,17 +348,23 @@ function readMarket(m) {
   return found;
 }
 
+// ============================================================================
+// Data Loaders
+// ============================================================================
 function loadBookie(file, bookie) {
+  if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
   const events = new Map();
   const typeCounts = {};
+
+  const parseFn = bookie === SPORTY ? readSportyMarket : readMSportMarket;
 
   for (const t of raw?.data?.tournaments ?? []) {
     for (const e of t.events ?? []) {
       if (!e.eventId) continue;
       const sel = {};
       for (const m of e.markets ?? []) {
-        for (const { key, odds } of readMarket(m)) {
+        for (const { key, odds } of parseFn(m)) {
           if (key in sel) continue;
           sel[key] = bookie === MSPORT ? odds * BOOST : odds;
           const type = key.split(':')[0];
@@ -205,6 +393,7 @@ const betBoroPrice = (node) => {
 };
 
 function loadBetBoro(file) {
+  if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
   const events = new Map();
   const typeCounts = {};
@@ -237,6 +426,34 @@ function loadBetBoro(file) {
       if (!line.endsWith('.5')) continue;
       add(`OU:${line}:O`, betBoroPrice(node?.['0']));
       add(`OU:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    // BetBoro's `total_corners` (if present in overview_markets)
+    for (const [line, node] of Object.entries(f.markets?.total_corners ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`CORN:${line}:O`, betBoroPrice(node?.['0']));
+      add(`CORN:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    // BetBoro's `total_cards` (if present in overview_markets)
+    for (const [line, node] of Object.entries(f.markets?.total_cards ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`BOOK:${line}:O`, betBoroPrice(node?.['0']));
+      add(`BOOK:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    // BetBoro's `total_shots` (if present in overview_markets)
+    for (const [line, node] of Object.entries(f.markets?.total_shots ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`SHOTS:${line}:O`, betBoroPrice(node?.['0']));
+      add(`SHOTS:${line}:U`, betBoroPrice(node?.['1']));
+    }
+
+    // BetBoro's `total_shots_on_target` (if present in overview_markets)
+    for (const [line, node] of Object.entries(f.markets?.total_shots_on_target ?? {})) {
+      if (!line.endsWith('.5')) continue;
+      add(`SOT:${line}:O`, betBoroPrice(node?.['0']));
+      add(`SOT:${line}:U`, betBoroPrice(node?.['1']));
     }
 
     events.set(f.eventId, {
@@ -288,6 +505,12 @@ function loadBoltBet(file) {
         } else if (m.type === '1005500' && hp !== null) {
           if (optionKey === 'over') add(`OU:${hp}:O`, odds);
           if (optionKey === 'under') add(`OU:${hp}:U`, odds);
+        } else if (m.type === '1005501' && hp !== null) {
+          if (optionKey === 'over') add(`TEAM_OU:H:${hp}:O`, odds);
+          if (optionKey === 'under') add(`TEAM_OU:H:${hp}:U`, odds);
+        } else if (m.type === '1005502' && hp !== null) {
+          if (optionKey === 'over') add(`TEAM_OU:A:${hp}:O`, odds);
+          if (optionKey === 'under') add(`TEAM_OU:A:${hp}:U`, odds);
         } else if (m.type === '1005508') {
           if (optionKey === 'yes') add('BTTS:Y', odds);
           if (optionKey === 'no') add('BTTS:N', odds);
@@ -358,8 +581,6 @@ function loadBetPawa(file) {
 
     if (Object.keys(sel).length === 0) continue;
 
-    // BetPawa uses a dynamic kickoff time. We set it to now + 1 hour to ensure 
-    // it's processed by the scanner and matches team names correctly.
     events.set(e.eventId, {
       eventId: e.eventId,
       home: e.home,
@@ -373,6 +594,9 @@ function loadBetPawa(file) {
   return { events, typeCounts };
 }
 
+// ============================================================================
+// Arb Evaluation
+// ============================================================================
 const RESULT = ['H', 'D', 'A'];
 
 const FIXED_PAIRS = [
@@ -401,6 +625,20 @@ const labelOf = (key) => {
   if (type === 'AH') return `${parts[2] === 'H' ? 'Home' : 'Away'} (${parts[1]})`;
   if (type === 'BOOK') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Bookings`;
   if (type === 'CORN') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Corners`;
+  if (type === 'SHOTS') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots`;
+  if (type === 'SOT') return `${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots on Target`;
+  if (type === 'H1_SHOTS') return `1st Half ${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots`;
+  if (type === 'H1_SOT') return `1st Half ${parts[2] === 'O' ? 'Over' : 'Under'} ${parts[1]} Shots on Target`;
+
+  // Team Totals
+  if (type === 'TEAM_OU') return `${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Goals`;
+  if (type === 'H1_TEAM_OU') return `1st Half ${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Goals`;
+  if (type === 'H2_TEAM_OU') return `2nd Half ${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Goals`;
+  if (type === 'TEAM_SHOTS') return `${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Shots`;
+  if (type === 'TEAM_SOT') return `${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Shots on Target`;
+  if (type === 'TEAM_BOOK') return `${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Cards`;
+  if (type === 'H1_TEAM_BOOK') return `1st Half ${parts[1] === 'H' ? 'Home' : 'Away'} Team ${parts[3] === 'O' ? 'Over' : 'Under'} ${parts[2]} Cards`;
+  
   return key;
 };
 
@@ -414,7 +652,8 @@ function payout(key, odds, scen) {
     case 'DC': return sel.includes({ H: '1', D: 'X', A: '2' }[scen]) ? odds : 0;
     case 'DNB': return scen === 'D' ? 1 : (sel === scen ? odds : 0);
     case 'BTTS': return sel === scen ? odds : 0;
-    case 'OU': case 'BOOK': case 'CORN':
+    case 'OU': case 'BOOK': case 'CORN': case 'SHOTS': case 'SOT': case 'H1_SHOTS': case 'H1_SOT':
+    case 'TEAM_OU': case 'H1_TEAM_OU': case 'H2_TEAM_OU': case 'TEAM_SHOTS': case 'TEAM_SOT': case 'TEAM_BOOK': case 'H1_TEAM_BOOK':
       return sel === scen ? odds : 0;
     case 'AH': 
       return sel === scen ? odds : 0; 
@@ -438,9 +677,8 @@ function evaluate(pair, oa, ob) {
 }
 
 // ============================================================================
-// Arb history: open / latest / final pre-kickoff prices
+// Arb History
 // ============================================================================
-
 const historyKey = (arb) => `${arb.eventId ?? `${arb.home}|${arb.away}`}|${arb.market}`;
 
 function loadHistory(file) {
@@ -453,15 +691,6 @@ function loadHistory(file) {
   }
 }
 
-/**
- * Folds this run's arbs into the accumulated history.
- *
- * Per leg:
- *   openOdds   first price we ever saw
- *   lastOdds   price from the latest run (always pre-kickoff, because the feeds
- *              only expose not-started events)
- *   finalOdds  lastOdds frozen the first time we see the match has kicked off
- */
 function mergeHistory(previous, arbs, nowMs) {
   const byKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
 
@@ -504,8 +733,6 @@ function mergeHistory(previous, arbs, nowMs) {
     });
   }
 
-  // Freeze the close for anything that has kicked off, including arbs that have
-  // already dropped out of the feed.
   const cutoff = historyCutoff(nowMs);
   const rows = [];
 
@@ -526,6 +753,9 @@ function mergeHistory(previous, arbs, nowMs) {
   return rows.slice(0, HISTORY_LIMIT);
 }
 
+// ============================================================================
+// Main
+// ============================================================================
 async function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
@@ -562,13 +792,18 @@ async function main() {
       if (!ev.notStarted) continue;
 
       const srKey = ev.eventId && ev.eventId.startsWith('sr:match:') ? ev.eventId : null;
-      const teamKey = `${normalizeTeam(ev.home)}|${normalizeTeam(ev.away)}|${Math.floor(ev.kickoff / 60000)}`;
+      // 2-hour kickoff tolerance for team-name matching
+      const timeKey = Math.floor(ev.kickoff / 7200000);
+      const teamKey = `${normalizeTeam(ev.home)}|${normalizeTeam(ev.away)}|${timeKey}`;
 
       let fixture = null;
 
+      // 1. sr:match ID priority
       if (srKey && fixturesBySrId.has(srKey)) {
         fixture = fixturesBySrId.get(srKey);
-      } else if (fixturesByTeam.has(teamKey)) {
+      } 
+      // 2. Team name fallback
+      else if (fixturesByTeam.has(teamKey)) {
         fixture = fixturesByTeam.get(teamKey);
       }
 
@@ -600,6 +835,19 @@ async function main() {
     const ahLines = new Set();
     const bookLines = new Set();
     const cornLines = new Set();
+    const shotsLines = new Set();
+    const sotLines = new Set();
+    const h1ShotsLines = new Set();
+    const h1SotLines = new Set();
+    
+    // Team Totals
+    const teamOuLines = new Set();
+    const h1TeamOuLines = new Set();
+    const h2TeamOuLines = new Set();
+    const teamShotsLines = new Set();
+    const teamSotLines = new Set();
+    const teamBookLines = new Set();
+    const h1TeamBookLines = new Set();
 
     for (const name of names) {
       for (const k of Object.keys(books[name])) {
@@ -607,6 +855,18 @@ async function main() {
         if (k.startsWith('AH:')) ahLines.add(k.split(':')[1]);
         if (k.startsWith('BOOK:')) bookLines.add(k.split(':')[1]);
         if (k.startsWith('CORN:')) cornLines.add(k.split(':')[1]);
+        if (k.startsWith('SHOTS:')) shotsLines.add(k.split(':')[1]);
+        if (k.startsWith('SOT:')) sotLines.add(k.split(':')[1]);
+        if (k.startsWith('H1_SHOTS:')) h1ShotsLines.add(k.split(':')[1]);
+        if (k.startsWith('H1_SOT:')) h1SotLines.add(k.split(':')[1]);
+        
+        if (k.startsWith('TEAM_OU:')) teamOuLines.add(k.split(':')[2]);
+        if (k.startsWith('H1_TEAM_OU:')) h1TeamOuLines.add(k.split(':')[2]);
+        if (k.startsWith('H2_TEAM_OU:')) h2TeamOuLines.add(k.split(':')[2]);
+        if (k.startsWith('TEAM_SHOTS:')) teamShotsLines.add(k.split(':')[2]);
+        if (k.startsWith('TEAM_SOT:')) teamSotLines.add(k.split(':')[2]);
+        if (k.startsWith('TEAM_BOOK:')) teamBookLines.add(k.split(':')[2]);
+        if (k.startsWith('H1_TEAM_BOOK:')) h1TeamBookLines.add(k.split(':')[2]);
       }
     }
 
@@ -615,7 +875,40 @@ async function main() {
     for (const line of ouLines) pairs.push({ a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Goals` });
     for (const line of bookLines) pairs.push({ a: `BOOK:${line}:O`, b: `BOOK:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Bookings`, needsRuleReview: true });
     for (const line of cornLines) pairs.push({ a: `CORN:${line}:O`, b: `CORN:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Corners`, needsRuleReview: true });
-    
+    for (const line of shotsLines) pairs.push({ a: `SHOTS:${line}:O`, b: `SHOTS:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Shots` });
+    for (const line of sotLines) pairs.push({ a: `SOT:${line}:O`, b: `SOT:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Shots on Target` });
+    for (const line of h1ShotsLines) pairs.push({ a: `H1_SHOTS:${line}:O`, b: `H1_SHOTS:${line}:U`, scen: ['O', 'U'], market: `1st Half Over/Under ${line} Shots` });
+    for (const line of h1SotLines) pairs.push({ a: `H1_SOT:${line}:O`, b: `H1_SOT:${line}:U`, scen: ['O', 'U'], market: `1st Half Over/Under ${line} Shots on Target` });
+
+    for (const line of teamOuLines) {
+      pairs.push({ a: `TEAM_OU:H:${line}:O`, b: `TEAM_OU:H:${line}:U`, scen: ['O', 'U'], market: `Home Team O/U ${line} Goals` });
+      pairs.push({ a: `TEAM_OU:A:${line}:O`, b: `TEAM_OU:A:${line}:U`, scen: ['O', 'U'], market: `Away Team O/U ${line} Goals` });
+    }
+    for (const line of h1TeamOuLines) {
+      pairs.push({ a: `H1_TEAM_OU:H:${line}:O`, b: `H1_TEAM_OU:H:${line}:U`, scen: ['O', 'U'], market: `1st Half Home O/U ${line} Goals` });
+      pairs.push({ a: `H1_TEAM_OU:A:${line}:O`, b: `H1_TEAM_OU:A:${line}:U`, scen: ['O', 'U'], market: `1st Half Away O/U ${line} Goals` });
+    }
+    for (const line of h2TeamOuLines) {
+      pairs.push({ a: `H2_TEAM_OU:H:${line}:O`, b: `H2_TEAM_OU:H:${line}:U`, scen: ['O', 'U'], market: `2nd Half Home O/U ${line} Goals` });
+      pairs.push({ a: `H2_TEAM_OU:A:${line}:O`, b: `H2_TEAM_OU:A:${line}:U`, scen: ['O', 'U'], market: `2nd Half Away O/U ${line} Goals` });
+    }
+    for (const line of teamShotsLines) {
+      pairs.push({ a: `TEAM_SHOTS:H:${line}:O`, b: `TEAM_SHOTS:H:${line}:U`, scen: ['O', 'U'], market: `Home Team O/U ${line} Shots` });
+      pairs.push({ a: `TEAM_SHOTS:A:${line}:O`, b: `TEAM_SHOTS:A:${line}:U`, scen: ['O', 'U'], market: `Away Team O/U ${line} Shots` });
+    }
+    for (const line of teamSotLines) {
+      pairs.push({ a: `TEAM_SOT:H:${line}:O`, b: `TEAM_SOT:H:${line}:U`, scen: ['O', 'U'], market: `Home Team O/U ${line} Shots on Target` });
+      pairs.push({ a: `TEAM_SOT:A:${line}:O`, b: `TEAM_SOT:A:${line}:U`, scen: ['O', 'U'], market: `Away Team O/U ${line} Shots on Target` });
+    }
+    for (const line of teamBookLines) {
+      pairs.push({ a: `TEAM_BOOK:H:${line}:O`, b: `TEAM_BOOK:H:${line}:U`, scen: ['O', 'U'], market: `Home Team O/U ${line} Cards`, needsRuleReview: true });
+      pairs.push({ a: `TEAM_BOOK:A:${line}:O`, b: `TEAM_BOOK:A:${line}:U`, scen: ['O', 'U'], market: `Away Team O/U ${line} Cards`, needsRuleReview: true });
+    }
+    for (const line of h1TeamBookLines) {
+      pairs.push({ a: `H1_TEAM_BOOK:H:${line}:O`, b: `H1_TEAM_BOOK:H:${line}:U`, scen: ['O', 'U'], market: `1st Half Home O/U ${line} Cards`, needsRuleReview: true });
+      pairs.push({ a: `H1_TEAM_BOOK:A:${line}:O`, b: `H1_TEAM_BOOK:A:${line}:U`, scen: ['O', 'U'], market: `1st Half Away O/U ${line} Cards`, needsRuleReview: true });
+    }
+
     for (const line of ahLines) {
       const oppositeLine = line.startsWith('-') ? line.substring(1) : `-${line}`;
       pairs.push({ 
