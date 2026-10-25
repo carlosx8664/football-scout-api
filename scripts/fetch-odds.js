@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { io } from 'socket.io-client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,24 +38,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ============================================================================
 // SportyBet
 // ============================================================================
-// Added deep markets for Shots, SOT, and Team Totals
+//
+// NOTE: Aggregate team-level shots/SOT markets are NOT present in BetBoro's
+// live `liveFixtureBook` payload — BetBoro only exposes per-player shots/SOT
+// (external_id 2564/2565), which find-arbs.js does not currently consume.
+//
+//   '900394', '900393', '900552', '900553',
+//   '900546', '900547', '900556', '900550',
+//
 const SPORTY_MARKETS = [
-  '1',      // 1X2
-  '10',     // Double Chance
-  '11',     // DNB
-  '18',     // O/U Goals
-  '29',     // BTTS
-  '16',     // Asian Handicap
-  '139',    // Bookings O/U
-  '166',    // Corners O/U
-  '900394', // Total Shots O/U
-  '900393', // Shots on Target O/U
-  '900552', // Home Team Shots O/U
-  '900553', // Away Team Shots O/U
-  '900546', // Home Team Shots on Target O/U
-  '900547', // Away Team Shots on Target O/U
-  '900556', // 1st Half Shots O/U
-  '900550', // 1st Half Shots on Target O/U
+  '1', '10', '11', '18', '29', '16', '139', '166',
 ];
 
 async function fetchSportyBetPage(pageNum, marketIds) {
@@ -155,7 +148,6 @@ async function fetchSportyBetWithMarkets() {
   try {
     tournaments = await fetchAllSportyBet(marketIds);
     const cov = marketCoverage(tournaments);
-    // Check if any deep market succeeded
     combinedWorked = marketIds.slice(1).some((id) => cov.has(id));
   } catch (e) {
     console.log(`   ⚠️  Combined request failed (${e.message}).`);
@@ -176,18 +168,13 @@ async function fetchSportyBetWithMarkets() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Targeted Rescue: The combined multi-market request frequently truncates
-  // heavy markets (AH, Shots, etc) because the payload is too large.
-  // If they are missing, refetch them individually and merge.
-  // ---------------------------------------------------------------------------
-  const rescueIds = ['16', '900394', '900393', '900552', '900553'];
+  const rescueIds = ['16'];
   for (const id of rescueIds) {
     if (!marketIds.includes(id)) continue;
-    
+
     const cov = marketCoverage(tournaments);
     const count = cov.get(id) || 0;
-    
+
     if (count === 0) {
       console.log(`   ⚠️  Market ${id} missing from combined request, refetching separately...`);
       await sleep(1500);
@@ -204,23 +191,9 @@ async function fetchSportyBetWithMarkets() {
 
   const cov = marketCoverage(tournaments);
   console.log(`\n📊 SportyBet Market Coverage:`);
-  const labels = { 
-    '1': '1X2', 
-    '10': 'Double Chance', 
-    '11': 'DNB', 
-    '18': 'O/U Goals', 
-    '29': 'BTTS', 
-    '16': 'Asian Handicap', 
-    '139': 'Bookings O/U', 
-    '166': 'Corners O/U',
-    '900394': 'Total Shots',
-    '900393': 'Total Shots on Target',
-    '900552': 'Home Team Shots',
-    '900553': 'Away Team Shots',
-    '900546': 'Home Team SOT',
-    '900547': 'Away Team SOT',
-    '900556': '1st Half Shots',
-    '900550': '1st Half SOT'
+  const labels = {
+    '1': '1X2', '10': 'Double Chance', '11': 'DNB', '18': 'O/U Goals',
+    '29': 'BTTS', '16': 'Asian Handicap', '139': 'Bookings O/U', '166': 'Corners O/U',
   };
   for (const id of marketIds) {
     const count = cov.get(id) || 0;
@@ -302,7 +275,7 @@ async function fetchAllMSport() {
 }
 
 // ============================================================================
-// BetBoro
+// BetBoro (REST + WebSocket via socket.io-client)
 // ============================================================================
 const BETBORO_COMPETITIONS = [
   '24889', '26561', '871', '8668', '349', '825', '23661', '24738', '7259', '112',
@@ -406,6 +379,9 @@ function collectBetBoro(responses) {
         seen.add(eventId);
         out.push({
           eventId,
+          betBoroId: String(f.id),
+          betBoroVirtualLiveId: f.virtual_live_id != null ? String(f.virtual_live_id) : null,
+          betBoroExternalId: String(f.external_id),
           home: f.participants[0],
           away: f.participants[1],
           logos: { home: f.participant_logos?.home ?? '', away: f.participant_logos?.away ?? '' },
@@ -442,8 +418,251 @@ async function fetchAllBetBoro(competitionIds) {
   return collectBetBoro(responses);
 }
 
+// ---------------------------------------------------------------------------
+// liveFixtureBook → flat markets (unchanged from v3)
+// ---------------------------------------------------------------------------
+const BETBORO_FLAT_KEY_MAP = {
+  '1':   { key: 'match_result',        kind: 'result' },
+  '2':   { key: 'double_chance',       kind: 'result' },
+  '7':   { key: 'both_teams_to_score', kind: 'btts'   },
+  '6':   { key: 'total_goals',         kind: 'ou'     },
+  '18':  { key: 'total_goals',         kind: 'ou'     },
+
+  '1153': { key: 'total_corners',         kind: 'ou' },
+  '166':  { key: 'total_corners',         kind: 'ou' },
+  '1165': { key: 'total_cards',           kind: 'ou' },
+  '139':  { key: 'total_cards',           kind: 'ou' },
+
+  '1189': { key: 'total_shots',           kind: 'ou' },
+  '1162': { key: 'total_shots_on_target', kind: 'ou' },
+};
+
+function parseBetBoroOuSide(odd) {
+  const n = String(odd?.name ?? odd?.name_short ?? '').toLowerCase().trim();
+  if (n.startsWith('over'))  return '0';
+  if (n.startsWith('under')) return '1';
+  if (n.startsWith('yes'))   return '0';
+  if (n.startsWith('no'))    return '1';
+  return null;
+}
+
+function parseBetBoroResultSlot(odd) {
+  const c = Number(odd?.col);
+  if (Number.isInteger(c)) return String(c);
+  const s = String(odd?.name_short ?? '').toLowerCase().trim();
+  if (s === '1') return '0';
+  if (s === 'x' || s === 'draw') return '1';
+  if (s === '2') return '2';
+  if (s === 'yes') return '0';
+  if (s === 'no')  return '1';
+  if (s === '1x')  return '0';
+  if (s === '12')  return '1';
+  if (s === 'x2')  return '2';
+  return null;
+}
+
+function extractLineFromOdd(odd) {
+  const s = Number(odd?.sort);
+  if (Number.isFinite(s) && s > 0 && Math.abs(s - Math.round(s)) > 1e-9) {
+    return String(s);
+  }
+  const m = String(odd?.name ?? odd?.name_short ?? '').match(/(\d+(?:\.\d+)?)/);
+  return m ? m[1] : null;
+}
+
+function flattenLiveFixtureBook(payload) {
+  const out = {};
+  if (!payload || typeof payload.markets !== 'object') return out;
+
+  for (const market of Object.values(payload.markets)) {
+    if (!market) continue;
+    if (market.visible === false) continue;
+
+    const extId = String(market.external_id ?? '');
+    const spec = BETBORO_FLAT_KEY_MAP[extId];
+    if (!spec) continue;
+
+    const odds = market.odds ?? {};
+
+    if (spec.kind === 'result' || spec.kind === 'btts') {
+      const bucket = out[spec.key] = out[spec.key] ?? {};
+      for (const odd of Object.values(odds)) {
+        if (!odd || odd.status !== 'available') continue;
+        const slot = parseBetBoroResultSlot(odd);
+        if (slot == null) continue;
+        if (bucket[slot]) continue;
+        bucket[slot] = { price: String(odd.price), status: 'available' };
+      }
+      continue;
+    }
+
+    if (spec.kind === 'ou') {
+      const bucket = out[spec.key] = out[spec.key] ?? {};
+      for (const odd of Object.values(odds)) {
+        if (!odd || odd.status !== 'available') continue;
+        const line = extractLineFromOdd(odd);
+        if (!line || !line.endsWith('.5')) continue;
+        const side = parseBetBoroOuSide(odd);
+        if (side == null) continue;
+        bucket[line] = bucket[line] ?? {};
+        if (bucket[line][side]) continue;
+        bucket[line][side] = { price: String(odd.price), status: 'available' };
+      }
+    }
+  }
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// WebSocket enrichment (v4)
+//
+// Browser capture confirmed the correct emit shape:
+//   socket.emit('join-liveFixtureBook', '93917479')
+// i.e. event name is `join-liveFixtureBook`, payload is a STRING.
+//
+// We don't know the `93917479`-style broadcast id from REST — so v4 tries
+// every known id shape as a string, across the correct event name only.
+// The payload matcher accepts whichever id shape the server echoes back.
+// ---------------------------------------------------------------------------
+function fetchBetBoroWebSockets(fixtures, sportyTournaments) {
+  if (!fixtures || fixtures.length === 0) return Promise.resolve(new Map());
+  if (!sportyTournaments || sportyTournaments.length === 0) {
+    console.log('   ℹ️  No SportyBet data available; skipping WebSocket enrichment.');
+    return Promise.resolve(new Map());
+  }
+
+  const DEEP_IDS = new Set(['139', '166']);
+  const deepIds = new Set();
+  for (const t of sportyTournaments) {
+    for (const e of t.events ?? []) {
+      for (const m of e.markets ?? []) {
+        if (DEEP_IDS.has(String(m.id))) { deepIds.add(e.eventId); break; }
+      }
+    }
+  }
+
+  const targets = fixtures.filter((f) => deepIds.has(f.eventId));
+  if (targets.length === 0) {
+    console.log('   ℹ️  No fixtures with deep markets to enrich via WebSocket.');
+    return Promise.resolve(new Map());
+  }
+
+  console.log(`   🔌 Opening socket.io connection, subscribing to ${targets.length} fixtures...`);
+
+  return new Promise((resolve) => {
+    const payloads = new Map();
+    let resolved = false;
+
+    const finish = (reason) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      try { socket.close(); } catch {}
+      console.log(`   ⏱️  Socket ${reason}. Collected ${payloads.size}/${targets.length}.`);
+      if (payloads.size === 0) {
+        console.log('   ⚠️  0 payloads received — server did not accept any id shape we tried.');
+        const sample = targets.slice(0, 3).map((t) =>
+          `${t.eventId} (betBoroId=${t.betBoroId}, vLive=${t.betBoroVirtualLiveId ?? '∅'}, ext=${t.betBoroExternalId})`);
+        if (sample.length) console.log(`       samples: ${sample.join(' | ')}`);
+      }
+      resolve(payloads);
+    };
+
+    const socket = io('wss://bs.betboro.com.gh/sb-en', {
+      path: '/socket/',
+      transports: ['websocket'],
+      forceNew: true,
+      reconnection: false,
+      timeout: 15000,
+      query: { EIO: '4', transport: 'websocket' },
+    });
+
+    const timeout = setTimeout(() => finish('timeout'), 25000);
+
+    socket.on('connect', () => {
+      console.log(`   ✅ Connected (sid: ${socket.id})`);
+      let i = 0;
+      let logged = 0;
+      const sendNext = () => {
+        if (i >= targets.length || resolved) return;
+        const t = targets[i++];
+
+        // Every id shape we know — as STRINGS, because the browser sends
+        // the payload as a quoted string: 42/sb-en,["join-liveFixtureBook","93917479"]
+        const idCandidates = [];
+        if (t.betBoroId)             idCandidates.push(String(t.betBoroId));
+        if (t.betBoroVirtualLiveId)  idCandidates.push(String(t.betBoroVirtualLiveId));
+        if (t.betBoroExternalId)     idCandidates.push(String(t.betBoroExternalId));
+
+        if (logged < 3) {
+          console.log(`      ↪ emit join-liveFixtureBook ${t.eventId} with ids [${idCandidates.join(',')}]`);
+          logged++;
+        }
+
+        for (const id of idCandidates) {
+          socket.emit('join-liveFixtureBook', id);
+        }
+        setTimeout(sendNext, 40);
+      };
+      sendNext();
+    });
+
+    // Full payloads
+    socket.on('liveFixtureBook', (payload) => {
+      if (!payload) return;
+      const keys = [];
+      if (payload.external_id != null)     keys.push(`sr:match:${payload.external_id}`);
+      if (payload.virtual_live_id != null) keys.push(`vLive:${payload.virtual_live_id}`);
+      if (payload.id != null)              keys.push(`betBoro:${payload.id}`);
+      if (!keys.length) return;
+
+      for (const k of keys) payloads.set(k, payload);
+
+      const extIds = Object.values(payload.markets ?? {})
+        .map((m) => m.external_id)
+        .filter((v) => v != null);
+      const uniqueExtIds = Array.from(new Set(extIds)).sort((a, b) => Number(a) - Number(b));
+      console.log(
+        `   📥 liveFixtureBook id=${payload.id} ext=${payload.external_id} vLive=${payload.virtual_live_id} → external_ids: ${uniqueExtIds.join(',')}`,
+      );
+
+      if (payloads.size >= targets.length) {
+        clearTimeout(timeout);
+        try { socket.close(); } catch {}
+        console.log(`   ✅ Socket received ${targets.length} fixtures.`);
+        resolved = true;
+        resolve(payloads);
+      }
+    });
+
+    // Optional: log delta updates so we can see the stream is alive
+    socket.on('liveFixtureBookUpdate', (payload) => {
+      if (!payload) return;
+      // Not merged into the final map; the full liveFixtureBook payload is authoritative.
+      if (payload.id != null && payloads.has(`betBoro:${payload.id}`)) {
+        // Update arrived for a fixture we already have — no-op for now.
+      }
+    });
+
+    socket.on('connect_error', (err) => {
+      console.log(`   ⚠️  Socket connect_error: ${err.message}`);
+      finish('connect_error');
+    });
+
+    socket.on('error', (err) => {
+      console.log(`   ⚠️  Socket error: ${err.message || err}`);
+    });
+
+    socket.on('disconnect', (reason) => {
+      if (reason === 'io client disconnect' || reason === 'io server disconnect') return;
+      finish(`disconnected (${reason})`);
+    });
+  });
+}
+
 // ============================================================================
-// BoltBet (with Date Filtering and Full View)
+// BoltBet
 // ============================================================================
 async function fetchAllBoltBet() {
   const headers = {
@@ -456,7 +675,7 @@ async function fetchAllBoltBet() {
   };
 
   let allEvents = [];
-  const chunks = 4; // Divide the 48h window into 4 chunks of 12 hours
+  const chunks = 4;
   const chunkMs = (WINDOW_DAYS * 24 * 60 * 60 * 1000) / chunks;
 
   for (let i = 0; i < chunks; i++) {
@@ -470,18 +689,17 @@ async function fetchAllBoltBet() {
 
     console.log(`📄 BoltBet chunk ${i + 1}/${chunks} (${fromDate} to ${toDate})...`);
     const res = await fetch(url, { method: 'GET', headers });
-    
+
     if (!res.ok) {
       console.log(`   ⚠️ Chunk ${i + 1} failed with HTTP ${res.status}`);
       continue;
     }
-    
+
     const data = await res.json();
     const events = data.result || [];
-    
+
     let added = 0;
     for (const e of events) {
-      // Ensure it's a valid match and not a duplicate
       if (e.fixture && !allEvents.some(existing => existing.fixture.uuid === e.fixture.uuid)) {
         allEvents.push(e);
         added++;
@@ -517,11 +735,13 @@ async function run() {
     return;
   }
 
+  let sportyTournaments = [];
   if (want('sportybet')) {
     try {
       console.log('🚀 Fetching SportyBet...');
       const sb = await fetchSportyBetWithMarkets();
-      const sbCount = sb.data.tournaments.reduce((s, t) => s + (t.events?.length || 0), 0);
+      sportyTournaments = sb.data.tournaments;
+      const sbCount = sportyTournaments.reduce((s, t) => s + (t.events?.length || 0), 0);
       fs.writeFileSync(outFile('sportybet'), JSON.stringify(sb, null, 2));
       console.log(`✅ SportyBet: ${sbCount} total matches saved.\n`);
     } catch (e) {
@@ -535,7 +755,7 @@ async function run() {
       const ms = await fetchAllMSport();
       const msCount = ms.data.tournaments.reduce((s, t) => s + (t.events?.length || 0), 0);
       fs.writeFileSync(outFile('msport'), JSON.stringify(ms, null, 2));
-      console.log(`✅ MSport: ${msCount} total matches saved (Full market tree included).\n`);
+      console.log(`✅ MSport: ${msCount} total matches saved.\n`);
     } catch (e) {
       console.error('❌ MSport fetch failed:', e.message, '\n');
     }
@@ -543,7 +763,7 @@ async function run() {
 
   if (want('betboro')) {
     try {
-      console.log('🚀 Fetching BetBoro...');
+      console.log('🚀 Fetching BetBoro (REST)...');
       const override = opt('betboro-comps', '');
       let comps;
       if (override) {
@@ -553,6 +773,37 @@ async function run() {
         comps = discovered ?? BETBORO_COMPETITIONS;
       }
       const fixtures = await fetchAllBetBoro(comps);
+      console.log(`   → REST returned ${fixtures.length} fixtures.\n`);
+
+      if (sportyTournaments.length === 0) {
+        console.log('   ⚠️  SportyBet data not loaded; skipping WebSocket enrichment.');
+      } else {
+        const wsPayloads = await fetchBetBoroWebSockets(fixtures, sportyTournaments);
+        let enriched = 0;
+        const keyCounts = {};
+        for (const f of fixtures) {
+          const payload =
+            wsPayloads.get(f.eventId)
+            ?? (f.betBoroVirtualLiveId ? wsPayloads.get(`vLive:${f.betBoroVirtualLiveId}`) : null)
+            ?? wsPayloads.get(`betBoro:${f.betBoroId}`);
+          if (!payload) continue;
+          const flat = flattenLiveFixtureBook(payload);
+          for (const [k, v] of Object.entries(flat)) {
+            f.markets[k] = v;
+            keyCounts[k] = (keyCounts[k] || 0) + 1;
+          }
+          enriched++;
+        }
+        console.log(`   ✅ Enriched ${enriched}/${fixtures.length} fixtures with live payloads.`);
+        if (Object.keys(keyCounts).length > 0) {
+          console.log('   📊 Market keys written:',
+            Object.entries(keyCounts)
+              .sort((a, b) => b[1] - a[1])
+              .map(([k, n]) => `${k}=${n}`)
+              .join('  '));
+        }
+      }
+
       fs.writeFileSync(outFile('betboro'), JSON.stringify({ generatedAt: new Date().toISOString(), fixtures }));
       console.log(`✅ BetBoro: ${fixtures.length} total matches saved.\n`);
     } catch (e) {

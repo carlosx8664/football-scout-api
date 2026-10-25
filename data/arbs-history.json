@@ -1136,7 +1136,7 @@
       "openProfitPct": 2.302,
       "peakProfitPct": 2.302,
       "profitPct": 2.302,
-      "finalProfitPct": null,
+      "finalProfitPct": 2.302,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1144,7 +1144,7 @@
           "stake": 47.8,
           "openOdds": 2.14,
           "lastOdds": 2.14,
-          "finalOdds": null
+          "finalOdds": 2.14
         },
         {
           "bookmaker": "SportyBet",
@@ -1152,7 +1152,7 @@
           "stake": 52.2,
           "openOdds": 1.96,
           "lastOdds": 1.96,
-          "finalOdds": null
+          "finalOdds": 1.96
         }
       ]
     },
@@ -1170,7 +1170,7 @@
       "openProfitPct": 1.521,
       "peakProfitPct": 1.521,
       "profitPct": 1.521,
-      "finalProfitPct": null,
+      "finalProfitPct": 1.521,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1178,7 +1178,7 @@
           "stake": 29.01,
           "openOdds": 3.5,
           "lastOdds": 3.5,
-          "finalOdds": null
+          "finalOdds": 3.5
         },
         {
           "bookmaker": "SportyBet",
@@ -1186,7 +1186,7 @@
           "stake": 70.99,
           "openOdds": 1.43,
           "lastOdds": 1.43,
-          "finalOdds": null
+          "finalOdds": 1.43
         }
       ]
     },
@@ -1204,7 +1204,7 @@
       "openProfitPct": 0.743,
       "peakProfitPct": 0.743,
       "profitPct": 0.743,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.743,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1212,7 +1212,7 @@
           "stake": 69,
           "openOdds": 1.46,
           "lastOdds": 1.46,
-          "finalOdds": null
+          "finalOdds": 1.46
         },
         {
           "bookmaker": "SportyBet",
@@ -1220,7 +1220,7 @@
           "stake": 31,
           "openOdds": 3.25,
           "lastOdds": 3.25,
-          "finalOdds": null
+          "finalOdds": 3.25
         }
       ]
     },
@@ -1238,7 +1238,7 @@
       "openProfitPct": 6.053,
       "peakProfitPct": 6.053,
       "profitPct": 6.053,
-      "finalProfitPct": null,
+      "finalProfitPct": 6.053,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1246,7 +1246,7 @@
           "stake": 56.71,
           "openOdds": 1.87,
           "lastOdds": 1.87,
-          "finalOdds": null
+          "finalOdds": 1.87
         },
         {
           "bookmaker": "SportyBet",
@@ -1254,7 +1254,7 @@
           "stake": 43.29,
           "openOdds": 2.45,
           "lastOdds": 2.45,
-          "finalOdds": null
+          "finalOdds": 2.45
         }
       ]
     },
@@ -1272,7 +1272,7 @@
       "openProfitPct": 2.346,
       "peakProfitPct": 2.346,
       "profitPct": 2.346,
-      "finalProfitPct": null,
+      "finalProfitPct": 2.346,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1280,7 +1280,7 @@
           "stake": 28.43,
           "openOdds": 3.6,
           "lastOdds": 3.6,
-          "finalOdds": null
+          "finalOdds": 3.6
         },
         {
           "bookmaker": "MSport",
@@ -1288,7 +1288,7 @@
           "stake": 71.57,
           "openOdds": 1.43,
           "lastOdds": 1.43,
-          "finalOdds": null
+          "finalOdds": 1.43
         }
       ]
     },
@@ -1306,7 +1306,7 @@
       "openProfitPct": 0.465,
       "peakProfitPct": 0.465,
       "profitPct": 0.465,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.465,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1314,7 +1314,7 @@
           "stake": 37.21,
           "openOdds": 2.7,
           "lastOdds": 2.7,
-          "finalOdds": null
+          "finalOdds": 2.7
         },
         {
           "bookmaker": "SportyBet",
@@ -1322,7 +1322,7 @@
           "stake": 62.79,
           "openOdds": 1.6,
           "lastOdds": 1.6,
-          "finalOdds": null
+          "finalOdds": 1.6
         }
       ]
     },
@@ -1340,7 +1340,7 @@
       "openProfitPct": 0.099,
       "peakProfitPct": 0.099,
       "profitPct": 0.099,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.099,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1348,7 +1348,7 @@
           "stake": 32.82,
           "openOdds": 3.05,
           "lastOdds": 3.05,
-          "finalOdds": null
+          "finalOdds": 3.05
         },
         {
           "bookmaker": "SportyBet",
@@ -1356,7 +1356,7 @@
           "stake": 67.18,
           "openOdds": 1.49,
           "lastOdds": 1.49,
-          "finalOdds": null
+          "finalOdds": 1.49
         }
       ]
     },
@@ -1374,7 +1374,7 @@
       "openProfitPct": 0.025,
       "peakProfitPct": 0.025,
       "profitPct": 0.025,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.025,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1382,7 +1382,7 @@
           "stake": 52.37,
           "openOdds": 1.91,
           "lastOdds": 1.91,
-          "finalOdds": null
+          "finalOdds": 1.91
         },
         {
           "bookmaker": "SportyBet",
@@ -1390,7 +1390,7 @@
           "stake": 47.63,
           "openOdds": 2.1,
           "lastOdds": 2.1,
-          "finalOdds": null
+          "finalOdds": 2.1
         }
       ]
     },
@@ -1408,7 +1408,7 @@
       "openProfitPct": 1.69,
       "peakProfitPct": 1.69,
       "profitPct": 1.69,
-      "finalProfitPct": null,
+      "finalProfitPct": 1.69,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1416,7 +1416,7 @@
           "stake": 42.55,
           "openOdds": 2.39,
           "lastOdds": 2.39,
-          "finalOdds": null
+          "finalOdds": 2.39
         },
         {
           "bookmaker": "SportyBet",
@@ -1424,7 +1424,7 @@
           "stake": 57.45,
           "openOdds": 1.77,
           "lastOdds": 1.77,
-          "finalOdds": null
+          "finalOdds": 1.77
         }
       ]
     },
@@ -1442,7 +1442,7 @@
       "openProfitPct": 1.49,
       "peakProfitPct": 1.49,
       "profitPct": 1.49,
-      "finalProfitPct": null,
+      "finalProfitPct": 1.49,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1450,7 +1450,7 @@
           "stake": 50.49,
           "openOdds": 2.01,
           "lastOdds": 2.01,
-          "finalOdds": null
+          "finalOdds": 2.01
         },
         {
           "bookmaker": "SportyBet",
@@ -1458,7 +1458,7 @@
           "stake": 49.51,
           "openOdds": 2.05,
           "lastOdds": 2.05,
-          "finalOdds": null
+          "finalOdds": 2.05
         }
       ]
     },
@@ -1476,7 +1476,7 @@
       "openProfitPct": 0.934,
       "peakProfitPct": 0.934,
       "profitPct": 0.934,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.934,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1484,7 +1484,7 @@
           "stake": 30.87,
           "openOdds": 3.27,
           "lastOdds": 3.27,
-          "finalOdds": null
+          "finalOdds": 3.27
         },
         {
           "bookmaker": "SportyBet",
@@ -1492,7 +1492,7 @@
           "stake": 69.13,
           "openOdds": 1.46,
           "lastOdds": 1.46,
-          "finalOdds": null
+          "finalOdds": 1.46
         }
       ]
     },
@@ -1510,7 +1510,7 @@
       "openProfitPct": 0.166,
       "peakProfitPct": 0.166,
       "profitPct": 0.166,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.166,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1518,7 +1518,7 @@
           "stake": 70.54,
           "openOdds": 1.42,
           "lastOdds": 1.42,
-          "finalOdds": null
+          "finalOdds": 1.42
         },
         {
           "bookmaker": "SportyBet",
@@ -1526,7 +1526,7 @@
           "stake": 29.46,
           "openOdds": 3.4,
           "lastOdds": 3.4,
-          "finalOdds": null
+          "finalOdds": 3.4
         }
       ]
     },
@@ -1544,7 +1544,7 @@
       "openProfitPct": 0.336,
       "peakProfitPct": 0.336,
       "profitPct": 0.336,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.336,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1552,7 +1552,7 @@
           "stake": 57.66,
           "openOdds": 1.74,
           "lastOdds": 1.74,
-          "finalOdds": null
+          "finalOdds": 1.74
         },
         {
           "bookmaker": "MSport",
@@ -1560,7 +1560,7 @@
           "stake": 42.34,
           "openOdds": 2.37,
           "lastOdds": 2.37,
-          "finalOdds": null
+          "finalOdds": 2.37
         }
       ]
     },
@@ -1578,7 +1578,7 @@
       "openProfitPct": 0.478,
       "peakProfitPct": 0.478,
       "profitPct": 0.478,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.478,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1586,7 +1586,7 @@
           "stake": 59.81,
           "openOdds": 1.68,
           "lastOdds": 1.68,
-          "finalOdds": null
+          "finalOdds": 1.68
         },
         {
           "bookmaker": "MSport",
@@ -1594,7 +1594,7 @@
           "stake": 40.19,
           "openOdds": 2.5,
           "lastOdds": 2.5,
-          "finalOdds": null
+          "finalOdds": 2.5
         }
       ]
     },
@@ -1612,7 +1612,7 @@
       "openProfitPct": 0.179,
       "peakProfitPct": 0.179,
       "profitPct": 0.179,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.179,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1620,7 +1620,7 @@
           "stake": 39.29,
           "openOdds": 2.55,
           "lastOdds": 2.55,
-          "finalOdds": null
+          "finalOdds": 2.55
         },
         {
           "bookmaker": "MSport",
@@ -1628,7 +1628,7 @@
           "stake": 60.71,
           "openOdds": 1.65,
           "lastOdds": 1.65,
-          "finalOdds": null
+          "finalOdds": 1.65
         }
       ]
     },
@@ -1646,7 +1646,7 @@
       "openProfitPct": 11.124,
       "peakProfitPct": 11.124,
       "profitPct": 11.124,
-      "finalProfitPct": null,
+      "finalProfitPct": 11.124,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1654,7 +1654,7 @@
           "stake": 48.31,
           "openOdds": 2.3,
           "lastOdds": 2.3,
-          "finalOdds": null
+          "finalOdds": 2.3
         },
         {
           "bookmaker": "SportyBet",
@@ -1662,7 +1662,7 @@
           "stake": 51.69,
           "openOdds": 2.15,
           "lastOdds": 2.15,
-          "finalOdds": null
+          "finalOdds": 2.15
         }
       ]
     },
@@ -1680,7 +1680,7 @@
       "openProfitPct": 7.117,
       "peakProfitPct": 7.117,
       "profitPct": 7.117,
-      "finalProfitPct": null,
+      "finalProfitPct": 7.117,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1688,7 +1688,7 @@
           "stake": 26.13,
           "openOdds": 4.1,
           "lastOdds": 4.1,
-          "finalOdds": null
+          "finalOdds": 4.1
         },
         {
           "bookmaker": "SportyBet",
@@ -1696,7 +1696,7 @@
           "stake": 73.87,
           "openOdds": 1.45,
           "lastOdds": 1.45,
-          "finalOdds": null
+          "finalOdds": 1.45
         }
       ]
     },
@@ -1714,7 +1714,7 @@
       "openProfitPct": 5.974,
       "peakProfitPct": 5.974,
       "profitPct": 3.111,
-      "finalProfitPct": null,
+      "finalProfitPct": 3.111,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1722,7 +1722,7 @@
           "stake": 35.56,
           "openOdds": 2.9,
           "lastOdds": 2.9,
-          "finalOdds": null
+          "finalOdds": 2.9
         },
         {
           "bookmaker": "BetBoro",
@@ -1730,7 +1730,7 @@
           "stake": 64.44,
           "openOdds": 1.6,
           "lastOdds": 1.6,
-          "finalOdds": null
+          "finalOdds": 1.6
         }
       ]
     },
@@ -1748,7 +1748,7 @@
       "openProfitPct": 5.861,
       "peakProfitPct": 5.861,
       "profitPct": 3.298,
-      "finalProfitPct": null,
+      "finalProfitPct": 3.298,
       "legs": [
         {
           "bookmaker": "BetBoro",
@@ -1756,7 +1756,7 @@
           "stake": 34.2,
           "openOdds": 3.02,
           "lastOdds": 3.02,
-          "finalOdds": null
+          "finalOdds": 3.02
         },
         {
           "bookmaker": "SportyBet",
@@ -1764,7 +1764,7 @@
           "stake": 65.8,
           "openOdds": 1.57,
           "lastOdds": 1.57,
-          "finalOdds": null
+          "finalOdds": 1.57
         }
       ]
     },
@@ -1782,7 +1782,7 @@
       "openProfitPct": 0.72,
       "peakProfitPct": 0.72,
       "profitPct": 0.72,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.72,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1790,7 +1790,7 @@
           "stake": 49.13,
           "openOdds": 2.05,
           "lastOdds": 2.05,
-          "finalOdds": null
+          "finalOdds": 2.05
         },
         {
           "bookmaker": "MSport",
@@ -1798,7 +1798,7 @@
           "stake": 50.87,
           "openOdds": 1.98,
           "lastOdds": 1.98,
-          "finalOdds": null
+          "finalOdds": 1.98
         }
       ]
     },
@@ -1816,7 +1816,7 @@
       "openProfitPct": 2.246,
       "peakProfitPct": 2.246,
       "profitPct": 2.246,
-      "finalProfitPct": null,
+      "finalProfitPct": 2.246,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1824,7 +1824,7 @@
           "stake": 40.9,
           "openOdds": 2.5,
           "lastOdds": 2.5,
-          "finalOdds": null
+          "finalOdds": 2.5
         },
         {
           "bookmaker": "BetBoro",
@@ -1832,7 +1832,7 @@
           "stake": 59.1,
           "openOdds": 1.73,
           "lastOdds": 1.73,
-          "finalOdds": null
+          "finalOdds": 1.73
         }
       ]
     },
@@ -1850,7 +1850,7 @@
       "openProfitPct": 1.773,
       "peakProfitPct": 1.773,
       "profitPct": 1.773,
-      "finalProfitPct": null,
+      "finalProfitPct": 1.773,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1858,7 +1858,7 @@
           "stake": 26.78,
           "openOdds": 3.8,
           "lastOdds": 3.8,
-          "finalOdds": null
+          "finalOdds": 3.8
         },
         {
           "bookmaker": "BetBoro",
@@ -1866,7 +1866,7 @@
           "stake": 73.22,
           "openOdds": 1.39,
           "lastOdds": 1.39,
-          "finalOdds": null
+          "finalOdds": 1.39
         }
       ]
     },
@@ -1884,7 +1884,7 @@
       "openProfitPct": 0.305,
       "peakProfitPct": 0.305,
       "profitPct": 0.305,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.305,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -1892,7 +1892,7 @@
           "stake": 57.32,
           "openOdds": 1.75,
           "lastOdds": 1.75,
-          "finalOdds": null
+          "finalOdds": 1.75
         },
         {
           "bookmaker": "BetBoro",
@@ -1900,7 +1900,7 @@
           "stake": 42.68,
           "openOdds": 2.35,
           "lastOdds": 2.35,
-          "finalOdds": null
+          "finalOdds": 2.35
         }
       ]
     },
@@ -1918,7 +1918,7 @@
       "openProfitPct": 0.512,
       "peakProfitPct": 0.512,
       "profitPct": 0.512,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.512,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1926,7 +1926,7 @@
           "stake": 72.83,
           "openOdds": 1.38,
           "lastOdds": 1.38,
-          "finalOdds": null
+          "finalOdds": 1.38
         },
         {
           "bookmaker": "SportyBet",
@@ -1934,7 +1934,7 @@
           "stake": 27.17,
           "openOdds": 3.7,
           "lastOdds": 3.7,
-          "finalOdds": null
+          "finalOdds": 3.7
         }
       ]
     },
@@ -1952,7 +1952,7 @@
       "openProfitPct": 4.414,
       "peakProfitPct": 4.414,
       "profitPct": 1.425,
-      "finalProfitPct": null,
+      "finalProfitPct": 1.425,
       "legs": [
         {
           "bookmaker": "BetBoro",
@@ -1960,7 +1960,7 @@
           "stake": 52.83,
           "openOdds": 1.92,
           "lastOdds": 1.92,
-          "finalOdds": null
+          "finalOdds": 1.92
         },
         {
           "bookmaker": "SportyBet",
@@ -1968,7 +1968,7 @@
           "stake": 47.17,
           "openOdds": 2.15,
           "lastOdds": 2.15,
-          "finalOdds": null
+          "finalOdds": 2.15
         }
       ]
     },
@@ -1986,7 +1986,7 @@
       "openProfitPct": 0.346,
       "peakProfitPct": 0.346,
       "profitPct": 0.346,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.346,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -1994,7 +1994,7 @@
           "stake": 63.51,
           "openOdds": 1.58,
           "lastOdds": 1.58,
-          "finalOdds": null
+          "finalOdds": 1.58
         },
         {
           "bookmaker": "SportyBet",
@@ -2002,7 +2002,7 @@
           "stake": 36.49,
           "openOdds": 2.75,
           "lastOdds": 2.75,
-          "finalOdds": null
+          "finalOdds": 2.75
         }
       ]
     },
@@ -2020,7 +2020,7 @@
       "openProfitPct": 2.53,
       "peakProfitPct": 2.53,
       "profitPct": 2.53,
-      "finalProfitPct": null,
+      "finalProfitPct": 2.53,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -2028,7 +2028,7 @@
           "stake": 44.58,
           "openOdds": 2.3,
           "lastOdds": 2.3,
-          "finalOdds": null
+          "finalOdds": 2.3
         },
         {
           "bookmaker": "BoltBet",
@@ -2036,7 +2036,7 @@
           "stake": 55.42,
           "openOdds": 1.85,
           "lastOdds": 1.85,
-          "finalOdds": null
+          "finalOdds": 1.85
         }
       ]
     },
@@ -2054,7 +2054,7 @@
       "openProfitPct": 0.72,
       "peakProfitPct": 0.72,
       "profitPct": 0.72,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.72,
       "legs": [
         {
           "bookmaker": "SportyBet",
@@ -2062,7 +2062,7 @@
           "stake": 49.13,
           "openOdds": 2.05,
           "lastOdds": 2.05,
-          "finalOdds": null
+          "finalOdds": 2.05
         },
         {
           "bookmaker": "MSport",
@@ -2070,7 +2070,7 @@
           "stake": 50.87,
           "openOdds": 1.98,
           "lastOdds": 1.98,
-          "finalOdds": null
+          "finalOdds": 1.98
         }
       ]
     },
@@ -2088,7 +2088,7 @@
       "openProfitPct": 0.494,
       "peakProfitPct": 0.494,
       "profitPct": 0.494,
-      "finalProfitPct": null,
+      "finalProfitPct": 0.494,
       "legs": [
         {
           "bookmaker": "MSport",
@@ -2096,7 +2096,7 @@
           "stake": 45.68,
           "openOdds": 2.2,
           "lastOdds": 2.2,
-          "finalOdds": null
+          "finalOdds": 2.2
         },
         {
           "bookmaker": "SportyBet",
@@ -2104,7 +2104,7 @@
           "stake": 54.32,
           "openOdds": 1.85,
           "lastOdds": 1.85,
-          "finalOdds": null
+          "finalOdds": 1.85
         }
       ]
     },

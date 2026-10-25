@@ -46,6 +46,10 @@
   cursor: pointer;
 }
 
+.arbs-stake-control select option:disabled {
+  color: var(--color-neutral-5);
+}
+
 .arbs-stake-control input:focus,
 .arbs-stake-control select:focus {
   outline: 2px solid var(--color-brand);

@@ -322,7 +322,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   value={totalStake}
                   onChange={(event) => {
                     const next = Number(event.target.value);
-                    setTotalStake(Number.isFinite(next) ? Math.max(0, next) : 0);
+                    const value = Number.isFinite(next) ? Math.max(0, next) : 0;
+                    setTotalStake(value);
+                    // A rounding step larger than the stake cannot be honoured.
+                    setRounding((current) => (current > value ? 0 : current));
                   }}
                 />
 
@@ -334,7 +337,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                 >
                   <option value={0}>None</option>
                   {ROUNDING_STEPS.map((step) => (
-                    <option key={step} value={step}>
+                    <option key={step} value={step} disabled={step > totalStake}>
                       {step}
                     </option>
                   ))}
