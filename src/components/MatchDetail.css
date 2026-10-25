@@ -87,6 +87,7 @@
   color: var(--color-neutral-7);
 }
 .ai-box p { white-space: pre-line; }
+.ai-box p + p { margin-top: 10px; }
 .ai-box-header {
   display: flex;
   align-items: flex-start;

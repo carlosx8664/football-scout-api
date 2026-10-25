@@ -29,10 +29,28 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
     if (match.ai_analysis && reloadKey === 0) return;
 
     const controller = new AbortController();
-    const prices = ["Home", "Draw", "Away"]
-      .map((label) => match.odds?.find((entry) => entry.value === label)?.odd)
-      .filter(Boolean)
-      .join(" / ");
+    const price = (label: string) =>
+      match.odds?.find((entry) => entry.value === label)?.odd ?? "-";
+    const prices = `Home ${price("Home")} / Draw ${price("Draw")} / Away ${price("Away")}`;
+
+    // Same 1X2 market across every bookmaker that quoted it, so the write-up can compare prices.
+    const bookPrices = new Map<string, string[]>();
+    const outcomes = [
+      { key: "home", index: 0 },
+      { key: "draw", index: 1 },
+      { key: "away", index: 2 },
+    ] as const;
+    for (const { key, index } of outcomes) {
+      for (const [book, value] of Object.entries(match.book_odds?.[key]?.books ?? {})) {
+        const row = bookPrices.get(book) ?? ["-", "-", "-"];
+        row[index] = String(value);
+        bookPrices.set(book, row);
+      }
+    }
+    const books = [...bookPrices]
+      .slice(0, 6)
+      .map(([book, row]) => `${book} ${row.join("/")}`)
+      .join("; ");
 
     const params = new URLSearchParams({
       id: String(match.fixture.id),
@@ -41,7 +59,9 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
       league: match.league.name,
       kickoff: match.fixture.date,
       odds: prices,
+      books,
     });
+    if (match.sr_id) params.set("sr", match.sr_id);
     if (reloadKey > 0) params.set("refresh", "1");
 
     fetch(`/api/analysis?${params.toString()}`, { signal: controller.signal })
@@ -155,21 +175,23 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
               {analysisStatus === "loading" ? "Refreshing…" : "Refresh"}
             </button>
           </div>
-          <p>
-            {analysisStatus === "loading" ? (
-              "Reading the market and writing up a view…"
-            ) : analysis ? (
-              analysis
-            ) : (
-              <>
-                Couldn't pull a write-up for this one. Refresh to try again, and check the team
-                news yourself before you back it.
-                {resolved?.error ? (
-                  <span className="ai-error-detail"> Reason: {resolved.error}</span>
-                ) : null}
-              </>
-            )}
-          </p>
+          {analysisStatus === "loading" ? (
+            <p>Reading the market and writing up a view…</p>
+          ) : analysis ? (
+            analysis
+              .split(/\n\s*\n/)
+              .map((paragraph) => paragraph.trim())
+              .filter(Boolean)
+              .map((paragraph, index) => <p key={index}>{paragraph}</p>)
+          ) : (
+            <p>
+              Couldn't pull a write-up for this one. Refresh to try again, and check the team news
+              yourself before you back it.
+              {resolved?.error ? (
+                <span className="ai-error-detail"> Reason: {resolved.error}</span>
+              ) : null}
+            </p>
+          )}
         </section>
       </article>
     </main>

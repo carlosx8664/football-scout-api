@@ -1,21 +1,22 @@
 const KV_BINDING = "FOOTBALL_DATA";
 const CACHE_PREFIX = "analysis-";
 /** Bump when the prompt changes so stale notes are ignored. */
-const CACHE_VERSION = "v2";
-const CACHE_TTL_SECONDS = 60 * 60 * 6;
-/** Shorter TTL when the news lookup failed, so the next click can retry. */
-const FALLBACK_TTL_SECONDS = 60 * 10;
+const CACHE_VERSION = "v3";
 const DEEPSEEK_BASE = "https://api.deepseek.com";
 const SEARCH_URL = `${DEEPSEEK_BASE}/v1/tools/search`;
 const CHAT_URL = `${DEEPSEEK_BASE}/chat/completions`;
 const DEFAULT_MODEL = "deepseek-flash";
 const SEARCH_TIMEOUT_MS = 15_000;
-const CHAT_TIMEOUT_MS = 25_000;
+const CHAT_TIMEOUT_MS = 28_000;
 /** The Search API rejects queries longer than 128 characters. */
 const MAX_QUERY_CHARS = 128;
 const RESULTS_PER_TOPIC = 2;
 const CONTENT_CHARS_PER_RESULT = 700;
 const NO_NEWS_CONTEXT = "No recent news found. Base analysis on odds only.";
+/** Same-origin odds feeds written by the odds pipeline (scripts/find-arbs.js). */
+const ARBS_SOURCES = ["/api/arbs", "/arbs.json"];
+const ODDS_TIMEOUT_MS = 8_000;
+const MAX_BOARD_MARKETS = 12;
 
 /**
  * One search per group of related angles. Splitting beats a single mega-query: the Search API
@@ -23,16 +24,24 @@ const NO_NEWS_CONTEXT = "No recent news found. Base analysis on odds only.";
  */
 const SEARCH_TOPICS = [
   {
-    label: "Team news",
-    query: (home, away) => `${home} vs ${away} team news injuries lineup leak`,
+    label: "Injuries and suspensions",
+    query: (home, away) => `${home} ${away} injuries suspensions missing players`,
   },
   {
-    label: "Underlying form",
-    query: (home, away) => `${home} ${away} xG expected points underlying stats`,
+    label: "Lineup leaks and rumours",
+    query: (home, away) => `${home} vs ${away} predicted lineup team news leak`,
   },
   {
-    label: "Manager and discipline",
-    query: (home, away) => `${home} ${away} manager pressure sacking VAR red card charge`,
+    label: "Dressing room",
+    query: (home, away) => `${home} ${away} manager bust-up fallout training row`,
+  },
+  {
+    label: "Home form",
+    query: (home) => `${home} home form xG goals scored conceded last games`,
+  },
+  {
+    label: "Away form",
+    query: (_home, away) => `${away} away form xG record on the road`,
   },
   {
     label: "Head to head",
@@ -135,31 +144,123 @@ async function gatherResearch({ env, home, away }) {
   };
 }
 
-function buildMessages({ home, away, league, kickoff, odds, context }) {
+function normaliseTeam(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+/** Fixture match by Sportradar id first, then by the two team names. */
+function isSameFixture(record, { srId, home, away }) {
+  if (srId && record.eventId && record.eventId === srId) return true;
+  return (
+    normaliseTeam(record.home) === normaliseTeam(home) &&
+    normaliseTeam(record.away) === normaliseTeam(away)
+  );
+}
+
+/** Best price per outcome for one market, keeping the bookmaker that quotes it. */
+function formatLegs(legs) {
+  const best = new Map();
+
+  for (const leg of Array.isArray(legs) ? legs : []) {
+    const price = Number(leg?.lastOdds ?? leg?.openOdds);
+    const outcome = String(leg?.outcome ?? "").trim();
+    if (!outcome || !Number.isFinite(price) || price <= 1) continue;
+
+    const current = best.get(outcome);
+    if (current && current.price >= price) continue;
+    best.set(outcome, { price, bookmaker: String(leg?.bookmaker ?? "").trim() });
+  }
+
+  return [...best.entries()]
+    .map(([outcome, { price, bookmaker }]) => {
+      const source = bookmaker ? ` (${bookmaker})` : "";
+      return `${outcome} ${price.toFixed(2)}${source}`;
+    })
+    .join(" / ");
+}
+
+/**
+ * Reads the odds the scanner already fetched (find-arbs.js -> arbs.json / KV) and keeps only
+ * this fixture's markets, with the best price and bookmaker per outcome. This is what lets the
+ * write-up compare real prices instead of inventing them.
+ */
+async function gatherOddsBoard({ request, srId, home, away }) {
+  const origin = new URL(request.url).origin;
+  const markets = new Map();
+
+  for (const path of ARBS_SOURCES) {
+    try {
+      const response = await fetch(`${origin}${path}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(ODDS_TIMEOUT_MS),
+      });
+      if (!response.ok) continue;
+
+      const payload = await response.json();
+      const records = [...(payload?.arbs ?? []), ...(payload?.history ?? [])];
+
+      for (const record of records) {
+        if (!isSameFixture(record, { srId, home, away })) continue;
+
+        const market = String(record.market ?? "").trim();
+        const legs = formatLegs(record.legs);
+        if (market && legs) markets.set(market, legs);
+      }
+
+      if (markets.size > 0) break;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn(`Odds board from ${path} failed: ${reason}`);
+    }
+  }
+
+  return [...markets.entries()]
+    .slice(0, MAX_BOARD_MARKETS)
+    .map(([market, legs]) => `- ${market}: ${legs}`);
+}
+
+function buildMessages({ home, away, league, kickoff, odds, books, board, context }) {
   const system = [
-    "You are a friendly football tipster explaining a match to a mate who does not bet much.",
-    "Write in plain, simple English. Short sentences. Explain any stat term in a few words",
-    "(for example: 'xG - how many goals they would usually score from the chances they make').",
-    "Avoid betting slang: no 'steam', 'fade', 'value', 'line', 'cover', 'fodder'.",
-    "Be warm and direct, never corporate, no emoji spam, no bullet-point marketing.",
-    "Use ONLY the articles you are given. Never invent injuries, lineups, transfers, quotes,",
-    "results or disciplinary news. If the articles do not cover something, leave it out instead",
-    "of guessing. If the research is thin, say that in one short sentence.",
-    "When the articles name players who are injured, suspended, doubtful, rested or coming back,",
-    "name those players and say what the article says about them - names make the note useful.",
-    "Keep the whole thing under 150 words.",
-    "Shape it like this:",
-    "1) One or two sentences on what you would back and why, in plain words.",
-    "2) Two or three short lines with other sensible bets (both teams to score, over/under goals,",
-    "   corners, cards), each with a one-line reason - only when the articles support it.",
-    "3) One line on what would make you walk away from the bet.",
+    "You are a friendly football tipster writing a pre-match note for a mate who bets small stakes",
+    "and does not follow every league. Your job is to turn the research and the prices we pulled",
+    "into a clear, honest preview.",
+    "Write in plain, simple English. Short sentences. Explain any term in a few words",
+    "(for example: 'xG - how many goals they would usually score from the chances they create').",
+    "Never use betting slang such as 'steam', 'fade', 'hammer', 'line', 'cover' or 'fodder'.",
+    "Be warm and direct, never corporate, no emoji spam, no marketing bullet lists.",
+    "Plain text only: no markdown, no headings, no bold or asterisks.",
+    "Use ONLY the articles and prices you are given. Never invent injuries, suspensions, lineups,",
+    "transfers, quotes, results, prices or bookmakers. If the notes are thin, say so in one short",
+    "sentence and leave the detail out instead of guessing.",
+    "When the articles name a player who is injured, suspended, doubtful, rested or coming back,",
+    "name that player and say what the article reports. Treat lineup leaks and rumours as",
+    "unconfirmed: say 'reports suggest' or 'rumoured'.",
+    "You are not guaranteeing anything and you are not a financial adviser.",
+    "Write at least three paragraphs separated by a blank line, and aim for 220-320 words.",
+    "Paragraph 1 - team news: who is missing, injured, suspended or doubtful, any leaked or",
+    "rumoured starting lineup, and what that changes for the team.",
+    "Paragraph 2 - form and mood: the home side's home form, the away side's away record and",
+    "away power, plus anything about the manager or the dressing room.",
+    "Paragraph 3 - the betting view: compare the prices you were given, name two or three specific",
+    "markets with their decimal price and the bookmaker quoting it, say which market looks the best",
+    "one to stake and which one to leave alone, and finish with one line on what would make you",
+    "walk away. If only the match result prices are available, compare those three and mention other",
+    "market names without stating a price you were not given.",
   ].join(" ");
 
   const user = [
     `Match: ${home} vs ${away}`,
     league ? `Competition: ${league}` : "",
     kickoff ? `Kick-off: ${kickoff}` : "",
-    odds ? `Current odds: ${odds}` : "Current odds: unavailable",
+    "",
+    "Prices we pulled earlier (decimal odds):",
+    odds ? `- Match result (home / draw / away): ${odds}` : "- Match result: unavailable",
+    books ? `- Same market, by bookmaker: ${books}` : "",
+    board.length > 0
+      ? `- Other markets:\n${board.join("\n")}`
+      : "- Other markets: none available, do not quote prices for them",
     "",
     "Research notes:",
     context,
@@ -173,11 +274,15 @@ function buildMessages({ home, away, league, kickoff, odds, context }) {
   ];
 }
 
-async function generate({ env, params }) {
-  // Step 1 - gather research. A failed topic must never block the write-up.
-  const research = await gatherResearch({ env, ...params });
+async function generate({ env, request, params }) {
+  // Step 1 - research and the odds board in parallel. Either side failing must never block
+  // the write-up.
+  const [research, board] = await Promise.all([
+    gatherResearch({ env, ...params }),
+    gatherOddsBoard({ request, ...params }),
+  ]);
 
-  // Step 2 - turn it into a short, friendly note.
+  // Step 2 - turn it into a friendly, multi-paragraph tipster note.
   const response = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
@@ -186,12 +291,12 @@ async function generate({ env, params }) {
     },
     body: JSON.stringify({
       model: (env.DEEPSEEK_MODEL ?? "").trim() || DEFAULT_MODEL,
-      messages: buildMessages({ ...params, context: research.context }),
+      messages: buildMessages({ ...params, board, context: research.context }),
       // Thinking mode is on by default and would spend the token budget on reasoning,
-      // leaving `content` empty. A short casual note does not need it.
+      // leaving `content` empty. A preview note does not need it.
       thinking: { type: "disabled" },
-      temperature: 0.6,
-      max_tokens: 900,
+      temperature: 0.7,
+      max_tokens: 1400,
       stream: false,
     }),
     signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
@@ -213,10 +318,11 @@ async function generate({ env, params }) {
 /**
  * Generates (and caches) a tipster note for one fixture.
  *
- * Step 1 runs several targeted searches on DeepSeek's Search API (team news, underlying form,
- * manager/discipline, head to head, odds movement); step 2 feeds those articles plus the odds
- * into the chat model. The API key stays server-side - calling DeepSeek from the browser would
- * publish it. Results are cached in KV so repeat views cost nothing.
+ * Step 1 runs several targeted searches on DeepSeek's Search API (injuries, lineup leaks,
+ * dressing-room mood, home form, away form, head to head, odds movement) and reads the prices
+ * the odds pipeline already fetched; step 2 feeds those articles plus the prices into the chat
+ * model. The API key stays server-side - calling DeepSeek from the browser would publish it.
+ * Results are cached in KV so repeat views cost nothing.
  */
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
@@ -226,7 +332,9 @@ export async function onRequestGet({ request, env }) {
     away: clip(url.searchParams.get("away"), 80),
     league: clip(url.searchParams.get("league"), 80),
     kickoff: clip(url.searchParams.get("kickoff"), 40),
-    odds: clip(url.searchParams.get("odds"), 40),
+    odds: clip(url.searchParams.get("odds"), 80),
+    books: clip(url.searchParams.get("books"), 300),
+    srId: clip(url.searchParams.get("sr"), 40),
   };
 
   if (!params.home || !params.away) {
@@ -253,7 +361,7 @@ export async function onRequestGet({ request, env }) {
 
   let result;
   try {
-    result = await generate({ env, params });
+    result = await generate({ env, request, params });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return json({ error: message }, 502);
@@ -261,9 +369,7 @@ export async function onRequestGet({ request, env }) {
 
   if (kv && cacheKey) {
     try {
-      await kv.put(cacheKey, result.analysis, {
-        expirationTtl: result.newsFound ? CACHE_TTL_SECONDS : FALLBACK_TTL_SECONDS,
-      });
+      await kv.put(cacheKey, result.analysis, { expirationTtl: 86400 });
     } catch {
       // Serving the analysis matters more than persisting it.
     }

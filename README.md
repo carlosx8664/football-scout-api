@@ -3,7 +3,8 @@
 A football scouting dashboard: upcoming fixtures across 16 competitions (top-5 European
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
 Champions League, Conference League, EFL Cup, FA Cup, World Cup and Friendlies) for **today and tomorrow**,
-match-winner odds from API-Football, and a short AI scouting note per match from DeepSeek.
+match-winner odds from API-Football, and a friendly AI scout preview per match built from
+DeepSeek search plus the prices the odds pipeline already fetched.
 
 Data gathering is fully decoupled from page views:
 
@@ -43,7 +44,7 @@ shared/betslip-match.js        Resolves extracted betslip legs against the match
 workers/dispatch-trigger/      Cloudflare Cron Worker that dispatches the workflow every 15 min
 functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh output)
 functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
-functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek note with live search
+functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek preview with live search + odds comparison
 functions/api/standings.js     GET /api/standings - league table via football-data.org
 functions/api/bet-builder/extract.js  POST /api/bet-builder/extract - screenshot -> matched legs
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
@@ -126,7 +127,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | --- | --- |
 | `GET /api/matches` | Match feed from KV (`feed-matches`); 404 until the workflow has run |
 | `GET /api/arbs` | Arbitrage feed from KV (`feed-arbs`), including tracked arb history; 404 until the workflow has run |
-| `GET /api/analysis` | On-demand DeepSeek note with live search, cached 6 h per fixture |
+| `GET /api/analysis` | On-demand DeepSeek note with live search plus odds comparison, cached 6 h per fixture and price set |
 | `GET /api/standings` | League table window for a fixture, from football-data.org |
 | `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
 
@@ -188,19 +189,23 @@ The React app fetches `/api/matches`, falling back to `/matches.json` when KV is
 
 ### Scout analysis on the match page
 
-`GET /api/analysis?id=&home=&away=&league=&kickoff=&odds=` ([functions/api/analysis.js](functions/api/analysis.js))
+`GET /api/analysis?id=&home=&away=&league=&kickoff=&odds=&books=&sr=` ([functions/api/analysis.js](functions/api/analysis.js))
 runs a two-step pipeline the first time a fixture is opened:
 
-1. **Scout** — five parallel `POST /v1/tools/search` calls on DeepSeek's Search API, one per angle
-   group, each with `after:<yesterday>` and trimmed to the API's 128-character query limit:
-   team news/injuries/leaks, underlying form (xG, expected points), manager pressure and
-   discipline (sacking talk, VAR, red cards, charges), head-to-head/derby record, and odds
-   movement. The top two results per topic become the research context; a failed topic is logged
-   and skipped rather than failing the request.
-2. **Analyst** — `POST /chat/completions` with that research plus the match odds. The prompt asks
-   for plain, friendly English (no betting slang, stat terms explained), explicitly forbids
-   inventing facts, and asks for a best bet, two or three alternative angles, and a line on when
-   to walk away.
+1. **Scout** — seven parallel `POST /v1/tools/search` calls on DeepSeek's Search API, one per
+   angle group, each with `after:<yesterday>` and trimmed to the API's 128-character query limit:
+   injuries/suspensions, predicted lineups and leak rumours, dressing-room and manager fallout,
+   home form, away form, head-to-head/derby record, and odds movement. The top two results per
+   topic become the research context; a failed topic is logged and skipped rather than failing
+   the request. In parallel the function reads the prices the odds pipeline already fetched
+   (`/api/arbs` → `arbs.json`, written by `scripts/find-arbs.js`) and keeps the markets for this
+   fixture, with the best price and bookmaker per outcome.
+2. **Analyst** — `POST /chat/completions` with that research, the 1X2 prices, the per-bookmaker
+   1X2 comparison sent by the UI (`books`), and the extra-market board. The prompt asks for plain,
+   friendly English (no betting slang, stat terms explained), explicitly forbids inventing facts
+   or prices, and asks for at least three paragraphs: team news and lineup leaks, home form versus
+   away power plus dressing-room mood, then the betting view naming two or three markets with
+   their price and bookmaker, the one worth staking, the one to leave, and when to walk away.
 
 The key stays server-side — calling DeepSeek from the browser would expose it:
 
@@ -210,8 +215,10 @@ npx wrangler pages secret put DEEPSEEK_API_KEY
 
 Behaviour:
 
-- Results are cached in KV under `analysis-<fixtureId>` for six hours. If the search step failed,
-  the note is cached for only ten minutes so the next click retries with fresh news.
+- Results are cached in KV under `analysis-<version>-<fixtureId>-<priceTag>` for six hours; the
+  price tag is a short hash of the odds sent, so a price change forces a fresh write-up. If the
+  search step failed, the note is cached for only ten minutes so the next click retries with fresh
+  news.
 - Thinking mode is explicitly **disabled** for these calls: DeepSeek enables it by default at
   `high` effort, and its chain-of-thought shares the `max_tokens` budget, which otherwise
   returned an empty `content` once the research context grew.
