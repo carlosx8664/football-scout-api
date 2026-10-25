@@ -237,9 +237,9 @@ late under load) and publishes straight to KV, so the site never redeploys to up
 4. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
 5. The files are `PUT` into KV as `feed-matches`, `feed-arbs` and `feed-arbs-history`
 
-`history` holds every arb seen in the last 7 days (`--history-days`), with the first price seen,
-the latest pre-kickoff price and the profit at each. That is what the Past Arbs table renders;
-`arbs` stays limited to matches that have not kicked off.
+`history` holds every arb seen since the start of yesterday (`--history-days`), with the first
+price seen, the latest pre-kickoff price and the profit at each. That is what the Past Arbs
+table renders; `arbs` stays limited to matches that have not kicked off.
 
 A `concurrency` group stops runs from overlapping, and the job refuses to upload if either feed
 is missing or empty, so a failed fetch cannot wipe what is already live.

@@ -127,6 +127,13 @@ function matchStatus(
 const fmtOdds = (value: number | null | undefined): string =>
   Number.isFinite(value) ? Number(value).toFixed(2) : "—";
 
+/** Start of the previous local day: past arbs older than this are not shown. */
+function pastCutoff(now: number): number {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime() - 86_400_000;
+}
+
 /** Open -> close price for a tracked leg, with the percentage move. */
 function oddsDelta(leg: ArbHistoryLeg): { open: number; close: number; pct: number } | null {
   const close = leg.finalOdds ?? leg.lastOdds;
@@ -234,11 +241,14 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
       legsFor(arb).length === LEGS_PER_MATCH,
   );
 
-  // Anything already kicked off (or dropped out of the feed since) comes from history.
+  // Anything already kicked off (or dropped out of the feed since) comes from history,
+  // limited to yesterday and today.
+  const cutoff = pastCutoff(now);
   const pastRows = (feed?.history ?? [])
     .filter(
       (record) =>
         Number.isFinite(record.kickoff) &&
+        record.kickoff >= cutoff &&
         record.kickoff <= now &&
         Array.isArray(record.legs) &&
         record.legs.length > 0,

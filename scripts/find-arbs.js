@@ -25,9 +25,17 @@ const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_
 
 // Arb history: every opportunity ever seen, so the Past Arbs table survives kickoff.
 // The workflow restores this file from KV before each run and uploads it afterwards.
+// Only yesterday and today are kept; older entries are dropped on every run.
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
-const HISTORY_DAYS = Number(opt('history-days', '7'));
+const HISTORY_DAYS = Number(opt('history-days', '1'));
 const HISTORY_LIMIT = Number(opt('history-limit', '500'));
+
+/** Start of the day `days` before today, local time. */
+const historyCutoff = (nowMs, days = HISTORY_DAYS) => {
+  const start = new Date(nowMs);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime() - days * 86_400_000;
+};
 
 const BOOST = Number(opt('boost', '1'));        
 const MIN_PROFIT = Number(opt('min', '0'));     
@@ -498,7 +506,7 @@ function mergeHistory(previous, arbs, nowMs) {
 
   // Freeze the close for anything that has kicked off, including arbs that have
   // already dropped out of the feed.
-  const cutoff = nowMs - HISTORY_DAYS * 86_400_000;
+  const cutoff = historyCutoff(nowMs);
   const rows = [];
 
   for (const row of byKey.values()) {
@@ -715,7 +723,7 @@ async function main() {
 
   const started = history.filter((row) => nowMs >= row.kickoff).length;
   console.log(`\nWrote ${OUT_FILE}`);
-  console.log(`Tracked arbs: ${history.length} (${started} started or finished, ${HISTORY_DAYS}d retention)`);
+  console.log(`Tracked arbs: ${history.length} (${started} started or finished, kept from ${new Date(historyCutoff(nowMs)).toISOString()})`);
   console.log(`Wrote ${HISTORY_FILE}`);
 }
 

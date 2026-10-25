@@ -37,7 +37,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ============================================================================
 // SportyBet
 // ============================================================================
-const SPORTY_MARKETS = ['1', '10', '11', '18', '29', '16', '139', '166'];
+// Added deep markets for Shots, SOT, and Team Totals
+const SPORTY_MARKETS = [
+  '1',      // 1X2
+  '10',     // Double Chance
+  '11',     // DNB
+  '18',     // O/U Goals
+  '29',     // BTTS
+  '16',     // Asian Handicap
+  '139',    // Bookings O/U
+  '166',    // Corners O/U
+  '900394', // Total Shots O/U
+  '900393', // Shots on Target O/U
+  '900552', // Home Team Shots O/U
+  '900553', // Away Team Shots O/U
+  '900546', // Home Team Shots on Target O/U
+  '900547', // Away Team Shots on Target O/U
+  '900556', // 1st Half Shots O/U
+  '900550', // 1st Half Shots on Target O/U
+];
 
 async function fetchSportyBetPage(pageNum, marketIds) {
   const markets = encodeURIComponent(marketIds.join(','));
@@ -137,6 +155,7 @@ async function fetchSportyBetWithMarkets() {
   try {
     tournaments = await fetchAllSportyBet(marketIds);
     const cov = marketCoverage(tournaments);
+    // Check if any deep market succeeded
     combinedWorked = marketIds.slice(1).some((id) => cov.has(id));
   } catch (e) {
     console.log(`   ⚠️  Combined request failed (${e.message}).`);
@@ -158,31 +177,51 @@ async function fetchSportyBetWithMarkets() {
   }
 
   // ---------------------------------------------------------------------------
-  // Targeted AH rescue: the combined multi-market request frequently truncates
-  // market 16 (Asian Handicap) because the payload would be too large.
-  // If AH is missing but other non-1X2 markets came back, refetch market 16
-  // alone and merge. One extra request per fetch cycle.
+  // Targeted Rescue: The combined multi-market request frequently truncates
+  // heavy markets (AH, Shots, etc) because the payload is too large.
+  // If they are missing, refetch them individually and merge.
   // ---------------------------------------------------------------------------
-  if (marketIds.includes('16')) {
+  const rescueIds = ['16', '900394', '900393', '900552', '900553'];
+  for (const id of rescueIds) {
+    if (!marketIds.includes(id)) continue;
+    
     const cov = marketCoverage(tournaments);
-    const ahCount = cov.get('16') || 0;
-    if (ahCount === 0) {
-      console.log('   ⚠️  AH missing from combined request, refetching market 16 separately...');
+    const count = cov.get(id) || 0;
+    
+    if (count === 0) {
+      console.log(`   ⚠️  Market ${id} missing from combined request, refetching separately...`);
       await sleep(1500);
       try {
-        const extra = await fetchAllSportyBet(['16']);
+        const extra = await fetchAllSportyBet([id]);
         mergeMarkets(tournaments, extra);
         const newCov = marketCoverage(tournaments);
-        console.log(`   ✔ AH merged: ${newCov.get('16') || 0} matches`);
+        console.log(`   ✔ Market ${id} merged: ${newCov.get(id) || 0} matches`);
       } catch (e) {
-        console.log(`   ✖ AH refetch failed: ${e.message}`);
+        console.log(`   ✖ Market ${id} refetch failed: ${e.message}`);
       }
     }
   }
 
   const cov = marketCoverage(tournaments);
   console.log(`\n📊 SportyBet Market Coverage:`);
-  const labels = { '1': '1X2', '10': 'Double Chance', '11': 'DNB', '18': 'O/U Goals', '29': 'BTTS', '16': 'Asian Handicap', '139': 'Bookings O/U', '166': 'Corners O/U' };
+  const labels = { 
+    '1': '1X2', 
+    '10': 'Double Chance', 
+    '11': 'DNB', 
+    '18': 'O/U Goals', 
+    '29': 'BTTS', 
+    '16': 'Asian Handicap', 
+    '139': 'Bookings O/U', 
+    '166': 'Corners O/U',
+    '900394': 'Total Shots',
+    '900393': 'Total Shots on Target',
+    '900552': 'Home Team Shots',
+    '900553': 'Away Team Shots',
+    '900546': 'Home Team SOT',
+    '900547': 'Away Team SOT',
+    '900556': '1st Half Shots',
+    '900550': '1st Half SOT'
+  };
   for (const id of marketIds) {
     const count = cov.get(id) || 0;
     console.log(`   - ${labels[id] || id}: ${count} matches`);
