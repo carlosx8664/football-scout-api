@@ -195,6 +195,13 @@ export async function onRequestPost(context) {
     return json({ error: "DEEPSEEK_API_KEY is not configured for this deployment." }, 503);
   }
 
+  // Reject an oversized body before buffering it. Multipart adds boundaries and headers on top
+  // of the image, so allow a little slack over the per-image limit.
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BYTES + 512 * 1024) {
+    return json({ error: "Upload is larger than the 8 MB limit." }, 413);
+  }
+
   let form;
   try {
     form = await request.formData();

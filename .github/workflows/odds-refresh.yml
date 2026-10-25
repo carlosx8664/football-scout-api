@@ -67,6 +67,9 @@ jobs:
 
       - name: Build match feed
         run: node scripts/build-match-feed.js --no-ai --days="$DAYS"
+        env:
+          # Unused while --no-ai is passed, but keeps CI working if AI analysis is re-enabled.
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 
       - name: Verify feeds were written
         run: |

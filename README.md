@@ -83,9 +83,14 @@ a `preview_id` with the id of `wrangler kv namespace create FOOTBALL_DATA --prev
 Pages Functions need two more, set as Pages secrets (not Actions secrets):
 
 ```bash
-npx wrangler pages secret put DEEPSEEK_API_KEY       # on-demand match analysis
+npx wrangler pages secret put DEEPSEEK_API_KEY        # match analysis + bet-builder vision
 npx wrangler pages secret put FOOTBALL_DATA_ORG_TOKEN # league tables
 ```
+
+Pages deploys come from Cloudflare's Git integration, not a GitHub Actions workflow, so there is
+no deploy job to add these to. They live on the Pages project: **Pages → your project →
+Settings → Variables and secrets**, or the `wrangler pages secret put` commands above. Preview
+deployments need their own copy unless you mark the secret for *All environments*.
 
 Add the Actions ones under **Settings → Secrets and variables → Actions → New repository secret**.
 
@@ -238,6 +243,40 @@ keeps showing Top Picks).
   Eredivisie, Primeira Liga, Brasileirão, Champions League and World Cup. Cups, the Belgian Pro
   League and the Conference League have no table and return a friendly message instead.
 
+## Bet builder
+
+`/bet-builder` turns a betslip screenshot into matched fixtures with deep links, through
+`POST /api/bet-builder/extract`:
+
+1. The browser downscales the image to ≤1600 px and re-encodes it as JPEG at 0.85
+   (`src/lib/betBuilder.ts`), so a 4 MB screenshot uploads at 150–400 KB.
+2. The Function caches the extraction in KV by SHA-256 of the image (`betslip:v1:<hash>`, 24 h),
+   then calls `deepseek-flash` with a strict `json_object` prompt (`shared/betslip-prompt.js`).
+   DeepSeek rejects `json_schema`, so the shape is spelled out in the prompt.
+3. `shared/betslip-match.js` resolves each transcribed leg against `feed-matches` — token-aware
+   fuzzy team matching with the slip's price as a confirming signal (78/22). The token gate is
+   what keeps "Manchester United" off "Manchester City": `normalizeTeam` strips both `united`
+   and `city`, so the stripped names alone are not enough.
+4. Every hit carries `links.sportybet` / `links.msport` / `links.betboro` from
+   `shared/deeplinks.js`, which tries the full slug path
+   (`…/football/{league}/{home}_vs_{away}/sr:match:{id}`), then the bare Sportradar id, then a
+   Google site search (rendered with a 🔍 icon in the UI).
+
+```
+POST /api/bet-builder/extract    multipart/form-data, field "image"
+  → 200  { bookmaker, warnings, matched[], unresolved[], cached, stats }
+  → 400  no image          413  over 8 MB        415  not PNG/JPEG/WebP/GIF
+  → 502/504 vision failure                     503  DEEPSEEK_API_KEY missing
+```
+
+`unresolved[]` echoes the leg with a `reason` (`missing-teams`, `no-candidates`,
+`low-confidence`, `ambiguous`) plus up to three `candidates`, so the UI can offer a manual picker.
+The same image is never billed twice: the extraction cache is keyed on the image hash, not on the
+fixture feed, and matching re-runs against the live feed on every request so links stay fresh.
+
+Limits: 8 MB per image, enforced server-side from `File.size` before the bytes are read; the
+client downscales further. Requires `DEEPSEEK_API_KEY` as a Pages secret (see step 2 above).
+
 ## Keeping odds fresh
 
 `.github/workflows/odds-refresh.yml` runs every 15 minutes (GitHub's minimum is 5; runs can start
@@ -295,3 +334,5 @@ cd ../.. && npm run worker:deploy
 - `/` — fixture grid with **Today's Matches** / **Tomorrow's Matches** tabs and a league filter.
   Today hides matches that have already kicked off; tomorrow shows the full slate.
 - `/match/:id` — AI detail page (client-side route, served via `public/_redirects`)
+- `/arbs` — live + past arbitrage tables
+- `/bet-builder` — upload a betslip screenshot and get matched fixtures with bookmaker deep links
