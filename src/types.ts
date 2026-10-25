@@ -27,8 +27,21 @@ export interface BookOdds {
   away: BookPrice;
 }
 
+export interface BookIds {
+  /** BetBoro region/competition/fixture ids used by `shared/deeplinks.js`. */
+  betboro?: {
+    regionId: string;
+    competitionId: string;
+    betBoroId: string;
+  } | null;
+}
+
 export interface Match {
   fixture: { id: number; date: string };
+  /** Sportradar id shared by every bookmaker, e.g. "sr:match:72478654". */
+  sr_id?: string | null;
+  /** Extra per-bookmaker ids for deep links that need more than the Sportradar id. */
+  book_ids?: BookIds | null;
   league: League;
   teams: { home: Team; away: Team };
   goals?: { home: number | null; away: number | null };
@@ -129,4 +142,79 @@ export interface SnapshotData {
   generated_at?: string;
   match_count: number;
   matches: Match[];
+}
+
+/* ------------------------------------------------------------------ *
+ * Bet builder (POST /api/bet-builder/extract)
+ * ------------------------------------------------------------------ */
+
+/** One selection as transcribed from a betslip screenshot. */
+export interface ExtractedLeg {
+  rowIndex: number;
+  /** Verbatim text of the row, useful when a match could not be resolved. */
+  rawText?: string;
+  home: string | null;
+  away: string | null;
+  leagueHint?: string | null;
+  kickoffHint?: string | null;
+  market: string;
+  selection: string;
+  odds: number | null;
+}
+
+/** Deep links for one fixture. Null when that bookmaker's URL cannot be built. */
+export interface BetslipLinks {
+  sportybet: string | null;
+  msport: string | null;
+  betboro: string | null;
+}
+
+interface BetBuilderHit {
+  leg: ExtractedLeg;
+  match: Match;
+  /** 0..1 overall score (team names + odds). */
+  confidence: number;
+  teamScore: number;
+  oddsScore: number | null;
+  /** True when the slip printed the teams in the opposite order to the feed. */
+  flipped: boolean;
+  links: BetslipLinks;
+}
+
+/** A leg resolved to exactly one fixture. */
+export interface MatchedLeg extends BetBuilderHit {
+  status: "matched";
+}
+
+/** A possible fixture offered for a leg that could not be resolved automatically. */
+export interface MatchedCandidate extends BetBuilderHit {
+  status: "candidate";
+}
+
+export type UnresolvedReason =
+  | "missing-teams"
+  | "no-candidates"
+  | "low-confidence"
+  | "ambiguous";
+
+export interface UnresolvedLeg {
+  leg: ExtractedLeg;
+  reason: UnresolvedReason;
+  /** Up to three closest fixtures, best first. Empty when nothing plausible was found. */
+  candidates: MatchedCandidate[];
+}
+
+export interface BetBuilderResponse {
+  bookmaker: string | null;
+  warnings: string[];
+  matched: MatchedLeg[];
+  unresolved: UnresolvedLeg[];
+  /** True when the extraction came from the KV cache. */
+  cached?: boolean;
+  stats?: {
+    legs: number;
+    matched: number;
+    unresolved: number;
+    fixtures: number;
+  };
 }

@@ -174,6 +174,14 @@ function readBetBoroEvents(json) {
         home: fixture?.logos?.home ?? "",
         away: fixture?.logos?.away ?? "",
       },
+      // BetBoro is the only book that needs more than the Sportradar id to build a deep link.
+      bookIds: {
+        betboro: {
+          regionId: fixture?.regionId ?? null,
+          competitionId: fixture?.competitionId ?? null,
+          betBoroId: fixture?.betBoroId ?? null,
+        },
+      },
       odds,
     });
   }
@@ -278,6 +286,10 @@ function mergeEvents(events) {
   const [first] = events;
   const entry = {
     key: "",
+    // Every bookmaker uses Sportradar ids, so any valid one identifies the fixture.
+    srId: "",
+    // Per-bookmaker ids needed for deep links beyond the Sportradar id (BetBoro only).
+    bookIds: {},
     home: first.home,
     away: first.away,
     startTime: first.startTime,
@@ -287,6 +299,9 @@ function mergeEvents(events) {
   };
 
   for (const event of events) {
+    if (!entry.srId && /^sr:match:\d+$/.test(event.srId ?? "")) entry.srId = event.srId;
+    const betboroIds = event.bookIds?.betboro;
+    if (!entry.bookIds.betboro && betboroIds?.betBoroId) entry.bookIds.betboro = betboroIds;
     entry.books[event.source] = event.odds;
     entry.logos = {
       home: entry.logos.home || event.logos.home,
@@ -299,6 +314,16 @@ function mergeEvents(events) {
 
   entry.key = `${normalize(entry.home)}|${normalize(entry.away)}|${first.startTime}`;
   return entry;
+}
+
+/**
+ * BetBoro needs region + competition + fixture ids for its verified deep link; emit the block
+ * only when the full set is present, so the client can fall back cleanly when it is not.
+ */
+function toBookIds(entry) {
+  const betboro = entry.bookIds?.betboro;
+  if (!betboro?.betBoroId || !betboro.regionId || !betboro.competitionId) return null;
+  return { betboro };
 }
 
 const ANALYSIS_SYSTEM_PROMPT = [
@@ -532,6 +557,10 @@ async function main() {
 
       return {
         fixture: { id: fixtureId(entry.key), date: new Date(entry.startTime).toISOString() },
+        // Sportradar id lets the client deep-link the same fixture on SportyBet / MSport.
+        sr_id: /^sr:match:\d+$/.test(entry.srId) ? entry.srId : null,
+        // BetBoro-specific ids for its region/competition/fixture URL shape.
+        book_ids: toBookIds(entry),
         league: entry.league,
         teams: {
           home: { name: entry.home, logo: entry.logos.home },

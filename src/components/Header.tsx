@@ -23,6 +23,7 @@ const Header = () => {
           <nav className="top-nav">
             <a href="#">Tip Hub</a>
             <Link to="/arbs">Arbs</Link>
+            <Link to="/bet-builder">Bet Builder</Link>
           </nav>
         </div>
         <div className="header-right">

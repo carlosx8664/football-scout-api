@@ -387,6 +387,8 @@ function collectBetBoro(responses) {
           betBoroId: String(f.id),
           betBoroVirtualLiveId: f.virtual_live_id != null ? String(f.virtual_live_id) : null,
           betBoroExternalId: String(f.external_id),
+          // Needed for the BetBoro deep link (region/competition/fixture URL shape).
+          regionId: f.region_id != null ? String(f.region_id) : null,
           home: f.participants[0],
           away: f.participants[1],
           logos: { home: f.participant_logos?.home ?? '', away: f.participant_logos?.away ?? '' },

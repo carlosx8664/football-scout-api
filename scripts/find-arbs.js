@@ -2,6 +2,15 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import {
+  BETBORO,
+  BETPAWA,
+  BOLTBET,
+  MSPORT,
+  SPORTY,
+  buildUrl,
+} from '../shared/deeplinks.js';
+import { normalizeTeam } from '../shared/teams.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,54 +48,11 @@ const NEAR = Number(opt('near', '0'));
 const TOTAL_STAKE = Number(opt('stake', '100'));
 const MIN_ODDS = Number(opt('min-odds', '1.20')); 
 
-const SPORTY = 'SportyBet';
-const MSPORT = 'MSport';
-const BETBORO = 'BetBoro';
-const BOLTBET = 'BoltBet';
-const BETPAWA = 'BetPawa';
-
 const clean = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9.]/g, '');
 const num = (x) => {
   const n = parseFloat(x);
   return Number.isFinite(n) ? n : null;
 };
-
-const normalizeTeam = (name) => {
-  return String(name).toLowerCase()
-    .replace(/\b(fc|sc|afc|cf|united|utd|city|club|women|wom|wfc|lfc)\b/g, '')
-    .replace(/[^a-z0-9]/g, '')
-    .trim();
-};
-
-// ============================================================================
-// Deep Link Generation
-// ============================================================================
-function buildUrl(bookmaker, eventId, home, away, rawFixture = {}) {
-  const searchQuery = encodeURIComponent(`"${home}" "${away}"`);
-  
-  if (bookmaker === SPORTY) {
-    const id = eventId.replace('sr:match:', '');
-    return `https://www.sportybet.com/gh/sport/football/sr:match:${id}`;
-  }
-  if (bookmaker === MSPORT) {
-    const id = eventId.replace('sr:match:', '');
-    return `https://www.msport.com/gh/web/sports/Soccer/sr:match:${id}`;
-  }
-  if (bookmaker === BETBORO) {
-    const { betBoroId, regionId, competitionId } = rawFixture;
-    if (betBoroId && regionId && competitionId) {
-      return `https://betboro.com.gh/pre-sports/1/region/${regionId}/competition/${competitionId}/fixture/${betBoroId}`;
-    }
-    return `https://www.google.com/search?q=site:betboro.com.gh+${searchQuery}`;
-  }
-  if (bookmaker === BOLTBET) {
-    return `https://www.google.com/search?q=site:boltbet.com.gh+${searchQuery}`;
-  }
-  if (bookmaker === BETPAWA) {
-    return `https://www.google.com/search?q=site:betpawa.com.gh+${searchQuery}`;
-  }
-  return null;
-}
 
 // ============================================================================
 // Telegram Alert

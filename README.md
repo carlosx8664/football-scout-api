@@ -35,12 +35,17 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 
 ```
 shared/leagues.js              Single source of truth for the 16 tracked leagues
+shared/deeplinks.js            Bookmaker names + verified per-fixture deep links
+shared/teams.js                Team-name normalisation for matching/deduping
+shared/betslip-prompt.js       Vision prompt + JSON contract for betslip extraction
+shared/betslip-match.js        Resolves extracted betslip legs against the match feed
 .github/workflows/odds-refresh.yml  Scrape odds, build feeds, publish to KV
 workers/dispatch-trigger/      Cloudflare Cron Worker that dispatches the workflow every 15 min
 functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh output)
 functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
 functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek note with live search
 functions/api/standings.js     GET /api/standings - league table via football-data.org
+functions/api/bet-builder/extract.js  POST /api/bet-builder/extract - screenshot -> matched legs
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
@@ -118,6 +123,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `GET /api/arbs` | Arbitrage feed from KV (`feed-arbs`), including tracked arb history; 404 until the workflow has run |
 | `GET /api/analysis` | On-demand DeepSeek note with live search, cached 6 h per fixture |
 | `GET /api/standings` | League table window for a fixture, from football-data.org |
+| `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
@@ -131,6 +137,8 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
   "matches": [
     {
       "fixture": { "id": 1234, "date": "2026-10-23T19:00:00.000Z" },
+      "sr_id": "sr:match:72478654",
+      "book_ids": { "betboro": { "regionId": "16", "competitionId": "92", "betBoroId": "91668574" } },
       "league": { "id": 39, "name": "Premier League", "logo": "..." },
       "teams": { "home": { "name": "...", "logo": "..." }, "away": { "name": "...", "logo": "..." } },
       "goals": null,
@@ -162,6 +170,10 @@ npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
 - Emits the best price per outcome plus a `book_odds` block. Each outcome carries
   `{ books: { <bookmaker>: price }, best, bookmaker }`, so the hover breakdown lists however many
   books quote it while the tile always shows the best price.
+- Carries the Sportradar id through as `sr_id` on every match, which is what the bet-builder uses
+  to open the fixture on SportyBet / MSport (`shared/deeplinks.js`).
+- Adds a `book_ids.betboro` block (`regionId`, `competitionId`, `betBoroId`) when BetBoro quoted
+  the fixture; its deep-link URL needs those three ids as well.
 - Crests come from whichever bookmaker has them: MSport team icons, otherwise BetBoro's
   `participant_logos`, otherwise the card renders without a crest.
 - Adds DeepSeek analysis when `DEEPSEEK_API_KEY` is set (`--no-ai` skips it).
