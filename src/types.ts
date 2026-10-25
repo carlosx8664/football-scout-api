@@ -61,6 +61,43 @@ export interface ArbOpportunity {
   note?: string;
 }
 
+/** One leg of a tracked arb, with the prices it traded at over time. */
+export interface ArbHistoryLeg {
+  bookmaker: string;
+  outcome: string;
+  stake?: number | null;
+  /** First price seen for this leg. */
+  openOdds: number;
+  /** Price on the most recent run (always a pre-kickoff price). */
+  lastOdds: number;
+  /** Last price before kickoff, frozen once the match started. */
+  finalOdds?: number | null;
+}
+
+/** An arb the scanner has seen at any point, kept after kickoff for the Past Arbs table. */
+export interface ArbHistoryRecord {
+  key: string;
+  eventId?: string | null;
+  home: string;
+  away: string;
+  tournament?: string | null;
+  /** Epoch milliseconds. */
+  kickoff: number;
+  market: string;
+  note?: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  /** Profit % when the arb was first detected. */
+  openProfitPct: number;
+  /** Best profit % ever seen for this arb. */
+  peakProfitPct: number;
+  /** Most recent profit %. */
+  profitPct: number;
+  /** Profit % at the last pre-kickoff price, set once the match starts. */
+  finalProfitPct?: number | null;
+  legs: ArbHistoryLeg[];
+}
+
 /** Static snapshot written by the arbitrage scanner to `public/arbs.json`. */
 export interface ArbsPayload {
   generatedAt?: string;
@@ -68,6 +105,8 @@ export interface ArbsPayload {
   boostApplied?: number;
   boostTarget?: string | null;
   arbs: ArbOpportunity[];
+  /** Every arb tracked recently, including ones whose match has already started. */
+  history?: ArbHistoryRecord[];
 }
 
 /**

@@ -302,3 +302,110 @@
 .arb-leg-profit.negative {
   color: #b91c1c;
 }
+
+/* --- Live Arbs / Past Arbs sections --- */
+.arbs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arbs-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arbs-section-title {
+  margin: 0;
+  color: #0a2540;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.arbs-section-count {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-7);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* --- Past arbs: match status badge --- */
+.arb-status-cell {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.arb-status {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.arb-status-playing {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+}
+
+.arb-status-finished {
+  color: var(--color-neutral-7);
+  background: var(--color-neutral-3);
+  border: 1px solid var(--color-neutral-4);
+}
+
+.arb-status-upcoming {
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+/* --- Past arbs: open -> final price and movement --- */
+.arb-odds-move {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arb-odds-open {
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.arb-odds-arrow {
+  color: var(--color-neutral-5);
+  font-size: 0.75rem;
+}
+
+.arb-odds-final {
+  color: var(--color-neutral-7);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.arb-move {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.arb-move.up {
+  color: #15803d;
+}
+
+.arb-move.down {
+  color: #b91c1c;
+}
+
+.arb-move.flat {
+  color: var(--color-neutral-6);
+}

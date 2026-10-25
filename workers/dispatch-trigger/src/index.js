@@ -13,15 +13,12 @@
 const REPO = "carlosx8664/football-scout-api";
 const WORKFLOW = "odds-refresh.yml";
 const REF = "main";
-// Must match the second entry in wrangler.jsonc `triggers.crons`.
-const HORIZON_CRON = "0 */3 * * *";
 
 /**
- * `mode=hot` refreshes the 2-day feed every 15 minutes; `mode=horizon` rebuilds the 6-day
- * feed with a single market pass every 3 hours. They write different KV keys, so neither
- * can overwrite the other.
+ * Dispatches the odds-refresh workflow on GitHub Actions.
+ * The workflow is triggered every 15 minutes by the Cloudflare Cron Trigger.
  */
-async function dispatch(env, mode = "hot") {
+async function dispatch(env) {
   if (!env.GH_DISPATCH_TOKEN) {
     throw new Error("GH_DISPATCH_TOKEN is not configured");
   }
@@ -37,7 +34,7 @@ async function dispatch(env, mode = "hot") {
         "User-Agent": "oddtor-dispatch-trigger",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref: REF, inputs: { mode } }),
+      body: JSON.stringify({ ref: REF }),
     },
   );
 
@@ -47,25 +44,23 @@ async function dispatch(env, mode = "hot") {
     throw new Error(`GitHub dispatch failed (HTTP ${response.status}): ${detail}`);
   }
 
-  console.log(`Dispatched ${WORKFLOW} (${mode}) on ${REF}`);
+  console.log(`Dispatched ${WORKFLOW} on ${REF}`);
 }
 
 export default {
   async scheduled(controller, env, ctx) {
-    const mode = controller.cron === HORIZON_CRON ? "horizon" : "hot";
-
     // waitUntil keeps the invocation alive until the dispatch settles. Errors are logged
     // rather than thrown so a transient GitHub hiccup does not surface as a Worker crash.
     ctx.waitUntil(
-      dispatch(env, mode).catch((error) => {
+      dispatch(env).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`Scheduled ${mode} dispatch failed: ${message}`);
+        console.error(`Scheduled dispatch failed: ${message}`);
       }),
     );
   },
 
   /**
-   * Manual trigger for testing: POST /?key=<TRIGGER_KEY>[&mode=horizon]
+   * Manual trigger for testing: POST /?key=<TRIGGER_KEY>
    * Returns 403 when TRIGGER_KEY is configured and does not match.
    */
   async fetch(request, env) {
@@ -82,11 +77,9 @@ export default {
       }
     }
 
-    const mode = url.searchParams.get("mode") === "horizon" ? "horizon" : "hot";
-
     try {
-      await dispatch(env, mode);
-      return Response.json({ dispatched: true, workflow: WORKFLOW, ref: REF, mode });
+      await dispatch(env);
+      return Response.json({ dispatched: true, workflow: WORKFLOW, ref: REF });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(message);

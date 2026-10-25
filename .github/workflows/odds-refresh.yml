@@ -44,6 +44,21 @@ jobs:
       - name: Fetch odds from BetPawa (Playwright)
         run: node scripts/fetch-betpawa.js
 
+      - name: Restore arb history from KV
+        continue-on-error: true
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          mkdir -p data
+          curl -sS --fail \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-arbs-history" \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            -o data/arbs-history.json \
+            && echo "Restored $(wc -c < data/arbs-history.json) bytes of arb history." \
+            || echo "No previous arb history in KV; starting a fresh one."
+
       - name: Build arbitrage feed and send alerts
         run: node scripts/find-arbs.js
         env:
@@ -121,3 +136,4 @@ jobs:
 
           upload "feed-matches" "public/matches.json"
           upload "feed-arbs" "public/arbs.json"
+          upload "feed-arbs-history" "data/arbs-history.json"

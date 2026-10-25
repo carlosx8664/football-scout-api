@@ -1,6 +1,12 @@
 import { Fragment, useEffect, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
-import type { ArbLeg, ArbOpportunity, ArbsPayload } from "../types";
+import type {
+  ArbHistoryLeg,
+  ArbHistoryRecord,
+  ArbLeg,
+  ArbOpportunity,
+  ArbsPayload,
+} from "../types";
 import "./ArbsTable.css";
 
 interface ArbsTableProps {
@@ -9,14 +15,19 @@ interface ArbsTableProps {
 
 interface Feed {
   arbs: ArbOpportunity[];
+  /** Every arb the scanner has tracked recently, including started matches. */
+  history: ArbHistoryRecord[];
   generatedAt: string | null;
   /** 1 = real odds. Anything else means find-arbs.js was run in --boost test mode. */
   boost: number | null;
 }
 
-const EMPTY_FEED: Feed = { arbs: [], generatedAt: null, boost: null };
+const EMPTY_FEED: Feed = { arbs: [], history: [], generatedAt: null, boost: null };
 
 const LEGS_PER_MATCH = 2;
+const PAST_LIMIT = 50;
+/** 90 minutes plus half-time and stoppage; used to label a kicked-off match. */
+const MATCH_DURATION_MS = 135 * 60_000;
 const REFRESH_MS = 5 * 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
@@ -103,13 +114,33 @@ function formatAge(ms: number): string {
   return hours < 24 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
 }
 
+/** Playing / finished / not-started label for a tracked arb. */
+function matchStatus(
+  kickoff: number,
+  now: number,
+): { label: string; tone: "playing" | "finished" | "upcoming" } {
+  if (now < kickoff) return { label: countdown(kickoff, now), tone: "upcoming" };
+  if (now < kickoff + MATCH_DURATION_MS) return { label: "Playing", tone: "playing" };
+  return { label: "Finished", tone: "finished" };
+}
+
+const fmtOdds = (value: number | null | undefined): string =>
+  Number.isFinite(value) ? Number(value).toFixed(2) : "—";
+
+/** Open -> close price for a tracked leg, with the percentage move. */
+function oddsDelta(leg: ArbHistoryLeg): { open: number; close: number; pct: number } | null {
+  const close = leg.finalOdds ?? leg.lastOdds;
+  if (!Number.isFinite(leg.openOdds) || !Number.isFinite(close) || leg.openOdds <= 0) return null;
+  return { open: leg.openOdds, close, pct: ((close - leg.openOdds) / leg.openOdds) * 100 };
+}
+
 /**
  * Reads the file written by find-arbs.js: `{ generatedAt, boostApplied, arbs: [...] }`.
  * A bare array of opportunities is accepted too.
  */
 function normalize(raw: unknown): Feed {
   if (Array.isArray(raw)) {
-    return { arbs: raw as ArbOpportunity[], generatedAt: null, boost: null };
+    return { arbs: raw as ArbOpportunity[], history: [], generatedAt: null, boost: null };
   }
 
   if (raw && typeof raw === "object") {
@@ -117,6 +148,7 @@ function normalize(raw: unknown): Feed {
     if (Array.isArray(payload.arbs)) {
       return {
         arbs: payload.arbs,
+        history: Array.isArray(payload.history) ? payload.history : [],
         generatedAt: typeof payload.generatedAt === "string" ? payload.generatedAt : null,
         boost: typeof payload.boostApplied === "number" ? payload.boostApplied : null,
       };
@@ -192,14 +224,26 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     };
   }, []);
 
-  // Only complete two-leg opportunities for games that have not started can be shown.
-  const rows = (feed?.arbs ?? []).filter(
+  // Only complete two-leg opportunities for games that have not started can be shown live.
+  const liveRows = (feed?.arbs ?? []).filter(
     (arb) =>
       Number.isFinite(arb.kickoff) &&
       Number.isFinite(arb.profitPct) &&
       arb.kickoff > now &&
       legsFor(arb).length === LEGS_PER_MATCH,
   );
+
+  // Anything already kicked off (or dropped out of the feed since) comes from history.
+  const pastRows = (feed?.history ?? [])
+    .filter(
+      (record) =>
+        Number.isFinite(record.kickoff) &&
+        record.kickoff <= now &&
+        Array.isArray(record.legs) &&
+        record.legs.length > 0,
+    )
+    .sort((a, b) => b.kickoff - a.kickoff)
+    .slice(0, PAST_LIMIT);
 
   const isTestData = feed?.boost != null && Math.abs(feed.boost - 1) > 1e-9;
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
@@ -227,11 +271,17 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             </div>
           )}
 
-          {rows.length === 0 ? (
-            <div className="arbs-state">No arbitrage opportunities found at this time.</div>
-          ) : (
-            <>
-              <div className="arbs-stake-control">
+          <div className="arbs-section">
+            <div className="arbs-section-head">
+              <h2 className="arbs-section-title">Live Arbs</h2>
+              <span className="arbs-section-count">{liveRows.length}</span>
+            </div>
+
+            {liveRows.length === 0 ? (
+              <div className="arbs-state">No live arbitrage opportunities at this time.</div>
+            ) : (
+              <>
+                <div className="arbs-stake-control">
                 <label htmlFor="arbs-total-stake">Total Stake</label>
                 <input
                   id="arbs-total-stake"
@@ -275,7 +325,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((arb, arbIndex) => {
+                    {liveRows.map((arb, arbIndex) => {
                       const legs = legsFor(arb);
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
@@ -377,7 +427,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                 {feed.generatedAt
                   ? `Updated ${new Date(feed.generatedAt).toLocaleString("en-GB")} · `
                   : ""}
-                {rows.length} {rows.length === 1 ? "opportunity" : "opportunities"}
+                {liveRows.length} {liveRows.length === 1 ? "opportunity" : "opportunities"}
                 {rounding > 0
                   ? ` · Stakes scaled from ${totalStake.toFixed(2)}, rounded to nearest ${rounding}`
                   : ` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
@@ -385,6 +435,157 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             </div>
             </>
           )}
+          </div>
+
+          <div className="arbs-section">
+            <div className="arbs-section-head">
+              <h2 className="arbs-section-title">Past Arbs</h2>
+              <span className="arbs-section-count">{pastRows.length}</span>
+            </div>
+
+            {pastRows.length === 0 ? (
+              <div className="arbs-state">
+                No past arbitrage opportunities yet. Every arb the scanner sees is kept here after
+                kickoff, along with how its prices moved.
+              </div>
+            ) : (
+              <div className="arbs-panel">
+                <div className="arbs-table-wrap">
+                  <table className="arbs-table arbs-table-past">
+                    <thead>
+                      <tr>
+                        <th scope="col">Status</th>
+                        <th scope="col">Bookmaker</th>
+                        <th scope="col">Event</th>
+                        <th scope="col">Market</th>
+                        <th scope="col">Open → Final</th>
+                        <th scope="col">Move</th>
+                        <th scope="col">Profit at Close</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pastRows.map((record, recordIndex) => {
+                        const legs = record.legs;
+                        const status = matchStatus(record.kickoff, now);
+                        const kickoff = kickoffLabel(record.kickoff);
+                        const rowClass = recordIndex % 2 === 1 ? "arb-row-alt" : undefined;
+                        const closeProfit = record.finalProfitPct ?? record.profitPct;
+                        const peakProfit = record.peakProfitPct ?? record.profitPct;
+                        const span = legs.length;
+
+                        return (
+                          <Fragment
+                            key={
+                              record.key ??
+                              `${record.kickoff}-${record.home}-${record.away}-${record.market}`
+                            }
+                          >
+                            {legs.map((leg, legIndex) => {
+                              const delta = oddsDelta(leg);
+                              const moveTone =
+                                delta === null
+                                  ? "flat"
+                                  : delta.pct > 0
+                                    ? "up"
+                                    : delta.pct < 0
+                                      ? "down"
+                                      : "flat";
+
+                              return (
+                                <tr
+                                  className={rowClass}
+                                  key={`${leg.bookmaker}-${leg.outcome}-${legIndex}`}
+                                >
+                                  {legIndex === 0 && (
+                                    <td className="arb-status-cell" rowSpan={span}>
+                                      <span className={`arb-status arb-status-${status.tone}`}>
+                                        {status.label}
+                                      </span>
+                                      <span className="arb-event-when">
+                                        {kickoff.date} · {kickoff.time}
+                                      </span>
+                                    </td>
+                                  )}
+
+                                  <td className="arb-bookmaker">
+                                    <span className="arb-bookmaker-pill">{leg.bookmaker}</span>
+                                  </td>
+
+                                  {legIndex === 0 && (
+                                    <td className="arb-event" rowSpan={span}>
+                                      <span className="arb-event-teams">
+                                        {record.home} vs {record.away}
+                                      </span>
+                                      {record.tournament && (
+                                        <span className="arb-event-tournament">
+                                          {record.tournament}
+                                        </span>
+                                      )}
+                                      {record.note && (
+                                        <span className="arb-note">{record.note}</span>
+                                      )}
+                                    </td>
+                                  )}
+
+                                  <td className="arb-market">
+                                    <span className="arb-market-type">{record.market || "—"}</span>
+                                    <span className="arb-market-outcome">
+                                      {leg.outcome || "—"}
+                                    </span>
+                                  </td>
+
+                                  <td className="arb-odds">
+                                    <span className="arb-odds-move">
+                                      <span className="arb-odds-open">
+                                        {fmtOdds(delta?.open ?? leg.openOdds)}
+                                      </span>
+                                      <span className="arb-odds-arrow">→</span>
+                                      <span className="arb-odds-final">
+                                        {fmtOdds(delta?.close ?? leg.finalOdds ?? leg.lastOdds)}
+                                      </span>
+                                    </span>
+                                    <span className="arb-stake">
+                                      {leg.finalOdds == null
+                                        ? "Latest pre-kickoff price"
+                                        : "Final price"}
+                                    </span>
+                                  </td>
+
+                                  <td className={`arb-move ${moveTone}`}>
+                                    {delta === null
+                                      ? "—"
+                                      : `${delta.pct >= 0 ? "+" : ""}${delta.pct.toFixed(1)}%`}
+                                  </td>
+
+                                  {legIndex === 0 && (
+                                    <td className="arb-profit" rowSpan={span}>
+                                      <span className="arb-profit-value">
+                                        {Number(closeProfit).toFixed(2)}%
+                                      </span>
+                                      <span className="arb-profit-time">
+                                        Peak {Number(peakProfit).toFixed(2)}%
+                                      </span>
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="arbs-updated">
+                  {pastRows.length === PAST_LIMIT
+                    ? `Latest ${PAST_LIMIT} tracked`
+                    : `${pastRows.length} tracked`}
+                  {" · prices frozen at kickoff"}
+                </p>
+              </div>
+            )}
+          </div>
         </>
       )}
     </section>

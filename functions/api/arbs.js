@@ -30,6 +30,8 @@ function mergeFeeds(hot, horizon) {
   return {
     ...base,
     arbs,
+    // History rides along inside the hot feed; keep whichever side has it.
+    history: hot?.history ?? horizon?.history ?? base?.history ?? [],
     stats: {
       ...(hot?.stats ?? horizon?.stats ?? {}),
       arbs: arbs.length,

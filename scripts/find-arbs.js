@@ -23,6 +23,12 @@ const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
 const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
+// Arb history: every opportunity ever seen, so the Past Arbs table survives kickoff.
+// The workflow restores this file from KV before each run and uploads it afterwards.
+const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
+const HISTORY_DAYS = Number(opt('history-days', '7'));
+const HISTORY_LIMIT = Number(opt('history-limit', '500'));
+
 const BOOST = Number(opt('boost', '1'));        
 const MIN_PROFIT = Number(opt('min', '0'));     
 const NEAR = Number(opt('near', '0'));          
@@ -423,6 +429,95 @@ function evaluate(pair, oa, ob) {
   return { profitPct, shareA, shareB };
 }
 
+// ============================================================================
+// Arb history: open / latest / final pre-kickoff prices
+// ============================================================================
+
+const historyKey = (arb) => `${arb.eventId ?? `${arb.home}|${arb.away}`}|${arb.market}`;
+
+function loadHistory(file) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const rows = Array.isArray(parsed) ? parsed : parsed?.history;
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Folds this run's arbs into the accumulated history.
+ *
+ * Per leg:
+ *   openOdds   first price we ever saw
+ *   lastOdds   price from the latest run (always pre-kickoff, because the feeds
+ *              only expose not-started events)
+ *   finalOdds  lastOdds frozen the first time we see the match has kicked off
+ */
+function mergeHistory(previous, arbs, nowMs) {
+  const byKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
+
+  for (const arb of arbs) {
+    const key = historyKey(arb);
+    const prior = byKey.get(key);
+    const priorLegs = new Map(
+      (prior?.legs ?? []).map((leg) => [`${leg.bookmaker}|${leg.outcome}`, leg]),
+    );
+    const kickedOff = nowMs >= arb.kickoff;
+
+    const legs = arb.legs.map((leg) => {
+      const old = priorLegs.get(`${leg.bookmaker}|${leg.outcome}`);
+      return {
+        bookmaker: leg.bookmaker,
+        outcome: leg.outcome,
+        stake: leg.stake ?? null,
+        openOdds: old?.openOdds ?? leg.odds,
+        lastOdds: leg.odds,
+        finalOdds: old?.finalOdds ?? (kickedOff ? (old?.lastOdds ?? leg.odds) : null),
+      };
+    });
+
+    byKey.set(key, {
+      key,
+      eventId: arb.eventId ?? null,
+      home: arb.home,
+      away: arb.away,
+      tournament: arb.tournament ?? null,
+      kickoff: arb.kickoff,
+      market: arb.market,
+      note: arb.note ?? null,
+      firstSeenAt: prior?.firstSeenAt ?? new Date(nowMs).toISOString(),
+      lastSeenAt: new Date(nowMs).toISOString(),
+      openProfitPct: prior?.openProfitPct ?? arb.profitPct,
+      peakProfitPct: Math.max(prior?.peakProfitPct ?? arb.profitPct, arb.profitPct),
+      profitPct: arb.profitPct,
+      finalProfitPct: prior?.finalProfitPct ?? null,
+      legs,
+    });
+  }
+
+  // Freeze the close for anything that has kicked off, including arbs that have
+  // already dropped out of the feed.
+  const cutoff = nowMs - HISTORY_DAYS * 86_400_000;
+  const rows = [];
+
+  for (const row of byKey.values()) {
+    if (!(row.kickoff >= cutoff)) continue;
+
+    if (nowMs >= row.kickoff) {
+      for (const leg of row.legs) {
+        if (leg.finalOdds == null) leg.finalOdds = leg.lastOdds;
+      }
+      if (row.finalProfitPct == null) row.finalProfitPct = row.profitPct;
+    }
+
+    rows.push(row);
+  }
+
+  rows.sort((a, b) => b.kickoff - a.kickoff);
+  return rows.slice(0, HISTORY_LIMIT);
+}
+
 async function main() {
   const sporty = loadBookie(SPORTY_FILE, SPORTY);
   const msport = loadBookie(MSPORT_FILE, MSPORT);
@@ -598,6 +693,9 @@ async function main() {
       .forEach(printArb);
   }
 
+  const nowMs = Date.now();
+  const history = mergeHistory(loadHistory(HISTORY_FILE), arbs, nowMs);
+
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify({
     generatedAt: new Date().toISOString(),
@@ -609,8 +707,16 @@ async function main() {
       bookEvents: Object.fromEntries(sources.map(({ name, book }) => [name, book.events.size])),
     },
     arbs,
+    history,
   }, null, 2));
+
+  fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify({ history }, null, 2));
+
+  const started = history.filter((row) => nowMs >= row.kickoff).length;
   console.log(`\nWrote ${OUT_FILE}`);
+  console.log(`Tracked arbs: ${history.length} (${started} started or finished, ${HISTORY_DAYS}d retention)`);
+  console.log(`Wrote ${HISTORY_FILE}`);
 }
 
 main().catch(console.error);

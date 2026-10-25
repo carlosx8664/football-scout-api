@@ -115,7 +115,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/matches` | Match feed from KV (`feed-matches`); 404 until the workflow has run |
-| `GET /api/arbs` | Arbitrage feed from KV (`feed-arbs`); 404 until the workflow has run |
+| `GET /api/arbs` | Arbitrage feed from KV (`feed-arbs`), including tracked arb history; 404 until the workflow has run |
 | `GET /api/analysis` | On-demand DeepSeek note with live search, cached 6 h per fixture |
 | `GET /api/standings` | League table window for a fixture, from football-data.org |
 
@@ -231,10 +231,15 @@ keeps showing Top Picks).
 `.github/workflows/odds-refresh.yml` runs every 15 minutes (GitHub's minimum is 5; runs can start
 late under load) and publishes straight to KV, so the site never redeploys to update odds:
 
-1. `node scripts/fetch-odds.js` → `data/sportybet.json`, `data/msport.json`
-2. `node scripts/find-arbs.js` → `public/arbs.json`
-3. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
-4. Both files are `PUT` into KV as `feed-matches` and `feed-arbs`
+1. Restore `feed-arbs-history` from KV into `data/arbs-history.json`
+2. `node scripts/fetch-odds.js` → `data/sportybet.json`, `data/msport.json`
+3. `node scripts/find-arbs.js` → `public/arbs.json` (with `arbs` + `history`) and `data/arbs-history.json`
+4. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
+5. The files are `PUT` into KV as `feed-matches`, `feed-arbs` and `feed-arbs-history`
+
+`history` holds every arb seen in the last 7 days (`--history-days`), with the first price seen,
+the latest pre-kickoff price and the profit at each. That is what the Past Arbs table renders;
+`arbs` stays limited to matches that have not kicked off.
 
 A `concurrency` group stops runs from overlapping, and the job refuses to upload if either feed
 is missing or empty, so a failed fetch cannot wipe what is already live.
