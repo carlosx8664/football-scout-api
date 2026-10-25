@@ -221,22 +221,23 @@ const ReviewCard = ({ entry }: { entry: UnresolvedLeg }) => {
             <span className="bb-odds">@ {Number(entry.leg.odds).toFixed(2)}</span>
           )}
         </div>
-      <span className="bb-reason">{REASON_LABEL[entry.reason] ?? entry.reason}</span>
+        <span className="bb-reason">{REASON_LABEL[entry.reason] ?? entry.reason}</span>
 
-      {entry.candidates.length === 0 ? (
-        <p className="bb-review-empty">
-          Nothing in the feed looks close. Check that the match is on today's list.
-        </p>
-      ) : (
-        <div className="bb-candidates">
-          {entry.candidates.slice(0, MAX_CANDIDATES).map((candidate) => (
-            <CandidateRow key={candidate.match.fixture.id} candidate={candidate} />
-          ))}
-        </div>
-      )}
-    </div>
-  </article>
-);
+        {entry.candidates.length === 0 ? (
+          <p className="bb-review-empty">
+            Nothing in the feed looks close. Check that the match is on today's list.
+          </p>
+        ) : (
+          <div className="bb-candidates">
+            {entry.candidates.slice(0, MAX_CANDIDATES).map((candidate) => (
+              <CandidateRow key={candidate.match.fixture.id} candidate={candidate} />
+            ))}
+          </div>
+        )}
+      </div>
+    </article>
+  );
+};
 
 const BetBuilder = () => {
   const [phase, setPhase] = useState<Phase>("idle");
