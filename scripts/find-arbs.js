@@ -1042,6 +1042,7 @@ async function main() {
     console.log(`  ${a.home} vs ${a.away}  →  ${a.profitPct}%  [${a.market}]${reviewFlag}  (${a.tournament})`);
     for (const l of a.legs) {
       console.log(`     ${l.bookmaker}: ${l.outcome} @ ${l.odds.toFixed(2)}  (stake ${l.stake})`);
+      if (l.url) console.log(`       ↳ ${l.url}`);
     }
     if (a.note) console.log(`     note: ${a.note}`);
     if (a.warning) console.log(`     warn: ${a.warning}`);
