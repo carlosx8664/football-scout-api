@@ -33,7 +33,7 @@ const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
-const HISTORY_DAYS = Number(opt('history-days', '1'));
+const HISTORY_DAYS = Number(opt('history-days', '0'));
 const HISTORY_LIMIT = Number(opt('history-limit', '500'));
 
 const historyCutoff = (nowMs, days = HISTORY_DAYS) => {

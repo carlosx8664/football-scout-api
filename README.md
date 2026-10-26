@@ -295,7 +295,7 @@ late under load) and publishes straight to KV, so the site never redeploys to up
 4. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
 5. The files are `PUT` into KV as `feed-matches`, `feed-arbs` and `feed-arbs-history`
 
-`history` holds every arb seen since the start of yesterday (`--history-days`), with the first
+`history` holds every arb seen since the start of today (`--history-days`, default 0), with the first
 price seen, the latest pre-kickoff price and the profit at each. That is what the Past Arbs
 table renders; `arbs` stays limited to matches that have not kicked off.
 

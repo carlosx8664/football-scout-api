@@ -121,11 +121,11 @@ jobs:
           fi
 
       - name: Publish feeds to KV
-        if: steps.guard.outputs.skip != 'true'
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          SKIP_MATCHES: ${{ steps.guard.outputs.skip }}
         run: |
           upload() {
             local key="$1" file="$2"
@@ -137,6 +137,8 @@ jobs:
             echo " -> wrote ${key}"
           }
 
-          upload "feed-matches" "public/matches.json"
+          # The match-feed circuit breaker must not block the arb feed: arbs found this
+          # run are still valid even when the fixture scrape came back thin.
+          if [ "$SKIP_MATCHES" != "true" ]; then upload "feed-matches" "public/matches.json"; fi
           upload "feed-arbs" "public/arbs.json"
           upload "feed-arbs-history" "data/arbs-history.json"

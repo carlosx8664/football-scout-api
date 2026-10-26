@@ -128,11 +128,11 @@ function matchStatus(
 const fmtOdds = (value: number | null | undefined): string =>
   Number.isFinite(value) ? Number(value).toFixed(2) : "—";
 
-/** Start of the previous local day: past arbs older than this are not shown. */
+/** Start of today (local): past arbs from earlier days are not shown. */
 function pastCutoff(now: number): number {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
-  return start.getTime() - 86_400_000;
+  return start.getTime();
 }
 
 /** Open -> close price for a tracked leg, with the percentage move. */
@@ -245,7 +245,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   );
 
   // Anything already kicked off (or dropped out of the feed since) comes from history,
-  // limited to yesterday and today.
+  // limited to today's fixtures only.
   const cutoff = pastCutoff(now);
   const pastRows = (feed?.history ?? [])
     .filter(
