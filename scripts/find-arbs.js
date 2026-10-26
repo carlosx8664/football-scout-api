@@ -57,34 +57,133 @@ const num = (x) => {
 // ============================================================================
 // Telegram Alert
 // ============================================================================
-async function sendTelegramAlert(arbs) {
-  const token = process.env.TELEGRAM_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID; 
-  
-  if (!token || !chatId || arbs.length === 0) return; 
+const ALERT_DEDUP_MS = 15 * 60_000;
+const ALERT_PROFIT_DELTA = 0.5;
 
-  let message = `🚨 Found ${arbs.length} Arbitrage Opportunities!\n\n`;
-  
-  arbs.slice(0, 5).forEach((arb) => {
-    message += `${arb.home} vs ${arb.away} (${arb.profitPct}%)\n`;
-    message += `└ ${arb.legs[0].bookmaker}: ${arb.legs[0].outcome} @ ${arb.legs[0].odds}\n`;
-    message += `└ ${arb.legs[1].bookmaker}: ${arb.legs[1].outcome} @ ${arb.legs[1].odds}\n\n`;
-  });
+const GRADE_EXECUTE = '🚨 EXECUTE NOW (RECOMMENDED)';
+const GRADE_PALPABLE_ERROR = '🔴 AVOID (PALPABLE ERROR)';
+const GRADE_LOW_PROFIT = '🔴 AVOID (LOW PROFIT)';
+const GRADE_CAUTION = '⚠️ CAUTION';
+
+const WOMEN_LEAGUE_RE = /\b(wfc|women'?s?|ladies)\b/i;
+
+const isWomenLeague = (league) => WOMEN_LEAGUE_RE.test(String(league ?? ''));
+
+/** Reserve/"B" sides trade in thin markets, so treat them as low-limit. */
+const isBTeam = (team) => /\bB\s*$/.test(String(team ?? '').trim());
+
+function isObscureMarket(market) {
+  const text = String(market ?? '').toLowerCase();
+  const line = extractLine(market);
+  if (line == null) return false;
+  if (/booking|card/.test(text) && line >= 5.5) return true;
+  if (/corner/.test(text) && line >= 10.5) return true;
+  return false;
+}
+
+/** Grades an arb for account longevity and explains anything that isn't a clean execute. */
+function gradeArb(arb) {
+  const profit = arb.profitPct;
+  const women = isWomenLeague(arb.tournament);
+  const bTeam = isBTeam(arb.home) || isBTeam(arb.away);
+  const obscure = isObscureMarket(arb.market);
+
+  if (profit > 7.0) {
+    return {
+      grade: GRADE_PALPABLE_ERROR,
+      hint: 'Suspected void. High risk of voided bet. Do not execute.',
+    };
+  }
+  if (profit < 1.2) {
+    return { grade: GRADE_LOW_PROFIT, hint: 'Too low profit. Not worth the account risk.' };
+  }
+  if (profit >= 2.0 && profit <= 6.0 && !women && !bTeam && !obscure) {
+    return { grade: GRADE_EXECUTE, hint: null };
+  }
+
+  const reasons = [];
+  if (profit < 2.0) reasons.push(`Thin profit (${profit.toFixed(2)}%)`);
+  if (profit > 6.0) reasons.push(`Unusually high profit (${profit.toFixed(2)}%), often a stale price`);
+  if (women) reasons.push("Women's league - low limits");
+  else if (bTeam) reasons.push('B team involved - low limits');
+  if (obscure) reasons.push('Obscure market - thin limits, easy to void');
+  return { grade: GRADE_CAUTION, hint: reasons.join('. ') || null };
+}
+
+/** Higher odds = sharp side (bet second); lower odds = hedge (bet first). */
+function executionOrder(arb) {
+  const legs = arb.legs ?? [];
+  if (legs.length < 2) return { hedge: legs[0], sharp: legs[0] };
+  const hedge = legs.reduce((low, leg) => (leg.odds < low.odds ? leg : low));
+  const sharp = legs.reduce((high, leg) => (leg.odds > high.odds ? leg : high));
+  return { hedge, sharp };
+}
+
+function formatAlert(arb) {
+  const { hedge, sharp } = executionOrder(arb);
+  const { grade, hint } = gradeArb(arb);
+  const lines = [
+    grade,
+    `🚨 Found Arb: ${arb.home} vs ${arb.away} (${arb.profitPct.toFixed(2)}%)`,
+    `League: ${arb.tournament ?? 'Unknown'}`,
+    '',
+    `🟢 1st BET (Hedge): ${hedge.bookmaker} - ${hedge.outcome} @ ${hedge.odds.toFixed(2)}`,
+    `🟣 2nd BET (Sharp): ${sharp.bookmaker} - ${sharp.outcome} @ ${sharp.odds.toFixed(2)}`,
+  ];
+  if (grade !== GRADE_EXECUTE && hint) lines.push('', hint);
+  return lines.join('\n');
+}
+
+/** True unless this event+market was already alerted recently with effectively the same profit. */
+function shouldAlert(arb, previousByKey, nowMs) {
+  const prior = previousByKey.get(historyKey(arb));
+  if (!prior?.alertedAt) return true;
+
+  const lastAt = Date.parse(prior.alertedAt);
+  if (!Number.isFinite(lastAt) || nowMs - lastAt >= ALERT_DEDUP_MS) return true;
+
+  const lastProfit = Number(prior.alertedProfitPct);
+  if (!Number.isFinite(lastProfit)) return true;
+
+  return Math.abs(arb.profitPct - lastProfit) >= ALERT_PROFIT_DELTA;
+}
+
+async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
+  const token = process.env.TELEGRAM_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!token || !chatId || arbs.length === 0) return;
+
+  const previousByKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
+  const pending = arbs.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
+  if (pending.length === 0) {
+    console.log('No new alerts: every arb was already sent in the last 15 minutes.');
+    return;
+  }
 
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message }) 
-    });
-    if (!res.ok) {
-      console.error('Telegram API rejected the message:', await res.text());
-    } else {
-      console.log('✈️ Telegram alert sent!');
+  for (const arb of pending) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: formatAlert(arb),
+          disable_web_page_preview: true,
+        }),
+      });
+      if (!res.ok) {
+        console.error('Telegram API rejected the message:', await res.text());
+        continue;
+      }
+      // Remembered in the history row so the next run can dedupe.
+      arb.alertedAt = new Date(nowMs).toISOString();
+      arb.alertedProfitPct = arb.profitPct;
+      console.log(`✈️ Telegram alert sent: ${arb.home} vs ${arb.away} (${arb.profitPct}%)`);
+    } catch (err) {
+      console.error('Failed to send Telegram alert:', err.message);
     }
-  } catch (err) {
-    console.error('Failed to send Telegram alert:', err.message);
   }
 }
 
@@ -769,6 +868,8 @@ function mergeHistory(previous, arbs, nowMs) {
       peakProfitPct: Math.max(prior?.peakProfitPct ?? arb.profitPct, arb.profitPct),
       profitPct: arb.profitPct,
       finalProfitPct: prior?.finalProfitPct ?? null,
+      alertedAt: arb.alertedAt ?? prior?.alertedAt ?? null,
+      alertedProfitPct: arb.alertedProfitPct ?? prior?.alertedProfitPct ?? null,
       legs,
     });
   }
@@ -1031,7 +1132,9 @@ async function main() {
   arbs.sort((x, y) => y.profitPct - x.profitPct);
   evals.sort((x, y) => y.profitPct - x.profitPct);
 
-  await sendTelegramAlert(arbs);
+  const nowMs = Date.now();
+  const previousHistory = loadHistory(HISTORY_FILE);
+  await sendTelegramAlert(arbs, previousHistory, nowMs);
 
   console.log(`\nFixtures matched:            ${matched}`);
   console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);
@@ -1063,8 +1166,7 @@ async function main() {
       .forEach(printArb);
   }
 
-  const nowMs = Date.now();
-  const history = mergeHistory(loadHistory(HISTORY_FILE), arbs, nowMs);
+  const history = mergeHistory(previousHistory, arbs, nowMs);
 
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   fs.writeFileSync(OUT_FILE, JSON.stringify({
