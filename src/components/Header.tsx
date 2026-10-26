@@ -23,15 +23,14 @@ const Header = () => {
             />
           </a>
           <nav className="top-nav">
-            <a href="#">Tip Hub</a>
             <Link to="/arbs">Arbs</Link>
             <Link to="/wallets">Wallets</Link>
           </nav>
         </div>
         <div className="header-right">
           <SimulationToggle />
-          <BestArbBadge />
           <NotificationBell />
+          <BestArbBadge />
         </div>
       </div>
     </header>
