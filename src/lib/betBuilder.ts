@@ -1,4 +1,4 @@
-import type { BetBuilderResponse } from "../types";
+import type { BetBuilderResponse, SportyBetBooking } from "../types";
 
 /**
  * Client for POST /api/bet-builder/extract.
@@ -88,4 +88,32 @@ export async function extractBetslip(
     cached: payload.cached,
     stats: payload.stats,
   };
+}
+
+/**
+ * Mints a SportyBet share link for the legs the user ticked. SportyBet is the only book we can
+ * load a slip into; every other book stays a deep link to the fixture.
+ */
+export async function createSportyBetSlip(
+  selections: SportyBetBooking[],
+  signal?: AbortSignal,
+): Promise<string> {
+  const response = await fetch("/api/arbs/share", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selections }),
+    signal,
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { shareURL?: string; error?: string }
+    | null;
+
+  if (!response.ok || !payload?.shareURL) {
+    throw new Error(
+      payload?.error ?? `Could not build the SportyBet slip (HTTP ${response.status}).`,
+    );
+  }
+
+  return String(payload.shareURL);
 }

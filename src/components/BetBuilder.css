@@ -609,3 +609,60 @@
 .bb-compact-pick .bb-odds {
   font-size: 0.75rem;
 }
+
+/* Five book links per row: wrap instead of overflowing the card. */
+.bb-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 260px;
+}
+
+.bb-compact-books {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+
+/* --- Target book picker (compact) --- */
+.bb-book-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bb-book-chip {
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bb-book-chip:hover {
+  border-color: var(--color-brand);
+}
+
+.bb-book-chip.active {
+  border-color: var(--color-brand);
+  background: var(--color-brand-weak);
+  color: var(--color-brand-4);
+}
+
+.bb-compact-add {
+  padding: 2px 9px;
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bb-compact-add.staged {
+  background: var(--color-brand-weak);
+  color: var(--color-brand-4);
+}

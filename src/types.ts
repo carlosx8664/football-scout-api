@@ -324,10 +324,12 @@ export interface ExtractedLeg {
   odds: number | null;
 }
 
-/** Deep links for one fixture. Null when that bookmaker's URL cannot be built. */
+/** Deep links for one fixture, on every local book. Null when that book's URL cannot be built. */
 export interface BetslipLinks {
   sportybet: string | null;
   msport: string | null;
+  betpawa: string | null;
+  boltbet: string | null;
   betboro: string | null;
 }
 
@@ -343,9 +345,19 @@ interface BetBuilderHit {
   links: BetslipLinks;
 }
 
+/** SportyBet booking payload for one leg; POSTed to /api/arbs/share to mint a slip link. */
+export interface SportyBetBooking {
+  eventId: string;
+  marketId: string;
+  outcomeId: string;
+  specifier: string;
+}
+
 /** A leg resolved to exactly one fixture. */
 export interface MatchedLeg extends BetBuilderHit {
   status: "matched";
+  /** Present when this leg can be loaded into a SportyBet slip. */
+  booking?: SportyBetBooking | null;
 }
 
 /** A possible fixture offered for a leg that could not be resolved automatically. */

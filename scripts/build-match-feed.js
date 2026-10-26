@@ -328,6 +328,114 @@ function toBookIds(entry) {
   return { betboro };
 }
 
+/**
+ * BoltBet and BetPawa have fixture ids but no Sportradar ids, so the bet builder can only link to
+ * their real fixture pages if those ids are attached here. Both are joined by team names; BoltBet
+ * is confirmed by kickoff too, BetPawa's dump has no kickoff (it is today-only).
+ */
+async function attachBoltBetIds(matches, log) {
+  let json;
+  try {
+    json = JSON.parse(await readFile("data/boltbet.json", "utf8"));
+  } catch (error) {
+    log(`::warning::Skipping BoltBet fixture links: ${error.message}`);
+    return;
+  }
+
+  const events = [];
+  for (const event of json?.events ?? []) {
+    const fixture = event?.fixture;
+    const names = fixture?.translations?.en?.[0]?.values;
+    const startTime = new Date(fixture?.metadata?.startedAt ?? fixture?.startsAt ?? 0).getTime();
+    if (!fixture?.slug || !names?.home || !names?.away) continue;
+    if (!Number.isFinite(startTime) || startTime <= 0) continue;
+    events.push({ slug: fixture.slug, home: names.home, away: names.away, startTime });
+  }
+
+  const KICKOFF_TOLERANCE_MS = 2 * 60 * 60 * 1000;
+  let attached = 0;
+
+  for (const match of matches) {
+    const kickoff = new Date(match.fixture.date).getTime();
+    let best = null;
+    let bestScore = 0;
+
+    for (const event of events) {
+      if (Math.abs(event.startTime - kickoff) > KICKOFF_TOLERANCE_MS) continue;
+      const score =
+        (similarity(match.teams.home.name, event.home) +
+          similarity(match.teams.away.name, event.away)) /
+        2;
+      if (score > bestScore) {
+        best = event;
+        bestScore = score;
+      }
+    }
+
+    if (best && bestScore >= MERGE_THRESHOLD) {
+      match.book_ids = { ...(match.book_ids ?? {}), boltbet: { boltbetSlug: best.slug } };
+      attached += 1;
+    }
+  }
+
+  log(`BoltBet fixture links: ${attached}/${matches.length}.`);
+}
+
+async function attachBetPawaIds(matches, log) {
+  let json;
+  try {
+    json = JSON.parse(await readFile("data/betpawa.json", "utf8"));
+  } catch (error) {
+    log(`::warning::Skipping BetPawa fixture links: ${error.message}`);
+    return;
+  }
+
+  const events = [];
+  for (const event of json?.events ?? []) {
+    const id = String(event?.eventId ?? "").replace(/^betpawa:/, "");
+    if (!/^\d+$/.test(id) || !event?.home || !event?.away) continue;
+    events.push({ id, home: event.home, away: event.away });
+  }
+
+  // No kickoff in this dump, so only today's fixtures are candidates and a name match has to be
+  // unambiguous: a stray pairing would send the user to the wrong fixture page.
+  const today = todayUtc();
+  const candidates = matches.filter(
+    (match) => new Date(match.fixture.date).toISOString().slice(0, 10) === today,
+  );
+  const taken = new Set();
+  let attached = 0;
+
+  for (const event of events) {
+    let best = null;
+    let bestScore = 0;
+    let runnerUp = 0;
+
+    for (const match of candidates) {
+      if (taken.has(match.fixture.id)) continue;
+      const score =
+        (similarity(match.teams.home.name, event.home) +
+          similarity(match.teams.away.name, event.away)) /
+        2;
+      if (score > bestScore) {
+        runnerUp = bestScore;
+        best = match;
+        bestScore = score;
+      } else if (score > runnerUp) {
+        runnerUp = score;
+      }
+    }
+
+    if (best && bestScore >= 0.8 && bestScore - runnerUp >= 0.1) {
+      best.book_ids = { ...(best.book_ids ?? {}), betpawa: { betpawaId: event.id } };
+      taken.add(best.fixture.id);
+      attached += 1;
+    }
+  }
+
+  log(`BetPawa fixture links: ${attached}/${candidates.length} today.`);
+}
+
 const ANALYSIS_SYSTEM_PROMPT = [
   "You are a football tipster texting a mate before kick-off.",
   "Sound like a person: casual, direct, a bit opinionated. No corporate language,",
@@ -441,7 +549,8 @@ async function main() {
   if (values.help) {
     console.log(
       "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--suffix=-horizon] [--no-ai]\n\n" +
-        "Reads data/sportybet.json, data/msport.json and data/betboro.json.\n" +
+        "Reads data/sportybet.json, data/msport.json and data/betboro.json for fixtures and odds,\n" +
+        "plus data/boltbet.json and data/betpawa.json for their fixture-page ids.\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL",
     );
     return;
@@ -561,7 +670,7 @@ async function main() {
         fixture: { id: fixtureId(entry.key), date: new Date(entry.startTime).toISOString() },
         // Sportradar id lets the client deep-link the same fixture on SportyBet / MSport.
         sr_id: /^sr:match:\d+$/.test(entry.srId) ? entry.srId : null,
-        // BetBoro-specific ids for its region/competition/fixture URL shape.
+        // Per-book ids for books that cannot be reached with the Sportradar id alone.
         book_ids: toBookIds(entry),
         league: entry.league,
         teams: {
@@ -576,6 +685,9 @@ async function main() {
     });
 
   log(`Matches in ${start} + ${windowDays - 1} day window: ${matches.length}.`);
+
+  await attachBoltBetIds(matches, log);
+  await attachBetPawaIds(matches, log);
 
   if (matches.length === 0) {
     log(`::warning::No fixtures in the sync window; leaving ${values.out} untouched.`);

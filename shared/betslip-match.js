@@ -12,7 +12,8 @@
  *     leg       the original extracted leg
  *     match     the matches.json fixture it resolved to
  *     flipped   true when the slip printed the teams in the opposite order to the feed
- *     links     { sportybet, msport, betboro } deep links (null when not buildable)
+ *     links     { sportybet, msport, betpawa, boltbet, betboro } deep links (null when not
+ *               buildable) — the local books the slip is converted to
  *
  * Each `unresolved` entry:
  *   { leg, reason, candidates: [top 3] }
@@ -21,7 +22,7 @@
  */
 
 import { normalizeTeam } from "./teams.js";
-import { BETBORO, MSPORT, SPORTY, directUrl } from "./deeplinks.js";
+import { BETBORO, BETPAWA, BOLTBET, MSPORT, SPORTY, directUrl } from "./deeplinks.js";
 
 /** Confidence at or above this is auto-matched. */
 const MATCH_THRESHOLD = 0.72;
@@ -258,11 +259,17 @@ function buildLinks(match) {
     away: match?.teams?.away?.name ?? null,
     league: match?.league?.name ?? null,
     ...(match?.book_ids?.betboro ?? {}),
+    ...(match?.book_ids?.boltbet ?? {}),
+    ...(match?.book_ids?.betpawa ?? {}),
   };
 
+  // Every book we can actually place the bet on. The source bookmaker of the screenshot is
+  // irrelevant: the slip is being converted to these local books.
   return {
     sportybet: directUrl(SPORTY, eventId, context),
     msport: directUrl(MSPORT, eventId, context),
+    betpawa: directUrl(BETPAWA, eventId, context),
+    boltbet: directUrl(BOLTBET, eventId, context),
     betboro: directUrl(BETBORO, eventId, context),
   };
 }
@@ -424,17 +431,23 @@ function sportybetSelection(leg, match) {
 /**
  * Maps matched legs to SportyBet's booking payload.
  *
+ * `bookings` is index-aligned with the input, so a caller can hang each leg's own booking on the
+ * leg the user picked instead of booking the whole slip.
+ *
  * @param {Array<{ leg: object, match: object }>} matchedLegs entries from `matchBetslipLegs`
- * @returns {{ selections: Array<{ eventId: string, marketId: string, outcomeId: string, specifier: string }>, skipped: Array<{ leg: object, reason: string }> }}
+ * @returns {{ selections: Array<{ eventId: string, marketId: string, outcomeId: string, specifier: string }>, skipped: Array<{ leg: object, reason: string }>, bookings: Array<{ eventId: string, marketId: string, outcomeId: string, specifier: string } | null> }}
  */
 export function toSportyBetSelections(matchedLegs) {
   const selections = [];
   const skipped = [];
+  const bookings = [];
   const seen = new Set();
 
   for (const entry of Array.isArray(matchedLegs) ? matchedLegs : []) {
     const leg = entry?.leg ?? entry;
     const eventId = entry?.match?.sr_id ?? null;
+
+    bookings.push(null);
 
     if (!eventId) {
       skipped.push({ leg, reason: "missing-event-id" });
@@ -447,14 +460,17 @@ export function toSportyBetSelections(matchedLegs) {
       continue;
     }
 
+    const booking = { eventId, ...mapped };
+    bookings[bookings.length - 1] = booking;
+
     const key = `${eventId}|${mapped.marketId}|${mapped.outcomeId}|${mapped.specifier}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
-    selections.push({ eventId, ...mapped });
+    selections.push(booking);
   }
 
-  return { selections, skipped };
+  return { selections, skipped, bookings };
 }
 
 function toCandidate(leg, scored) {

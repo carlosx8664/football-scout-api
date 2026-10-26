@@ -300,9 +300,11 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
 
 1. The browser downscales the image to ≤1600 px and re-encodes it as JPEG at 0.85
    (`src/lib/betBuilder.ts`), so a 4 MB screenshot uploads at 150–400 KB.
-2. The Function caches the extraction in KV by SHA-256 of the image (`betslip:v1:<hash>`, 24 h),
+2. The Function caches the extraction in KV by SHA-256 of the image (`betslip:v2:<hash>`, 24 h),
    then calls `deepseek-flash` with a strict `json_object` prompt (`shared/betslip-prompt.js`).
-   DeepSeek rejects `json_schema`, so the shape is spelled out in the prompt.
+   DeepSeek rejects `json_schema`, so the shape is spelled out in the prompt. The prompt
+   deliberately ignores the source bookmaker — a slip from bet365 or Pinnacle is converted to
+   **our** local books, so no branding warning is ever raised.
 3. `shared/betslip-match.js` resolves each transcribed leg against `feed-matches` — token-aware
    fuzzy team matching with the slip's price as a confirming signal (78/22). The price only
    weighs in for 1X2 legs, because `book_odds` carries no other market. The token gate is what
@@ -314,10 +316,17 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
    `Total Goals`/`Over-Under` (line taken from the selection, "Over 1.5"), Double Chance,
    Draw No Bet and BTTS. Team-total and other unlisted markets are skipped rather than guessed,
    so the share code can never book a different bet than the screen shows.
-5. Every hit carries `links.sportybet` / `links.msport` / `links.betboro` from
-   `shared/deeplinks.js`, which tries the full slug path
-   (`…/football/{league}/{home}_vs_{away}/sr:match:{id}`), then the bare Sportradar id, then a
-   Google site search (rendered with a 🔍 icon in the UI).
+5. Every hit carries a link for each local book — `links.sportybet` / `links.msport` /
+   `links.betpawa` / `links.boltbet` / `links.betboro` from `shared/deeplinks.js`, which tries the
+   full slug path (`…/football/{league}/{home}_vs_{away}/sr:match:{id}`), then the bare Sportradar
+   id, then a Google site search (rendered with a 🔍 icon in the UI). BetBoro, BoltBet and BetPawa
+   fixture pages need their own ids, so `scripts/build-match-feed.js` attaches them as
+   `book_ids` (BoltBet joined by team names + kickoff, BetPawa by names only — its dump has no
+   kickoff and is today-only).
+6. SportyBet is the only book we can load a slip into. Each matched leg carries its own `booking`
+   payload, so "Add to Slip" opens `POST /api/arbs/share` for just the ticked legs; with nothing
+   ticked the panel falls back to the share link minted for the whole scan. Other books stay
+   deep links — they expose no booking API.
 
 ```
 POST /api/bet-builder/extract    multipart/form-data, field "image"

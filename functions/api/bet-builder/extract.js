@@ -264,7 +264,12 @@ export async function onRequestPost(context) {
   const { matched, unresolved } = matchBetslipLegs(legs, fixtures);
 
   // --- SportyBet share code -------------------------------------------------
-  const { selections, skipped } = toSportyBetSelections(matched);
+  const { selections, skipped, bookings } = toSportyBetSelections(matched);
+  // Each matched leg carries its own booking payload, so the client can open a slip with just the
+  // legs the user ticked ("Add to Slip") without re-scanning the image.
+  const matchedLegs = matched.map((entry, index) =>
+    bookings[index] ? { ...entry, booking: bookings[index] } : entry,
+  );
   const notes = [];
 
   if (skipped.length > 0) {
@@ -316,7 +321,7 @@ export async function onRequestPost(context) {
   return json({
     bookmaker: extracted.parsed.bookmaker ?? null,
     warnings: Array.isArray(extracted.parsed.warnings) ? extracted.parsed.warnings : [],
-    matched,
+    matched: matchedLegs,
     unresolved,
     sportybetAccaUrl,
     sportybetAccaCode,

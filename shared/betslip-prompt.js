@@ -10,7 +10,7 @@
  * a bump invalidates extractions made with the old wording.
  */
 
-export const PROMPT_VERSION = "v1";
+export const PROMPT_VERSION = "v2";
 
 export const USER_PROMPT = "Extract every selection from this betslip.";
 
@@ -75,7 +75,9 @@ export const SYSTEM_PROMPT = [
   "   Ignore stake, returns and currency amounts.",
   "8. leagueHint / kickoffHint: league name and kickoff date or time if printed for that match,",
   "   otherwise null.",
-  "9. bookmaker: only if the brand is clearly readable in the image, otherwise null.",
+  "9. Ignore where the slip came from. The user is converting it to our local bookmakers",
+  "   (SportyBet, MSport, BetPawa, BoltBet, BetBoro), so always set bookmaker to null and",
+  "   never warn about a missing or unreadable brand.",
   "10. warnings: list anything that undermines accuracy (cropped rows, unreadable text, ambiguous",
   "    grouping). Empty array when the slip is clean.",
   "",

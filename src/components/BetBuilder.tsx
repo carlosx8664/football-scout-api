@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { selectionSide } from "../../shared/betslip-match.js";
-import { extractBetslip } from "../lib/betBuilder";
+import { extractBetslip, createSportyBetSlip } from "../lib/betBuilder";
 import type {
   BetBuilderResponse,
   Match,
@@ -101,6 +101,17 @@ const BookButton = ({
   );
 };
 
+/** The local books we convert a slip to. Order is the display order everywhere. */
+type BookKey = keyof MatchedLeg["links"];
+
+const LOCAL_BOOKS: Array<{ key: BookKey; label: string; brand?: boolean }> = [
+  { key: "sportybet", label: "SportyBet", brand: true },
+  { key: "msport", label: "MSport" },
+  { key: "betpawa", label: "BetPawa" },
+  { key: "boltbet", label: "BoltBet" },
+  { key: "betboro", label: "BetBoro" },
+];
+
 const LinkButtons = ({
   links,
   prices,
@@ -109,18 +120,15 @@ const LinkButtons = ({
   prices?: Record<string, number | null> | null;
 }) => (
   <div className="bb-actions">
-    <BookButton
-      variant="brand"
-      url={links.sportybet}
-      label="SportyBet"
-      price={prices?.SportyBet ?? null}
-    />
-    <BookButton
-      variant="ghost"
-      url={links.msport}
-      label="MSport"
-      price={prices?.MSport ?? null}
-    />
+    {LOCAL_BOOKS.map(({ key, label, brand }) => (
+      <BookButton
+        key={key}
+        variant={brand ? "brand" : "ghost"}
+        url={links[key]}
+        label={label}
+        price={prices?.[label] ?? null}
+      />
+    ))}
   </div>
 );
 
@@ -174,9 +182,21 @@ const MatchedRow = ({ entry }: { entry: MatchedLeg }) => {
   );
 };
 
-/** Narrow sidebar row: teams, pick and a single book link, no per-book pricing. */
-const CompactRow = ({ entry }: { entry: MatchedLeg }) => {
+/** Narrow sidebar row: teams, pick, and the link for the book currently selected. */
+const CompactRow = ({
+  entry,
+  book,
+  staged,
+  onToggle,
+}: {
+  entry: MatchedLeg;
+  book: BookKey;
+  staged: boolean;
+  onToggle: () => void;
+}) => {
   const { leg, match } = entry;
+  const label = LOCAL_BOOKS.find((item) => item.key === book)?.label ?? "";
+  const url = entry.links[book];
 
   return (
     <div className="bb-compact-row">
@@ -194,13 +214,26 @@ const CompactRow = ({ entry }: { entry: MatchedLeg }) => {
       </div>
       <div className="bb-compact-meta">
         <span>{match.fixture?.date ? kickoffLabel(match.fixture.date) : ""}</span>
-        {entry.links.sportybet && (
+      </div>
+      <div className="bb-compact-books">
+        {url && (
           <button
             type="button"
             className="bb-compact-link"
-            onClick={() => openLink(entry.links.sportybet)}
+            onClick={() => openLink(url)}
+            title={`Open this fixture on ${label}`}
           >
-            SportyBet ↗
+            {label} ↗
+          </button>
+        )}
+        {book === "sportybet" && entry.booking && (
+          <button
+            type="button"
+            className={`bb-compact-add${staged ? " staged" : ""}`}
+            onClick={onToggle}
+            aria-pressed={staged}
+          >
+            {staged ? "In slip ✓" : "Add to Slip"}
           </button>
         )}
       </div>
@@ -284,6 +317,12 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  /** Book the user is converting the slip to; only SportyBet can load a slip. */
+  const [targetBook, setTargetBook] = useState<BookKey>("sportybet");
+  /** rowIndexes of the legs staged for the SportyBet slip. */
+  const [staged, setStaged] = useState<number[]>([]);
+  const [slipBusy, setSlipBusy] = useState(false);
+  const [slipError, setSlipError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -316,6 +355,8 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
       showPreview(file);
       setError(null);
       setResult(null);
+      setStaged([]);
+      setSlipError(null);
       setPhase("scanning");
 
       abortRef.current?.abort();
@@ -360,7 +401,18 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     setPhase("idle");
     setResult(null);
     setError(null);
+    setStaged([]);
+    setSlipError(null);
     if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const toggleStaged = (rowIndex: number) => {
+    setSlipError(null);
+    setStaged((current) =>
+      current.includes(rowIndex)
+        ? current.filter((value) => value !== rowIndex)
+        : [...current, rowIndex],
+    );
   };
 
   const scanning = phase === "scanning";
@@ -368,13 +420,32 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const unresolved = result?.unresolved ?? [];
   const warnings = result?.warnings ?? [];
 
+  const stagedBookings = matched
+    .filter((entry) => entry.booking && staged.includes(entry.leg.rowIndex))
+    .map((entry) => entry.booking as NonNullable<MatchedLeg["booking"]>);
+
+  const addStagedToSlip = async () => {
+    if (stagedBookings.length === 0) return;
+    setSlipBusy(true);
+    setSlipError(null);
+    try {
+      openLink(await createSportyBetSlip(stagedBookings));
+    } catch (caught) {
+      setSlipError(
+        caught instanceof Error ? caught.message : "Could not build the SportyBet slip.",
+      );
+    } finally {
+      setSlipBusy(false);
+    }
+  };
+
   return (
     <section className={`bb-view${compact ? " bb-view-compact" : ""}`}>
       {compact ? (
         <div className="bb-head">
           <h3>🧾 Bet Builder</h3>
           <p className="bb-subtitle">
-            Upload a betslip screenshot and we&apos;ll load its picks into SportyBet.
+            Upload a betslip screenshot and convert its picks to your local book.
           </p>
         </div>
       ) : (
@@ -469,6 +540,20 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
             </div>
           )}
 
+          <div className="bb-book-picker" role="group" aria-label="Convert slip to">
+            {LOCAL_BOOKS.map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                className={`bb-book-chip${targetBook === key ? " active" : ""}`}
+                onClick={() => setTargetBook(key)}
+                aria-pressed={targetBook === key}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {matched.length === 0 ? (
             <div className="bb-empty">No selections matched a fixture in the feed.</div>
           ) : (
@@ -477,22 +562,48 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                 <CompactRow
                   key={`${entry.match.fixture.id}-${entry.leg.rowIndex}-${index}`}
                   entry={entry}
+                  book={targetBook}
+                  staged={staged.includes(entry.leg.rowIndex)}
+                  onToggle={() => toggleStaged(entry.leg.rowIndex)}
                 />
               ))}
             </div>
           )}
 
-          <button
-            type="button"
-            className="bb-btn bb-btn-brand bb-btn-compact"
-            onClick={() => openLink(result?.sportybetAccaUrl ?? null)}
-            disabled={!result?.sportybetAccaUrl}
-          >
-            Add {result?.stats?.bookable ?? matched.length} to SportyBet betslip
-            <span className="bb-btn-icon" aria-hidden="true">
-              ↗
+          {targetBook === "sportybet" &&
+            (stagedBookings.length > 0 ? (
+              <button
+                type="button"
+                className="bb-btn bb-btn-brand bb-btn-compact"
+                onClick={() => void addStagedToSlip()}
+                disabled={slipBusy}
+              >
+                {slipBusy
+                  ? "Building slip…"
+                  : `Add ${stagedBookings.length} to SportyBet slip`}
+                <span className="bb-btn-icon" aria-hidden="true">
+                  ↗
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="bb-btn bb-btn-brand bb-btn-compact"
+                onClick={() => openLink(result?.sportybetAccaUrl ?? null)}
+                disabled={!result?.sportybetAccaUrl}
+              >
+                Add {result?.stats?.bookable ?? matched.length} to SportyBet betslip
+                <span className="bb-btn-icon" aria-hidden="true">
+                  ↗
+                </span>
+              </button>
+            ))}
+
+          {slipError && (
+            <span className="bb-acca-warn" role="alert">
+              {slipError}
             </span>
-          </button>
+          )}
 
           {result?.sportybetAccaWarning && (
             <span className="bb-acca-warn" role="status">

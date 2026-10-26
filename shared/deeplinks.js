@@ -6,6 +6,7 @@
  *   MSport:    https://www.msport.com/gh/web/sports/Soccer/sr:match:72478654
  *   BetBoro:   https://betboro.com.gh/pre-sports/1/region/{regionId}/competition/{competitionId}/fixture/{betBoroId}
  *   BoltBet:   https://boltbet.com.gh/sports/match/football/{fixture.slug}
+ *   BetPawa:   https://www.betpawa.com.gh/event/{numeric event id}
  *
  * Sportradar ids ("sr:match:...") are shared by every bookmaker, so one id is enough to
  * link to the same fixture everywhere. BetBoro and BoltBet each need their own ids,
@@ -78,6 +79,7 @@ function searchUrl(bookmaker, home, away) {
  *   competition_id?: string | number,
  *   boltbetSlug?: string | null,
  *   slug?: string | null,
+ *   betpawaId?: string | null,
  * }} [context]
  * @returns {string | null}
  */
@@ -123,6 +125,17 @@ export function directUrl(bookmaker, eventId, context = {}) {
     const slug = context?.boltbetSlug ?? context?.slug;
     if (slug) {
       return `https://boltbet.com.gh/sports/match/football/${slug}`;
+    }
+    return searchUrl(bookmaker, home, away);
+  }
+
+  // -------------------------------------------------------------------------
+  // BetPawa — fixture pages are /event/{numeric id}, taken from the scraped href.
+  // -------------------------------------------------------------------------
+  if (bookmaker === BETPAWA) {
+    const betPawaId = String(context?.betpawaId ?? "").replace(/^betpawa:/, '').trim();
+    if (/^\d+$/.test(betPawaId)) {
+      return `https://www.betpawa.com.gh/event/${betPawaId}`;
     }
     return searchUrl(bookmaker, home, away);
   }
