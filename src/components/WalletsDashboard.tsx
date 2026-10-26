@@ -80,26 +80,30 @@ const WalletsDashboard = () => {
 
   return (
     <>
-      <WalletsPanel
-        payload={payload}
-        error={error}
-        loading={loading}
-        simulation={enabled}
-        onPayload={applyPayload}
-        onError={reportError}
-      />
-      <RebalancingHints
-        payload={payload}
-        error={error}
-        loading={loading}
-        simulation={enabled}
-      />
-      <ActiveBetsLedger
-        simulation={enabled}
-        refreshToken={refreshToken}
-        onSettled={handleSettled}
-      />
-      <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
+      <div className="wallets-page">
+        <WalletsPanel
+          payload={payload}
+          error={error}
+          loading={loading}
+          simulation={enabled}
+          onPayload={applyPayload}
+          onError={reportError}
+        />
+        <RebalancingHints
+          payload={payload}
+          error={error}
+          loading={loading}
+          simulation={enabled}
+        />
+        <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
+      </div>
+      <aside className="right-sidebar wallets-aside">
+        <ActiveBetsLedger
+          simulation={enabled}
+          refreshToken={refreshToken}
+          onSettled={handleSettled}
+        />
+      </aside>
       {toast && <Toast message={toast} />}
     </>
   );

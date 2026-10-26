@@ -105,7 +105,7 @@ const WalletsPanel = ({
             <strong>{formatGhs(liquidity.totalBalance + liquidity.staked)}</strong>
           </div>
           <div className="liquidity-stat" title="Deducted from the wallets when the bet was logged">
-            <span>Staked (already debited)</span>
+            <span>Staked</span>
             <strong>{formatGhs(liquidity.staked)}</strong>
           </div>
           <div className="liquidity-stat available" title="Cash you can deploy right now">

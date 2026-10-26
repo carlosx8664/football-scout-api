@@ -61,13 +61,10 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
           <h2>Active Bets</h2>
           <p className="active-bets-subtitle">
             Unsettled arbs in the {simulation ? "simulation" : "real"} ledger. Both stakes were
-            debited when the bet was logged; settling records a win, void/refund or cash out and
-            moves the result to history.
+            debited when the bet was logged; settling records a win, void/refund or cash out.
           </p>
         </div>
-        <span className="active-bets-count">
-          {bets.length} {bets.length === 1 ? "bet" : "bets"}
-        </span>
+        <span className="active-bets-count">{bets.length}</span>
       </header>
 
       {error && <p className="active-bets-error">{error}</p>}
@@ -79,65 +76,50 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
           No active bets. Tick an arb on the <a href="/arbs">Arbs</a> page to log one.
         </p>
       ) : (
-        <div className="active-bets-table-wrap">
-          <table className="active-bets-table">
-            <thead>
-              <tr>
-                <th scope="col">Event</th>
-                <th scope="col">Legs</th>
-                <th scope="col">Stakes</th>
-                <th scope="col">Profit</th>
-                <th scope="col">Settle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bets.map((bet) => (
-                <tr key={bet.id}>
-                  <td className="active-bets-event">
-                    <span>{bet.eventName}</span>
-                    {bet.createdAt && (
-                      <span className="active-bets-when">
-                        {new Date(bet.createdAt).toLocaleString("en-GB")}
-                      </span>
-                    )}
-                  </td>
+        <ul className="active-bets-list">
+          {bets.map((bet) => (
+            <li className="active-bet-card" key={bet.id}>
+              <div className="active-bet-top">
+                <span className="active-bet-event">{bet.eventName}</span>
+                <span
+                  className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}
+                >
+                  {bet.profitPercent.toFixed(2)}%
+                </span>
+              </div>
 
-                  <td className="active-bets-legs">
-                    {[bet.legA, bet.legB].map((leg) => (
-                      <span className="active-bets-leg" key={`${leg.name}-${leg.odds}`}>
-                        <strong>{leg.name}</strong> @ {leg.odds.toFixed(2)}
-                      </span>
-                    ))}
-                  </td>
+              {bet.createdAt && (
+                <span className="active-bet-when">
+                  {new Date(bet.createdAt).toLocaleString("en-GB")}
+                </span>
+              )}
 
-                  <td className="active-bets-stakes">
-                    {[bet.legA, bet.legB].map((leg) => (
-                      <span className="active-bets-leg" key={`${leg.name}-stake`}>
-                        {formatGhs(leg.stake)}
-                      </span>
-                    ))}
-                  </td>
+              <ul className="active-bet-legs">
+                {[bet.legA, bet.legB].map((leg, index) => (
+                  <li key={`${leg.name}-${index}`}>
+                    <span className="active-bet-bookie">{leg.name}</span>
+                    <span className="active-bet-leg-meta">
+                      {leg.odds.toFixed(2)} · {formatGhs(leg.stake)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
 
-                  <td
-                    className={`active-bets-profit${bet.profitPercent < 0 ? " negative" : ""}`}
-                  >
-                    {bet.profitPercent.toFixed(2)}%
-                  </td>
-
-                  <td>
-                    <button
-                      type="button"
-                      className="active-bets-settle"
-                      onClick={() => setTarget(bet)}
-                    >
-                      Settle
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              <div className="active-bet-footer">
+                <span className="active-bet-stake">
+                  Outlay {formatGhs(bet.legA.stake + bet.legB.stake)}
+                </span>
+                <button
+                  type="button"
+                  className="active-bets-settle"
+                  onClick={() => setTarget(bet)}
+                >
+                  Settle
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {target && (

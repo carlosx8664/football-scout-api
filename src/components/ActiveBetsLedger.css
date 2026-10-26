@@ -1,8 +1,11 @@
+/* Lives in the wallets page right sidebar, so every card must fit ~340px. */
+.wallets-aside { min-width: 0; }
+
 .active-bets-panel {
   background: var(--color-neutral-1);
   border: 1px solid var(--color-neutral-4);
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   min-width: 0;
 }
 
@@ -10,84 +13,110 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
-.active-bets-header h2 { font-size: 1.15rem; font-weight: 700; }
+.active-bets-header h2 { font-size: 1.05rem; font-weight: 700; }
 .active-bets-subtitle {
   margin-top: 4px;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   line-height: 1.4;
   color: var(--color-neutral-6);
 }
 .active-bets-count {
   flex: 0 0 auto;
-  padding: 4px 10px;
+  min-width: 24px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: var(--color-neutral-3);
   color: var(--color-neutral-6);
   font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-weight: 800;
+  text-align: center;
 }
 
 .active-bets-error {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   padding: 10px 12px;
   border-radius: 8px;
   background: #fdecec;
   color: #c20a0a;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
 .active-bets-empty {
-  padding: 20px 0;
+  padding: 12px 0;
   color: var(--color-neutral-6);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   line-height: 1.5;
 }
 .active-bets-empty a { color: var(--color-brand-4); font-weight: 600; }
 
-.active-bets-table-wrap { overflow-x: auto; }
-.active-bets-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.82rem;
+.active-bets-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.active-bets-table th {
-  padding: 0 12px 8px 0;
-  text-align: left;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--color-neutral-6);
-  border-bottom: 1px solid var(--color-neutral-4);
+
+.active-bet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 10px;
+  background: var(--color-neutral-2);
+}
+
+.active-bet-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.active-bet-event { font-size: 0.8rem; font-weight: 700; line-height: 1.35; }
+.active-bet-profit {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #15803d;
   white-space: nowrap;
 }
-.active-bets-table td {
-  padding: 12px 12px 12px 0;
-  border-bottom: 1px solid var(--color-neutral-3);
-  vertical-align: top;
+.active-bet-profit.negative { color: #c20a0a; }
+.active-bet-when { font-size: 0.66rem; color: var(--color-neutral-6); }
+
+.active-bet-legs {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-neutral-3);
 }
-.active-bets-table tr:last-child td { border-bottom: none; }
+.active-bet-legs li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+}
+.active-bet-bookie { font-weight: 700; }
+.active-bet-leg-meta { color: var(--color-neutral-6); white-space: nowrap; }
 
-.active-bets-event { display: flex; flex-direction: column; gap: 3px; min-width: 180px; }
-.active-bets-event > span:first-child { font-weight: 700; }
-.active-bets-when { font-size: 0.7rem; color: var(--color-neutral-6); }
-
-.active-bets-legs,
-.active-bets-stakes { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
-.active-bets-leg { color: var(--color-neutral-6); }
-.active-bets-leg strong { color: var(--color-neutral-7); font-weight: 700; }
-
-.active-bets-profit { font-weight: 800; white-space: nowrap; }
-.active-bets-profit.negative { color: #c20a0a; }
+.active-bet-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-neutral-3);
+}
+.active-bet-stake { font-size: 0.72rem; font-weight: 700; color: var(--color-neutral-6); }
 
 .active-bets-settle {
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 8px;
   border: 1px solid var(--color-brand);
   color: var(--color-brand-4);

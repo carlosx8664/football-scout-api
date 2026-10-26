@@ -116,11 +116,9 @@ function App() {
   if (isWallets) {
     return (
       <Shell>
-        <div className="app-body app-body-wide">
+        <div className="app-body">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
-          <div className="wallets-page">
-            <WalletsDashboard />
-          </div>
+          <WalletsDashboard />
         </div>
       </Shell>
     );
