@@ -21,14 +21,14 @@ export function json(body, status = 200) {
   });
 }
 
-/** Turns any query failure into a JSON error, hinting at migrations for missing tables. */
+/** Turns any query failure into a JSON error, hinting at migrations for missing schema. */
 export function dbError(error) {
   const message = error instanceof Error ? error.message : String(error);
-  const hint = /no such table/i.test(message)
-    ? ` Apply the schema with \`npx wrangler d1 migrations apply ${DB_BINDING} --local\` (or --remote in production).`
+  const hint = /no such (table|column)|has no column/i.test(message)
+    ? " Apply the latest migrations: `npm run db:migrate:local` (dev) or `npm run db:migrate` (production)."
     : "";
 
-  return json({ error: `Wallet query failed: ${message}.${hint}` }, 500);
+  return json({ error: `Database query failed: ${message}.${hint}` }, 500);
 }
 
 /** Returns the D1 binding, or null so handlers can answer 503 instead of throwing. */
