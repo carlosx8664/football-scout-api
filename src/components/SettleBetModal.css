@@ -1,0 +1,89 @@
+.settle-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.settle-modal {
+  width: 100%;
+  max-width: 460px;
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--color-neutral-1);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.settle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.settle-header h2 { font-size: 1.1rem; font-weight: 800; }
+
+.settle-mode {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.settle-mode.sim { background: var(--color-yellow-weak); color: #7a5c00; }
+.settle-mode.real { background: var(--color-teal-2); color: var(--color-teal-4); }
+
+.settle-event { margin-top: 12px; font-size: 0.85rem; color: var(--color-neutral-6); }
+
+.settle-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.settle-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 10px;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s;
+}
+.settle-choice:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  background: var(--color-brand-weak);
+}
+.settle-choice:disabled { opacity: 0.6; cursor: default; }
+.settle-choice-name { font-size: 0.9rem; font-weight: 800; }
+.settle-choice-meta { font-size: 0.72rem; color: var(--color-neutral-6); }
+
+.settle-error {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #c20a0a;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.settle-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.settle-cancel {
+  padding: 9px 16px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+}
+.settle-cancel:hover:not(:disabled) { color: var(--color-neutral-7); }

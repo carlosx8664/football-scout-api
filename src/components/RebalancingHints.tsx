@@ -1,0 +1,128 @@
+import { formatGhs } from "../lib/wallets";
+import type { Wallet, WalletsPayload } from "../types";
+import "./RebalancingHints.css";
+
+/** Keep every bookie inside this share of the portfolio. */
+const LOW_PCT = 15;
+const HIGH_PCT = 40;
+const SPECIAL_BOOKIE = "BetBoro";
+
+interface RebalancingHintsProps {
+  payload: WalletsPayload | null;
+  error: string | null;
+  loading: boolean;
+  simulation: boolean;
+}
+
+interface Hint {
+  tone: "good" | "bad";
+  message: string;
+}
+
+/**
+ * Stakes are debited at log time, so `balance` alone is cash on hand. The bankroll is cash plus
+ * money still at risk — otherwise a large pending arb would shrink the portfolio and trigger
+ * false withdrawal warnings.
+ */
+function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hints: Hint[] } {
+  const cash = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
+  const bankroll = cash + staked;
+  const hints: Hint[] = [];
+
+  if (bankroll > 0) {
+    for (const wallet of wallets) {
+      const share = (wallet.balance / bankroll) * 100;
+      if (share < LOW_PCT) {
+        hints.push({ tone: "good", message: `🟢 Top up ${wallet.name} for the next arb.` });
+      } else if (share > HIGH_PCT) {
+        hints.push({ tone: "bad", message: `🔴 Withdraw from ${wallet.name} to protect funds.` });
+      }
+    }
+  }
+
+  // BetBoro pays out slowly once the balance builds up, so any positive balance is flagged.
+  const betboro = wallets.find(
+    (wallet) => wallet.name.toLowerCase() === SPECIAL_BOOKIE.toLowerCase(),
+  );
+  if (betboro && betboro.balance > 0) {
+    hints.push({
+      tone: "bad",
+      message:
+        "🚨 BetBoro Warning: Withdraw profits immediately to avoid slow withdrawal limits.",
+    });
+  }
+
+  return { bankroll, hints };
+}
+
+/** Capital rebalancing hints: per-bookie share of the portfolio plus top-up/withdraw advice. */
+const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHintsProps) => {
+  const wallets = payload?.wallets ?? [];
+  const staked = payload?.liquidity.staked ?? 0;
+  const { bankroll, hints } = buildHints(wallets, staked);
+  const shareOf = (balance: number) => (bankroll > 0 ? (balance / bankroll) * 100 : 0);
+
+  return (
+    <section className="rebalance-panel">
+      <header className="rebalance-header">
+        <div>
+          <h2>Rebalancing Hints</h2>
+          <p className="rebalance-subtitle">
+            Keep each bookie between {LOW_PCT}% and {HIGH_PCT}% of the{" "}
+            {simulation ? "simulation" : "real"} portfolio ({formatGhs(bankroll)} — cash plus
+            stakes in play).
+          </p>
+        </div>
+      </header>
+
+      {error && <p className="rebalance-error">{error}</p>}
+
+      {loading ? (
+        <p className="rebalance-empty">Loading wallet split…</p>
+      ) : !payload ? null : wallets.length === 0 ? (
+        <p className="rebalance-empty">No wallets to rebalance yet.</p>
+      ) : (
+        <>
+          <ul className="rebalance-split">
+            {wallets.map((wallet) => {
+              const share = shareOf(wallet.balance);
+              return (
+                <li className="rebalance-row" key={wallet.id}>
+                  <span className="rebalance-bookie">{wallet.name}</span>
+                  <span className="rebalance-share">{share.toFixed(1)}%</span>
+                  <span className="rebalance-bar">
+                    <span
+                      className={`rebalance-bar-fill${
+                        share < LOW_PCT ? " low" : share > HIGH_PCT ? " high" : ""
+                      }`}
+                      style={{ width: `${Math.min(share, 100)}%` }}
+                    />
+                  </span>
+                  <span className="rebalance-balance">{formatGhs(wallet.balance)}</span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {hints.length > 0 ? (
+            <ul className="rebalance-hints">
+              {hints.map((hint) => (
+                <li className={`rebalance-hint ${hint.tone}`} key={hint.message}>
+                  {hint.message}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="rebalance-empty">
+              {bankroll > 0
+                ? `All bookies are inside the ${LOW_PCT}–${HIGH_PCT}% band. No action needed.`
+                : "No capital in the wallets yet — top one up to start rebalancing."}
+            </p>
+          )}
+        </>
+      )}
+    </section>
+  );
+};
+
+export default RebalancingHints;

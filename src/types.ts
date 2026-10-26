@@ -155,6 +155,104 @@ export interface SnapshotData {
 }
 
 /* ------------------------------------------------------------------ *
+ * Wallets + simulation mode (/api/wallets)
+ * ------------------------------------------------------------------ */
+
+/** One bookmaker wallet. `isSimulation` mirrors the `is_simulation` column. */
+export interface Wallet {
+  id: string;
+  name: string;
+  bookmaker: string;
+  balance: number;
+  currency: string;
+  isSimulation: boolean;
+  updatedAt: string | null;
+}
+
+/** Sum of wallet balances minus the stakes locked in active bets for the same mode. */
+export interface LiquiditySummary {
+  currency: string;
+  /** Cash in the bookie wallets. Stakes are debited when a bet is logged. */
+  totalBalance: number;
+  /** Stakes still at risk in unsettled bets — already deducted from `totalBalance`. */
+  staked: number;
+  /** Deployable right now: equal to `totalBalance`, since pending stakes are already paid. */
+  available: number;
+}
+
+export interface WalletsPayload {
+  /** True when these rows came from `is_simulation = 1`. */
+  simulation: boolean;
+  currency: string;
+  wallets: Wallet[];
+  liquidity: LiquiditySummary;
+  /** SUM(net_profit) over `history` for the same mode. */
+  totalProfit: number;
+  /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
+  dailyProfit: number;
+}
+
+/* ------------------------------------------------------------------ *
+ * Ledger (POST /api/active-bets) — one two-leg arb in `active_bets`
+ * ------------------------------------------------------------------ */
+
+export interface LogArbLegInput {
+  name: string;
+  odds: number;
+  stake: number;
+}
+
+export interface LogArbInput {
+  eventName: string;
+  /** The `active_bets` table stores exactly two legs (bookie A and bookie B). */
+  legs: [LogArbLegInput, LogArbLegInput];
+  simulation: boolean;
+}
+
+export interface LogArbResult {
+  id: string;
+  eventName: string;
+  /** Recomputed server-side from the saved stakes and prices. */
+  profitPercent: number;
+  totalStake: number;
+  simulation: boolean;
+  legs: LogArbLegInput[];
+}
+
+export interface ActiveBetLegRecord {
+  name: string;
+  odds: number;
+  stake: number;
+}
+
+/** One unsettled row from `active_bets`. */
+export interface ActiveBetRecord {
+  id: string;
+  eventName: string;
+  legA: ActiveBetLegRecord;
+  legB: ActiveBetLegRecord;
+  profitPercent: number;
+  createdAt: string | null;
+  isSimulation: boolean;
+}
+
+export interface ActiveBetsPayload {
+  simulation: boolean;
+  activeBets: ActiveBetRecord[];
+}
+
+/** Result of POST /api/active-bets/:id/settle. */
+export interface SettleBetResult {
+  id: string;
+  eventName: string;
+  winningBookie: string;
+  losingBookie: string;
+  payout: number;
+  netProfit: number;
+  simulation: boolean;
+}
+
+/* ------------------------------------------------------------------ *
  * Bet builder (POST /api/bet-builder/extract)
  * ------------------------------------------------------------------ */
 

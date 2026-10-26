@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
 import ArbsTable from "./components/ArbsTable";
@@ -7,17 +7,29 @@ import MainFeed from "./components/MainFeed";
 import MatchDetail from "./components/MatchDetail";
 import RightSidebar from "./components/RightSidebar";
 import Sidebar from "./components/Sidebar";
+import SimulationBanner from "./components/SimulationBanner";
+import WalletsDashboard from "./components/WalletsDashboard";
 import { fetchSnapshot } from "./lib/api";
 import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
 import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
 const ARBS_ROUTE = /^\/arbs\/?$/;
+const WALLETS_ROUTE = /^\/wallets\/?$/;
 
 function currentMatchId(pathname: string): number | null {
   const result = MATCH_ROUTE.exec(pathname);
   return result ? Number(result[1]) : null;
 }
+
+/** Header + the simulation banner shared by every route. */
+const Shell = ({ children }: { children: ReactNode }) => (
+  <div className="app-container">
+    <Header />
+    <SimulationBanner />
+    {children}
+  </div>
+);
 
 function App() {
   const [data, setData] = useState<SnapshotData | null>(null);
@@ -32,6 +44,7 @@ function App() {
   const navigate = useNavigate();
   const matchId = currentMatchId(pathname);
   const isArbs = ARBS_ROUTE.test(pathname);
+  const isWallets = WALLETS_ROUTE.test(pathname);
 
   // On a match page (or the arbs page) there is no feed to filter, so picking a league
   // has to take the user back to the home feed first.
@@ -88,17 +101,28 @@ function App() {
   }, [applySnapshot]);
 
   // The arbs page only reads /arbs.json, so it must not wait on (or break with) the
-  // API-Football snapshot.
+  // API-Football snapshot. The wallets page only talks to /api/wallets.
   if (isArbs) {
     return (
-      <div className="app-container">
-        <Header />
-
+      <Shell>
         <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
           <ArbsTable now={now} />
         </div>
-      </div>
+      </Shell>
+    );
+  }
+
+  if (isWallets) {
+    return (
+      <Shell>
+        <div className="app-body app-body-wide">
+          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
+          <div className="wallets-page">
+            <WalletsDashboard />
+          </div>
+        </div>
+      </Shell>
     );
   }
 
@@ -117,9 +141,7 @@ function App() {
       : null;
 
   return (
-    <div className="app-container">
-      <Header />
-
+    <Shell>
       <div className="app-body">
         <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
 
@@ -138,7 +160,7 @@ function App() {
 
         <RightSidebar matches={data.matches} date={data.date} focusMatch={focusedMatch} />
       </div>
-    </div>
+    </Shell>
   );
 }
 

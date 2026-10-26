@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import BestArbBadge from "./BestArbBadge";
+import NotificationBell from "./NotificationBell";
+import SimulationToggle from "./SimulationToggle";
 import "./Header.css";
 
 const Header = () => {
@@ -23,10 +25,13 @@ const Header = () => {
           <nav className="top-nav">
             <a href="#">Tip Hub</a>
             <Link to="/arbs">Arbs</Link>
+            <Link to="/wallets">Wallets</Link>
           </nav>
         </div>
         <div className="header-right">
+          <SimulationToggle />
           <BestArbBadge />
+          <NotificationBell />
         </div>
       </div>
     </header>

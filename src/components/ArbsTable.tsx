@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
+import { useNotifications } from "../lib/notifications";
+import { useSimulation } from "../lib/simulation";
 import type {
   ArbHistoryLeg,
   ArbHistoryRecord,
@@ -7,6 +9,9 @@ import type {
   ArbOpportunity,
   ArbsPayload,
 } from "../types";
+import LogArbModal from "./LogArbModal";
+import Toast from "./Toast";
+import "./ArbLedger.css";
 import "./ArbsTable.css";
 
 interface ArbsTableProps {
@@ -202,6 +207,23 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const [totalStake, setTotalStake] = useState(100);
   const [rounding, setRounding] = useState(0);
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
+  const { enabled: simulation } = useSimulation();
+  const { refresh: refreshNotifications } = useNotifications();
+  // Arb handed to the Log Arb modal, plus the keys already written to D1 in this session.
+  const [logTarget, setLogTarget] = useState<{
+    key: string;
+    arb: ArbOpportunity;
+    legs: ArbLeg[];
+    stakes: Array<number | null>;
+  } | null>(null);
+  const [loggedKeys, setLoggedKeys] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -355,6 +377,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       <th scope="col">Market</th>
                       <th scope="col">Odds</th>
                       <th scope="col">Profit (GHS)</th>
+                      <th scope="col">Ledger</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -362,6 +385,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const legs = legsFor(arb);
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
+                      const rowKey = arbKey(arb, legs);
+                      const logged = loggedKeys.includes(rowKey);
 
                       const rawStakes = legs.map((leg) =>
                         typeof leg.stake === "number"
@@ -383,7 +408,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const laidOut = outlay > 0 ? outlay : totalStake;
 
                       return (
-                        <Fragment key={arbKey(arb, legs)}>
+                        <Fragment key={rowKey}>
                           {legs.map((leg, legIndex) => {
                             const legStake = stakes[legIndex];
                             // Payout on this side minus the full outlay: what you keep if it wins.
@@ -457,6 +482,23 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                   ? "—"
                                   : `${legProfit >= 0 ? "+" : ""}${legProfit.toFixed(2)}`}
                               </td>
+
+                              {legIndex === 0 && (
+                                <td className="arb-log" rowSpan={LEGS_PER_MATCH}>
+                                  <label className="arb-log-toggle">
+                                    <input
+                                      type="checkbox"
+                                      checked={logged}
+                                      disabled={logged}
+                                      aria-label={`Log ${arb.home} vs ${arb.away} to the ledger`}
+                                      onChange={() =>
+                                        setLogTarget({ key: rowKey, arb, legs, stakes })
+                                      }
+                                    />
+                                    <span>{logged ? "Logged" : "Log"}</span>
+                                  </label>
+                                </td>
+                              )}
                             </tr>
                             );
                           })}
@@ -623,6 +665,27 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           )}
         </>
       )}
+
+      {logTarget && (
+        <LogArbModal
+          arb={logTarget.arb}
+          legs={logTarget.legs}
+          initialStakes={logTarget.stakes}
+          simulation={simulation}
+          onClose={() => setLogTarget(null)}
+          onSaved={() => {
+            const savedKey = logTarget.key;
+            setLoggedKeys((current) =>
+              current.includes(savedKey) ? current : [...current, savedKey],
+            );
+            setLogTarget(null);
+            setToast("Arb logged successfully.");
+            // Stakes were just debited, so re-run the balance alerts.
+            refreshNotifications();
+          }}
+        />
+      )}
+      {toast && <Toast message={toast} />}
     </section>
   );
 };

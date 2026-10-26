@@ -2,3 +2,4 @@
 # Rewriting to "/" (not "/index.html") avoids Pages' .html-stripping redirect loop warning.
 /match/* / 200
 /arbs / 200
+/wallets / 200

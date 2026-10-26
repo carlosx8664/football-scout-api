@@ -26,7 +26,7 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 | Layer | Tech |
 | --- | --- |
 | UI | React 19 + TypeScript, Vite 8 |
-| Hosting | Cloudflare Pages (Functions + KV) |
+| Hosting | Cloudflare Pages (Functions + KV + D1) |
 | Sync job | GitHub Actions + a Node 20 script using `axios` |
 | Fixtures/odds | [API-Football v3](https://www.api-football.com/) |
 | AI | [DeepSeek](https://api-docs.deepseek.com/), optionally via Cloudflare AI Gateway |
@@ -40,6 +40,7 @@ shared/deeplinks.js            Bookmaker names + verified per-fixture deep links
 shared/teams.js                Team-name normalisation for matching/deduping
 shared/betslip-prompt.js       Vision prompt + JSON contract for betslip extraction
 shared/betslip-match.js        Resolves extracted betslip legs against the match feed
+shared/wallets.js              Mode-scoped wallet + liquidity queries for the wallet Functions
 .github/workflows/odds-refresh.yml  Scrape odds, build feeds, publish to KV
 workers/dispatch-trigger/      Cloudflare Cron Worker that dispatches the workflow every 15 min
 functions/api/matches.js       GET /api/matches - KV feed-matches (odds refresh output)
@@ -47,12 +48,18 @@ functions/api/arbs.js          GET /api/arbs - KV feed-arbs (arbitrage output)
 functions/api/analysis.js      GET /api/analysis - on-demand DeepSeek preview with live search + odds comparison
 functions/api/standings.js     GET /api/standings - league table via football-data.org
 functions/api/bet-builder/extract.js  POST /api/bet-builder/extract - screenshot -> matched legs
+functions/api/wallets.js       GET /api/wallets - wallets + available liquidity for one mode
+functions/api/wallets/[id].js  PATCH /api/wallets/:id - log a deposit / withdrawal
+functions/api/wallets/reset.js POST /api/wallets/reset - simulation wallets back to 1,000 GHS
+functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the ledger
+functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
+migrations/                    D1 schema + seed (wallets, active_bets)
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
 src/App.tsx                    Route switch, feed loading, upcoming + league filters
-src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail (+ CSS)
-src/lib/                       Fetch helper and formatting utils
+src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail, WalletsPanel (+ CSS)
+src/lib/                       Fetch helper, formatting, wallet API client, simulation mode
 src/types.ts                   Snapshot payload types
 public/_redirects              Serves the SPA for /match/:id deep links
 ```
@@ -73,7 +80,26 @@ a `preview_id` with the id of `wrangler kv namespace create FOOTBALL_DATA --prev
 > Alternatively, bind it in the Cloudflare dashboard: **Pages → your project → Settings →
 > Functions → KV namespace bindings**, with the variable name `FOOTBALL_DATA`.
 
-### 2. Add GitHub repository secrets
+### 2. Create the D1 database
+
+Wallet management and simulation mode read `wallets` / `active_bets` from D1 (binding `DB`).
+
+```bash
+npx wrangler d1 create football-scout-db
+```
+
+Copy the returned `database_id` into the `d1_databases` entry in [`wrangler.jsonc`](./wrangler.jsonc)
+(replacing the placeholder `00000000-0000-0000-0000-000000000000`), then apply the schema:
+
+```bash
+npm run db:migrate:local   # local SQLite, used by `wrangler pages dev`
+npm run db:migrate         # production database
+```
+
+The migration seeds four wallets per mode: `is_simulation = 1` at 250 GHS each (the "Reset
+Simulation Wallets to 1,000 GHS" target) and `is_simulation = 0` at 0 GHS.
+
+### 3. Add GitHub repository secrets
 
 | Secret | Where to get it |
 | --- | --- |
@@ -95,7 +121,7 @@ deployments need their own copy unless you mark the secret for *All environments
 
 Add the Actions ones under **Settings → Secrets and variables → Actions → New repository secret**.
 
-### 3. Publish the feeds
+### 4. Publish the feeds
 
 Actions → **Odds refresh** → *Run workflow*, or locally:
 
@@ -119,6 +145,10 @@ npm run dev       # Vite on :5173, proxies /api -> :8788
 To work with fresh data locally, run the three scripts above and then load the app — `npm run
 dev` serves `public/` directly, so no KV seeding is needed.
 
+`/api/wallets` needs its D1 tables: run `npm run db:migrate:local` once before the first `npm run
+preview`. `npm run dev` proxies `/api` to `:8788`, so run `preview` alongside it when working on
+wallets.
+
 Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 
 ## API
@@ -130,6 +160,12 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `GET /api/analysis` | On-demand DeepSeek note with live search plus odds comparison, cached 6 h per fixture and price set |
 | `GET /api/standings` | League table window for a fixture, from football-data.org |
 | `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
+| `GET /api/wallets` | Wallets + available liquidity for one mode (`?simulation=1` or `0`), plus total and today's realised profit, from D1 |
+| `PATCH /api/wallets/:id` | Set a wallet balance (`balance`) or apply a `delta`, scoped to that mode's `is_simulation` |
+| `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
+| `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
+| `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
+| `POST /api/active-bets/:id/settle` | `{ winner: "a" \| "b" }` → credits the payout to the winning bookie (stakes were already debited), writes `history`, deletes the bet |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
@@ -342,4 +378,39 @@ cd ../.. && npm run worker:deploy
   Today hides matches that have already kicked off; tomorrow shows the full slate. The right
   sidebar carries **Top Picks** and the **Bet Builder** (betslip screenshot → matches).
 - `/match/:id` — AI detail page (client-side route, served via `public/_redirects`)
-- `/arbs` — live + past arbitrage tables
+- `/arbs` — live + past arbitrage tables. Each live arb has a **Ledger** checkbox that opens the
+  **Log Arb** modal: the computed stakes are pre-filled and can be rounded by hand, and "Save to
+  Ledger" inserts them into `active_bets` with `is_simulation` set from the current mode.
+- `/wallets` — **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals,
+  available liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit
+  (SUM of `history` net profit) and the simulation reset button. Below it, the **Active Bets**
+  ledger lists every unsettled bet with a **Settle** button that asks which leg won and applies
+  the payout. A **Rebalancing Hints** panel between the two shows each bookie's share of the
+  portfolio (cash + stakes in play) and flags top-ups (< 15%), withdrawals (> 40%) and any
+  BetBoro balance.
+
+**Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
+While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet
+query filters `is_simulation = 1`; switching it off filters `is_simulation = 0` instead.
+
+**Wallet accounting.** Logging an arb debits each stake from its bookie wallet immediately, so
+`available liquidity = SUM(wallets.balance)` at all times — the cash that is actually sitting in
+the bookie accounts. Settling only credits the winning bookie with `winning stake × winning odds`
+and records `net_profit = payout − both stakes` in `history`, so the wallet movement across a
+bet's life (both debits at placement, payout at settlement) equals the recorded profit exactly.
+
+**Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
+inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` on mount,
+on mode switch, and whenever a payload arrives from a wallet edit, reset, logged arb or
+settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
+
+| Alert | Trigger |
+| --- | --- |
+| 🔴 Withdraw from [bookie] | cash share of the portfolio (cash + staked) > 35% |
+| 🟢 Top up [bookie] | cash share of the portfolio < 15% |
+| 🚨 BetBoro Warning | BetBoro cash > 0 (always) |
+| 🎯 Daily Goal Reached | `dailyProfit` (history settled today) > 100 GHS |
+
+Duplicates are suppressed for an hour unless the number moved by ≥ 5 percentage points (share
+alerts) or ≥ 100 GHS (cash alerts). Clicking a notification dismisses it; "Mark all as read"
+clears the badge.

@@ -1,0 +1,23 @@
+/* Ledger checkbox added to the live arbs table by ArbsTable.tsx. */
+.arb-log {
+  width: 78px;
+  text-align: center;
+  vertical-align: middle;
+}
+.arb-log-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  cursor: pointer;
+}
+.arb-log-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-brand);
+  cursor: pointer;
+}
+.arb-log-toggle input:checked + span { color: var(--color-teal-4); }
+.arb-log-toggle input:disabled { cursor: default; }

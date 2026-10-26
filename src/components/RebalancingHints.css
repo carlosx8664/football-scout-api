@@ -1,0 +1,104 @@
+.rebalance-panel {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.rebalance-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.rebalance-header h2 { font-size: 1.15rem; font-weight: 700; }
+.rebalance-subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
+
+.rebalance-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #c20a0a;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.rebalance-empty {
+  padding: 8px 0;
+  color: var(--color-neutral-6);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.rebalance-split {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rebalance-row {
+  display: grid;
+  grid-template-columns: 100px 56px minmax(0, 1fr) 110px;
+  align-items: center;
+  gap: 12px;
+}
+.rebalance-bookie { font-size: 0.82rem; font-weight: 700; }
+.rebalance-share {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  text-align: right;
+}
+.rebalance-bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  overflow: hidden;
+}
+.rebalance-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-brand);
+  transition: width 0.25s ease;
+}
+.rebalance-bar-fill.low { background: var(--color-neutral-5); }
+.rebalance-bar-fill.high { background: #e0b400; }
+.rebalance-balance {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rebalance-hints {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+}
+.rebalance-hint {
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.rebalance-hint.good { background: #e8f7ee; color: #15803d; border: 1px solid #b7e4c7; }
+.rebalance-hint.bad { background: #fdecec; color: #b91c1c; border: 1px solid #f5c2c2; }
+
+@media (max-width: 720px) {
+  .rebalance-row { grid-template-columns: 84px 48px minmax(0, 1fr); }
+  .rebalance-balance { grid-column: 1 / -1; text-align: left; }
+}

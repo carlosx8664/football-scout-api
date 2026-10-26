@@ -19,6 +19,21 @@
 			"id": "dbf948e365cd4d95ba73cebf4bb35a0a"
 		}
 	],
+	/**
+	 * D1 database holding `wallets` and `active_bets` for wallet management + simulation mode.
+	 * Replace the placeholder id with the one printed by
+	 * `npx wrangler d1 create football-scout-db`, then apply migrations:
+	 *   npx wrangler d1 migrations apply DB --local    (development)
+	 *   npx wrangler d1 migrations apply DB --remote   (production)
+	 */
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "football-scout-db",
+			"database_id": "00000000-0000-0000-0000-000000000000",
+			"migrations_dir": "migrations"
+		}
+	],
 	"observability": {
 		"enabled": true
 	},
