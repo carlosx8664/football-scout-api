@@ -5,11 +5,11 @@
  *   SportyBet: https://www.sportybet.com/gh/sport/football/sr:match:72478654
  *   MSport:    https://www.msport.com/gh/web/sports/Soccer/sr:match:72478654
  *   BetBoro:   https://betboro.com.gh/pre-sports/1/region/{regionId}/competition/{competitionId}/fixture/{betBoroId}
- *   BoltBet:   https://boltbet.com.gh/sports/match/football/{home-slug}-{away-slug}
+ *   BoltBet:   https://boltbet.com.gh/sports/match/football/{fixture.slug}
  *
  * Sportradar ids ("sr:match:...") are shared by every bookmaker, so one id is enough to
- * link to the same fixture everywhere. BetBoro additionally needs its own region /
- * competition / fixture ids, which only its raw dump carries.
+ * link to the same fixture everywhere. BetBoro and BoltBet each need their own ids,
+ * which only their raw dumps carry.
  */
 
 export const SPORTY = 'SportyBet';
@@ -40,12 +40,6 @@ function slugify(value) {
   return text ? encodeURIComponent(text.replace(/\s+/g, '_')) : '';
 }
 
-/** Lowercase, hyphenated slug for BoltBet's URL shape: "Real Madrid" -> "real-madrid". */
-function dashSlug(value) {
-  const text = String(value ?? '').trim().toLowerCase();
-  return text ? text.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : '';
-}
-
 /** Tier 1 path segment: `{league}/{home}_vs_{away}`. Null when any piece is missing. */
 function fixturePath(context) {
   const league = slugify(context?.league);
@@ -66,9 +60,8 @@ function searchUrl(bookmaker, home, away) {
 /**
  * Fixture URL on a bookmaker, in three tiers:
  *
- *   1. slug path  .../football/{league}/{home}_vs_{away}/sr:match:{id}
- *   2. bare id    .../football/sr:match:{id}
- *   3. Google     site:bookmaker.com "{home}" "{away}"
+ *   1. bookmaker-specific slug/id  (SportyBet, MSport, BetBoro, BoltBet)
+ *   2. Google site-search fallback
  *
  * Returns null only for bookmakers with neither a URL pattern nor a search site.
  *
@@ -83,6 +76,8 @@ function searchUrl(bookmaker, home, away) {
  *   region_id?: string | number,
  *   competitionId?: string | number,
  *   competition_id?: string | number,
+ *   boltbetSlug?: string | null,
+ *   slug?: string | null,
  * }} [context]
  * @returns {string | null}
  */
@@ -107,8 +102,7 @@ export function directUrl(bookmaker, eventId, context = {}) {
 
   // -------------------------------------------------------------------------
   // BetBoro — needs region / competition / fixture ids from the raw dump.
-  // We accept both camelCase and snake_case because the source payload uses
-  // snake_case while the loader may have normalised to camelCase.
+  // Accept both camelCase and snake_case because source payload uses snake.
   // -------------------------------------------------------------------------
   if (bookmaker === BETBORO) {
     const betBoroId = context?.betBoroId;
@@ -118,26 +112,21 @@ export function directUrl(bookmaker, eventId, context = {}) {
     if (betBoroId && regionId && competitionId) {
       return `https://betboro.com.gh/pre-sports/1/region/${regionId}/competition/${competitionId}/fixture/${betBoroId}`;
     }
-    // Fall through to search — BetBoro's search engine does index match pages.
     return searchUrl(bookmaker, home, away);
   }
 
   // -------------------------------------------------------------------------
-  // BoltBet — uses a slug of the two team names; no numeric id needed.
-  // Example: https://boltbet.com.gh/sports/match/football/sevilla-osasuna
+  // BoltBet — uses fixture.slug from the raw dump, e.g.
+  //   https://boltbet.com.gh/sports/match/football/murcia-promises-cf-wom-valencia-b-wom-23906
   // -------------------------------------------------------------------------
   if (bookmaker === BOLTBET) {
-    const homeSlug = dashSlug(home);
-    const awaySlug = dashSlug(away);
-    if (homeSlug && awaySlug) {
-      return `https://boltbet.com.gh/sports/match/football/${homeSlug}-${awaySlug}`;
+    const slug = context?.boltbetSlug ?? context?.slug;
+    if (slug) {
+      return `https://boltbet.com.gh/sports/match/football/${slug}`;
     }
     return searchUrl(bookmaker, home, away);
   }
 
-  // -------------------------------------------------------------------------
-  // Fallback — no pattern known for this bookmaker.
-  // -------------------------------------------------------------------------
   return searchUrl(bookmaker, home, away);
 }
 

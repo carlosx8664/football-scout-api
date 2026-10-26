@@ -494,7 +494,11 @@ function loadBetBoro(file) {
       tournament: `${f.region ?? ''} · ${f.competition ?? ''}`.trim(),
       notStarted: Number(f.kickoff) > Date.now(),
       sel,
-      raw: { betBoroId: f.betBoroId, regionId: f.regionId, competitionId: f.competitionId },
+      raw: {
+        betBoroId: f.betBoroId,
+        regionId: f.regionId ?? f.region_id,
+        competitionId: f.competitionId ?? f.competition_id,
+      },
     });
   }
   return { events, typeCounts };
@@ -566,7 +570,7 @@ function loadBoltBet(file) {
       tournament: 'BoltBet',
       notStarted: e.fixture.state === 'active',
       sel,
-      raw: { uuid: e.fixture.uuid },
+      raw: { uuid: e.fixture.uuid, boltbetSlug: e.fixture.slug },
     });
   }
   return { events, typeCounts };
@@ -743,6 +747,7 @@ function mergeHistory(previous, arbs, nowMs) {
         bookmaker: leg.bookmaker,
         outcome: leg.outcome,
         stake: leg.stake ?? null,
+        url: leg.url ?? null,
         openOdds: old?.openOdds ?? leg.odds,
         lastOdds: leg.odds,
         finalOdds: old?.finalOdds ?? (kickedOff ? (old?.lastOdds ?? leg.odds) : null),
