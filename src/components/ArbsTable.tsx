@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { createArbShare, fetchArbsJson } from "../lib/api";
+import { fetchArbsJson } from "../lib/api";
 import type {
   ArbHistoryLeg,
   ArbHistoryRecord,
@@ -202,8 +202,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const [totalStake, setTotalStake] = useState(100);
   const [rounding, setRounding] = useState(0);
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
-  // Booking state per arb+bookmaker: "loading" while in flight, otherwise the failure message.
-  const [shareState, setShareState] = useState<Record<string, "loading" | string>>({});
 
   useEffect(() => {
     const controller = new AbortController();
@@ -258,27 +256,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     )
     .sort((a, b) => b.kickoff - a.kickoff)
     .slice(0, PAST_LIMIT);
-
-  const loadToSportyBet = async (
-    key: string,
-    selections: NonNullable<ArbLeg["sportybet"]>[],
-  ) => {
-    setShareState((current) => ({ ...current, [key]: "loading" }));
-    try {
-      const url = await createArbShare(selections);
-      window.open(url, "_blank", "noopener,noreferrer");
-      setShareState((current) => {
-        const next = { ...current };
-        delete next[key];
-        return next;
-      });
-    } catch (error) {
-      setShareState((current) => ({
-        ...current,
-        [key]: error instanceof Error ? error.message : "SportyBet booking failed.",
-      }));
-    }
-  };
 
   const isTestData = feed?.boost != null && Math.abs(feed.boost - 1) > 1e-9;
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
@@ -385,13 +362,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const legs = legsFor(arb);
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
-                      const rowKey = arbKey(arb, legs);
-                      // Only SportyBet legs carry booking ids; other books stay on deep links.
-                      const sportybetSelections = legs
-                        .map((entry) => entry.sportybet)
-                        .filter((booking): booking is NonNullable<ArbLeg["sportybet"]> =>
-                          Boolean(booking),
-                        );
 
                       const rawStakes = legs.map((leg) =>
                         typeof leg.stake === "number"
@@ -416,8 +386,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                         <Fragment key={arbKey(arb, legs)}>
                           {legs.map((leg, legIndex) => {
                             const legStake = stakes[legIndex];
-                            const shareKey = `${rowKey}|${leg.bookmaker}`;
-                            const shareStatus = shareState[shareKey];
                             // Payout on this side minus the full outlay: what you keep if it wins.
                             const legProfit =
                               legStake === null ? null : legStake * leg.odds - laidOut;
@@ -451,23 +419,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                   </a>
                                 ) : (
                                   <span className="arb-bookmaker-pill">{leg.bookmaker}</span>
-                                )}
-                                {leg.sportybet && sportybetSelections.length > 0 && (
-                                  <button
-                                    type="button"
-                                    className="arb-share-btn"
-                                    onClick={() =>
-                                      void loadToSportyBet(shareKey, sportybetSelections)
-                                    }
-                                    disabled={shareStatus === "loading"}
-                                  >
-                                    {shareStatus === "loading"
-                                      ? "Booking…"
-                                      : "Load to SportyBet"}
-                                  </button>
-                                )}
-                                {shareStatus && shareStatus !== "loading" && (
-                                  <span className="arb-share-error">{shareStatus}</span>
                                 )}
                               </td>
 
