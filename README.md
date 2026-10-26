@@ -252,8 +252,8 @@ keeps showing Top Picks).
 
 ## Bet builder
 
-`/bet-builder` turns a betslip screenshot into matched fixtures with deep links, through
-`POST /api/bet-builder/extract`:
+The **Bet Builder** in the home page's right sidebar (under Top Picks) turns a betslip
+screenshot into matched fixtures with deep links, through `POST /api/bet-builder/extract`:
 
 1. The browser downscales the image to ≤1600 px and re-encodes it as JPEG at 0.85
    (`src/lib/betBuilder.ts`), so a 4 MB screenshot uploads at 150–400 KB.
@@ -339,7 +339,7 @@ cd ../.. && npm run worker:deploy
 ## Routes
 
 - `/` — fixture grid with **Today's Matches** / **Tomorrow's Matches** tabs and a league filter.
-  Today hides matches that have already kicked off; tomorrow shows the full slate.
+  Today hides matches that have already kicked off; tomorrow shows the full slate. The right
+  sidebar carries **Top Picks** and the **Bet Builder** (betslip screenshot → matches).
 - `/match/:id` — AI detail page (client-side route, served via `public/_redirects`)
 - `/arbs` — live + past arbitrage tables
-- `/bet-builder` — upload a betslip screenshot and get matched fixtures with bookmaker deep links

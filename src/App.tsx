@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
 import ArbsTable from "./components/ArbsTable";
-import BetBuilder from "./components/BetBuilder";
 import Header from "./components/Header";
 import MainFeed from "./components/MainFeed";
 import MatchDetail from "./components/MatchDetail";
@@ -14,7 +13,6 @@ import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
 const ARBS_ROUTE = /^\/arbs\/?$/;
-const BET_BUILDER_ROUTE = /^\/bet-builder\/?$/;
 
 function currentMatchId(pathname: string): number | null {
   const result = MATCH_ROUTE.exec(pathname);
@@ -34,7 +32,6 @@ function App() {
   const navigate = useNavigate();
   const matchId = currentMatchId(pathname);
   const isArbs = ARBS_ROUTE.test(pathname);
-  const isBetBuilder = BET_BUILDER_ROUTE.test(pathname);
 
   // On a match page (or the arbs page) there is no feed to filter, so picking a league
   // has to take the user back to the home feed first.
@@ -100,21 +97,6 @@ function App() {
         <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
           <ArbsTable now={now} />
-        </div>
-      </div>
-    );
-  }
-
-  // The bet builder only talks to /api/bet-builder/extract and /api/matches, so it also must
-  // not wait on (or break with) the API-Football snapshot.
-  if (isBetBuilder) {
-    return (
-      <div className="app-container">
-        <Header />
-
-        <div className="app-body app-body-wide">
-          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
-          <BetBuilder />
         </div>
       </div>
     );

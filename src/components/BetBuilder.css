@@ -491,3 +491,121 @@
     justify-content: center;
   }
 }
+
+/* --- Sidebar (compact) variant --- */
+.bb-view-compact {
+  gap: 14px;
+}
+
+.bb-head h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.bb-head .bb-subtitle {
+  margin-top: 0;
+  font-size: 0.8rem;
+}
+
+.bb-drop-compact {
+  min-height: 130px;
+  padding: 20px 14px;
+  gap: 8px;
+}
+
+.bb-drop-compact .bb-preview {
+  max-height: 120px;
+}
+
+.bb-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bb-compact-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.bb-compact-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-neutral-3);
+}
+
+.bb-compact-teams {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+}
+
+.bb-compact-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-neutral-6);
+}
+
+.bb-compact-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+}
+
+.bb-compact-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand-4);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bb-compact-link:hover {
+  text-decoration: underline;
+}
+
+.bb-btn-compact {
+  justify-content: center;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+}
+
+.bb-compact .bb-acca-warn {
+  flex: 1 1 auto;
+}
+
+.bb-compact-note {
+  color: var(--color-neutral-6);
+  font-size: 0.72rem;
+}
+
+.bb-compact-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-neutral-6);
+  font-size: 0.72rem;
+}
+
+.bb-compact-footer .bb-btn-compact {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.bb-compact-pick .bb-pick,
+.bb-compact-pick .bb-odds {
+  font-size: 0.75rem;
+}

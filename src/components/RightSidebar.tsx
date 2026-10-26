@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { formatKickoff } from "../lib/format";
 import { sortedQuotes } from "../lib/odds";
 import type { Match } from "../types";
+import BetBuilder from "./BetBuilder";
 import LeagueTable from "./LeagueTable";
 import "./RightSidebar.css";
 
@@ -66,38 +67,44 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
 
   return (
     <aside className="right-sidebar">
-      <section className="top-picks-container">
-        <h3>🔥 Top Picks</h3>
-        <p className="top-picks-subtitle">Biggest price gaps across our books</p>
-        {topPicks.length > 0 ? (
-          <ul className="top-picks-list">
-            {topPicks.map(({ match, pick }) => (
-              <li className="top-pick" key={match.fixture.id}>
-                <div className="top-pick-teams">
-                  <span>{match.teams.home.name} vs {match.teams.away.name}</span>
-                  <span className="top-pick-time">{formatKickoff(match.fixture.date).time}</span>
-                </div>
-                <div className="top-pick-footer">
-                  <span className="top-pick-odds">
-                    {pick.label} {pick.odds.toFixed(2)}
-                    <span className="top-pick-edge">
-                      {" "}
-                      +{(pick.edge * 100).toFixed(1)}% at {pick.bookmaker}
+      <div className="right-sidebar-stack">
+        <section className="top-picks-container">
+          <h3>🔥 Top Picks</h3>
+          <p className="top-picks-subtitle">Biggest price gaps across our books</p>
+          {topPicks.length > 0 ? (
+            <ul className="top-picks-list">
+              {topPicks.map(({ match, pick }) => (
+                <li className="top-pick" key={match.fixture.id}>
+                  <div className="top-pick-teams">
+                    <span>{match.teams.home.name} vs {match.teams.away.name}</span>
+                    <span className="top-pick-time">{formatKickoff(match.fixture.date).time}</span>
+                  </div>
+                  <div className="top-pick-footer">
+                    <span className="top-pick-odds">
+                      {pick.label} {pick.odds.toFixed(2)}
+                      <span className="top-pick-edge">
+                        {" "}
+                        +{(pick.edge * 100).toFixed(1)}% at {pick.bookmaker}
+                      </span>
                     </span>
-                  </span>
-                  <Link className="top-pick-link" to={`/match/${match.fixture.id}`}>
-                    View details
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="top-picks-empty">
-            No bookmaker is quoting a better price than the others right now.
-          </p>
-        )}
-      </section>
+                    <Link className="top-pick-link" to={`/match/${match.fixture.id}`}>
+                      View details
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="top-picks-empty">
+              No bookmaker is quoting a better price than the others right now.
+            </p>
+          )}
+        </section>
+
+        <section className="bet-builder-container">
+          <BetBuilder compact />
+        </section>
+      </div>
     </aside>
   );
 };

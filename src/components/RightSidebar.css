@@ -1,10 +1,21 @@
+.right-sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
 .top-picks-container {
   background: var(--color-neutral-1);
   border: 1px solid var(--color-neutral-4);
   border-radius: 12px;
   padding: 20px;
-  position: sticky;
-  top: 100px;
+  min-width: 0;
+}
+.bet-builder-container {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 20px;
   min-width: 0;
 }
 .top-picks-container h3 {

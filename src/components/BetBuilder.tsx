@@ -174,6 +174,40 @@ const MatchedRow = ({ entry }: { entry: MatchedLeg }) => {
   );
 };
 
+/** Narrow sidebar row: teams, pick and a single book link, no per-book pricing. */
+const CompactRow = ({ entry }: { entry: MatchedLeg }) => {
+  const { leg, match } = entry;
+
+  return (
+    <div className="bb-compact-row">
+      <div className="bb-compact-teams">
+        <span>
+          {match.teams.home.name} vs {match.teams.away.name}
+        </span>
+      </div>
+      <div className="bb-compact-pick">
+        <span className="bb-market">{leg.market || "Market"}</span>
+        <span className="bb-pick">{leg.selection}</span>
+        {Number.isFinite(leg.odds) && (
+          <span className="bb-odds">@ {Number(leg.odds).toFixed(2)}</span>
+        )}
+      </div>
+      <div className="bb-compact-meta">
+        <span>{match.fixture?.date ? kickoffLabel(match.fixture.date) : ""}</span>
+        {entry.links.sportybet && (
+          <button
+            type="button"
+            className="bb-compact-link"
+            onClick={() => openLink(entry.links.sportybet)}
+          >
+            SportyBet ↗
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const CandidateRow = ({ candidate }: { candidate: MatchedCandidate }) => (
   <div className="bb-candidate">
     <div className="bb-candidate-info">
@@ -239,7 +273,12 @@ const ReviewCard = ({ entry }: { entry: UnresolvedLeg }) => {
   );
 };
 
-const BetBuilder = () => {
+interface BetBuilderProps {
+  /** Sidebar-sized layout: no page heading, condensed results. */
+  compact?: boolean;
+}
+
+const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<BetBuilderResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -330,12 +369,23 @@ const BetBuilder = () => {
   const warnings = result?.warnings ?? [];
 
   return (
-    <section className="bb-view">
-      <h1 className="bb-title">Bet Builder</h1>
-      <p className="bb-subtitle">
-        Drop a betslip screenshot and we&apos;ll find every match in today&apos;s feed, with a
-        direct link to the fixture on SportyBet and MSport.
-      </p>
+    <section className={`bb-view${compact ? " bb-view-compact" : ""}`}>
+      {compact ? (
+        <div className="bb-head">
+          <h3>🧾 Bet Builder</h3>
+          <p className="bb-subtitle">
+            Upload a betslip screenshot and we&apos;ll load its picks into SportyBet.
+          </p>
+        </div>
+      ) : (
+        <>
+          <h1 className="bb-title">Bet Builder</h1>
+          <p className="bb-subtitle">
+            Drop a betslip screenshot and we&apos;ll find every match in today&apos;s feed, with a
+            direct link to the fixture on SportyBet and MSport.
+          </p>
+        </>
+      )}
 
       <input
         ref={inputRef}
@@ -346,7 +396,7 @@ const BetBuilder = () => {
       />
 
       <div
-        className={`bb-drop${dragging ? " dragging" : ""}${scanning ? " busy" : ""}`}
+        className={`bb-drop${compact ? " bb-drop-compact" : ""}${dragging ? " dragging" : ""}${scanning ? " busy" : ""}`}
         role="button"
         tabIndex={0}
         onClick={() => inputRef.current?.click()}
@@ -390,9 +440,11 @@ const BetBuilder = () => {
         ) : (
           <>
             <strong className="bb-drop-title">
-              {preview ? "Scan another slip" : "Drop, paste or click to upload"}
+              {preview ? "Scan another slip" : compact ? "Drop, paste or click" : "Drop, paste or click to upload"}
             </strong>
-            <span className="bb-drop-hint">PNG, JPEG, WebP or GIF · max 8 MB</span>
+            <span className="bb-drop-hint">
+              {compact ? "PNG or JPEG · max 8 MB" : "PNG, JPEG, WebP or GIF · max 8 MB"}
+            </span>
           </>
         )}
       </div>
@@ -404,7 +456,68 @@ const BetBuilder = () => {
         </div>
       )}
 
-      {phase === "done" && (
+      {phase === "done" && (compact ? (
+        <div className="bb-compact">
+          {warnings.length > 0 && (
+            <div className="bb-warnings" role="status">
+              <strong>The model flagged:</strong>
+              <ul>
+                {warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {matched.length === 0 ? (
+            <div className="bb-empty">No selections matched a fixture in the feed.</div>
+          ) : (
+            <div className="bb-compact-list">
+              {matched.map((entry, index) => (
+                <CompactRow
+                  key={`${entry.match.fixture.id}-${entry.leg.rowIndex}-${index}`}
+                  entry={entry}
+                />
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="bb-btn bb-btn-brand bb-btn-compact"
+            onClick={() => openLink(result?.sportybetAccaUrl ?? null)}
+            disabled={!result?.sportybetAccaUrl}
+          >
+            Add {result?.stats?.bookable ?? matched.length} to SportyBet betslip
+            <span className="bb-btn-icon" aria-hidden="true">
+              ↗
+            </span>
+          </button>
+
+          {result?.sportybetAccaWarning && (
+            <span className="bb-acca-warn" role="status">
+              {result.sportybetAccaWarning}
+            </span>
+          )}
+
+          {unresolved.length > 0 && (
+            <span className="bb-compact-note">
+              {unresolved.length} selection{unresolved.length === 1 ? "" : "s"} need review
+            </span>
+          )}
+
+          <div className="bb-compact-footer">
+            <span>
+              {result?.stats
+                ? `${result.stats.matched} of ${result.stats.legs} legs matched`
+                : `${matched.length} legs matched`}
+            </span>
+            <button type="button" className="bb-btn bb-btn-ghost bb-btn-compact" onClick={reset}>
+              Scan another
+            </button>
+          </div>
+        </div>
+      ) : (
         <>
           {warnings.length > 0 && (
             <div className="bb-warnings" role="status">
@@ -480,7 +593,7 @@ const BetBuilder = () => {
             </button>
           </div>
         </>
-      )}
+      ))}
     </section>
   );
 };
