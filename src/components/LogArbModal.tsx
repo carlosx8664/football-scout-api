@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { logArb } from "../lib/bets";
-import { formatGhs } from "../lib/wallets";
+import { fetchWallets, formatGhs } from "../lib/wallets";
 import type { ArbLeg, ArbOpportunity } from "../types";
 import "./LogArbModal.css";
 
@@ -31,6 +31,23 @@ const LogArbModal = ({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Cash currently sitting in each bookie wallet, shown under its stake input.
+  const [balances, setBalances] = useState<Record<string, number> | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // A missing balance hint must never block logging, so failures are ignored here.
+    fetchWallets(simulation, controller.signal)
+      .then((walletPayload) => {
+        setBalances(
+          Object.fromEntries(walletPayload.wallets.map((wallet) => [wallet.name, wallet.balance])),
+        );
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [simulation]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -52,10 +69,27 @@ const LogArbModal = ({
   const profitPct = total > 0 ? (profit / total) * 100 : 0;
   const valid = numbers.every((value) => Number.isFinite(value) && value > 0);
 
+  const balanceFor = (bookie: string): number | undefined => {
+    if (!balances) return undefined;
+    return (
+      balances[bookie] ??
+      Object.entries(balances).find(([name]) => name.toLowerCase() === bookie.toLowerCase())?.[1]
+    );
+  };
+
+  const overdrawnIndex = legs.findIndex((leg, index) => {
+    const available = balanceFor(leg.bookmaker);
+    return available !== undefined && numbers[index] > available;
+  });
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!valid) {
       setError("Enter a stake above 0 for both legs.");
+      return;
+    }
+    if (overdrawnIndex >= 0) {
+      setError(`Stake exceeds the available balance on ${legs[overdrawnIndex].bookmaker}.`);
       return;
     }
 
@@ -117,8 +151,12 @@ const LogArbModal = ({
               </tr>
             </thead>
             <tbody>
-              {legs.map((leg, index) => (
-                <tr key={`${leg.bookmaker}-${leg.outcome}`}>
+              {legs.map((leg, index) => {
+                const available = balanceFor(leg.bookmaker);
+                const overBalance = available !== undefined && numbers[index] > available;
+
+                return (
+                  <tr key={`${leg.bookmaker}-${leg.outcome}`}>
                   <td className="log-arb-bookie">{leg.bookmaker}</td>
                   <td>{leg.outcome || "—"}</td>
                   <td className="log-arb-odds">{leg.odds.toFixed(2)}</td>
@@ -138,9 +176,16 @@ const LogArbModal = ({
                       }}
                       autoFocus={index === 0}
                     />
+                    {available !== undefined && (
+                      <span className={`log-arb-available${overBalance ? " over" : ""}`}>
+                        {overBalance ? "Exceeds balance · " : "Available "}
+                        {formatGhs(available)}
+                      </span>
+                    )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
 

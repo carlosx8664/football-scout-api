@@ -76,6 +76,16 @@
 }
 .log-arb-stake:focus { outline: 2px solid var(--color-brand-weak-elevated); }
 
+.log-arb-available {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+}
+.log-arb-available.over { color: #c20a0a; }
+
 .log-arb-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
