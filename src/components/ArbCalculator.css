@@ -1,0 +1,220 @@
+.calc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.45);
+  overflow-y: auto;
+}
+
+.calc-modal {
+  width: 100%;
+  max-width: 780px;
+  background: var(--color-neutral-1);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.calc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.calc-header h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.calc-subtitle {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-neutral-6);
+}
+
+.calc-close {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-neutral-6);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.calc-close:hover {
+  color: var(--color-neutral-7);
+  border-color: var(--color-brand);
+}
+
+.calc-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.calc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.calc-field > span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+
+.calc-field input,
+.calc-field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  background: var(--color-neutral-1);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+}
+
+.calc-field input:focus,
+.calc-field select:focus {
+  outline: 2px solid var(--color-brand-weak-elevated);
+  border-color: var(--color-brand);
+}
+
+.calc-legs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.calc-leg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  background: var(--color-neutral-2);
+}
+
+.calc-leg legend {
+  padding: 0 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-brand-4);
+}
+
+.calc-leg .calc-field:first-of-type {
+  grid-column: 1 / -1;
+}
+
+.calc-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.calc-calculate {
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.calc-calculate:hover {
+  background: var(--color-brand-4);
+}
+
+.calc-error {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c20a0a;
+}
+
+.calc-results {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.calc-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 10px;
+  background: var(--color-neutral-2);
+}
+
+.calc-result > span {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+
+.calc-result strong {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.calc-result small {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+}
+
+.calc-result-total {
+  border-color: var(--color-brand);
+  background: var(--color-brand-weak);
+}
+
+.calc-result .positive,
+.calc-result small.positive {
+  color: #0f7b4f;
+}
+
+.calc-result .negative,
+.calc-result small.negative {
+  color: #c20a0a;
+}
+
+.calc-warning {
+  margin-top: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+@media (max-width: 720px) {
+  .calc-controls,
+  .calc-legs,
+  .calc-results {
+    grid-template-columns: 1fr;
+  }
+}

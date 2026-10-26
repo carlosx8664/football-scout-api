@@ -316,6 +316,32 @@
 }
 
 /* --- Live Arbs / Past Arbs tabs --- */
+.arbs-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.arbs-calc-open {
+  padding: 9px 18px;
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  background: var(--color-brand-weak);
+  color: var(--color-brand-4);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.arbs-calc-open:hover {
+  background: var(--color-brand);
+  color: #fff;
+}
+
 .arbs-tabs {
   display: inline-flex;
   gap: 4px;

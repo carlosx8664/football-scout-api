@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
+import ArbCalculator from "./ArbCalculator";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 import type {
@@ -213,6 +214,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const [totalStake, setTotalStake] = useState(100);
   const [rounding, setRounding] = useState(0);
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { enabled: simulation } = useSimulation();
   const { refresh: refreshNotifications } = useNotifications();
   // Arb handed to the Log Arb modal, plus the keys already written to D1 in this session.
@@ -311,7 +313,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             </div>
           )}
 
-          <div className="arbs-tabs" role="tablist" aria-label="Arbitrage windows">
+          <div className="arbs-toolbar">
+            <div className="arbs-tabs" role="tablist" aria-label="Arbitrage windows">
             <button
               type="button"
               role="tab"
@@ -331,6 +334,15 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             >
               Past Arbs
               <span className="tab-count">{pastRows.length}</span>
+            </button>
+            </div>
+
+            <button
+              type="button"
+              className="arbs-calc-open"
+              onClick={() => setCalculatorOpen(true)}
+            >
+              Open Calculator
             </button>
           </div>
 
@@ -671,6 +683,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           )}
         </>
       )}
+
+      {calculatorOpen && <ArbCalculator onClose={() => setCalculatorOpen(false)} />}
 
       {logTarget && (
         <LogArbModal
