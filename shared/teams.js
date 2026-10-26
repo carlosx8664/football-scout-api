@@ -12,7 +12,10 @@
 export function normalizeTeam(name) {
   return String(name ?? "")
     .toLowerCase()
-    .replace(/\b(fc|sc|afc|cf|united|utd|city|club|women|wom|wfc|lfc)\b/g, "")
+    .replace(
+      /\b(fc|sc|afc|cf|united|utd|city|club|women|wom|wfc|lfc|sl|ss|rc|ca|as|ac|cd|ud|sv|bk|fk|nk|sk|boldklub)\b/g,
+      "",
+    )
     .replace(/[^a-z0-9]/g, "")
     .trim();
 }

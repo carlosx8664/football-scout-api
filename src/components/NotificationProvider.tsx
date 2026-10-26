@@ -4,12 +4,16 @@ import {
   buildAlerts,
   dueAlerts,
   limitNotifications,
+  loadLowBalances,
   loadNotifications,
   loadSeen,
   newNotificationId,
+  saveLowBalances,
   saveNotifications,
   saveSeen,
+  trackLowBalances,
   type AppNotification,
+  type LowBalances,
   type SeenAlerts,
 } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
@@ -39,6 +43,11 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     sim: loadSeen(true),
     real: loadSeen(false),
   });
+  // When each bookie first fell below the top-up threshold, so alerts can cool down.
+  const lowRef = useRef<Record<ModeKey, LowBalances>>({
+    sim: loadLowBalances(true),
+    real: loadLowBalances(false),
+  });
 
   const activeMode = modeKey(enabled);
   const notifications = inboxes[activeMode];
@@ -54,8 +63,15 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const ingest = useCallback((payload: WalletsPayload) => {
     const mode = modeKey(payload.simulation);
     const now = Date.now();
+
+    // Track shortfalls first: a bookie that just dropped starts its cool-down now, so logging a
+    // bet never produces an instant top-up ping.
+    const lowSince = trackLowBalances(payload, lowRef.current[mode], now);
+    lowRef.current[mode] = lowSince;
+    saveLowBalances(mode === "sim", lowSince);
+
     const seen = seenRef.current[mode];
-    const due = dueAlerts(buildAlerts(payload), seen, now);
+    const due = dueAlerts(buildAlerts(payload, { now, lowSince }), seen, now);
     if (due.length === 0) return;
 
     for (const alert of due) {

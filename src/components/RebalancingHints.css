@@ -97,6 +97,25 @@
 }
 .rebalance-hint.good { background: #e8f7ee; color: #15803d; border: 1px solid #b7e4c7; }
 .rebalance-hint.bad { background: #fdecec; color: #b91c1c; border: 1px solid #f5c2c2; }
+.rebalance-hint-detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.rebalance-morning {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  border: 1px solid #f0d78c;
+  background: #fffbe8;
+  color: #7a5c00;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
 
 @media (max-width: 720px) {
   .rebalance-row { grid-template-columns: 84px 48px minmax(0, 1fr); }

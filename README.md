@@ -1,10 +1,11 @@
 # football-scout-api
 
-A football scouting dashboard: upcoming fixtures across 16 competitions (top-5 European
+A football scouting dashboard: upcoming fixtures across 18 competitions (top-5 European
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
-Champions League, Conference League, EFL Cup, FA Cup, World Cup and Friendlies) for **today and tomorrow**,
-match-winner odds from API-Football, and a friendly AI scout preview per match built from
-DeepSeek search plus the prices the odds pipeline already fetched.
+Süper Lig, Danish Superliga, Champions League, Conference League, EFL Cup, FA Cup, World Cup and
+Friendlies) for **today and tomorrow**, match-winner odds from API-Football, and a friendly AI
+scout preview per match built from DeepSeek search plus the prices the odds pipeline already
+fetched.
 
 Data gathering is fully decoupled from page views:
 
@@ -303,10 +304,17 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
    then calls `deepseek-flash` with a strict `json_object` prompt (`shared/betslip-prompt.js`).
    DeepSeek rejects `json_schema`, so the shape is spelled out in the prompt.
 3. `shared/betslip-match.js` resolves each transcribed leg against `feed-matches` — token-aware
-   fuzzy team matching with the slip's price as a confirming signal (78/22). The token gate is
-   what keeps "Manchester United" off "Manchester City": `normalizeTeam` strips both `united`
-   and `city`, so the stripped names alone are not enough.
-4. Every hit carries `links.sportybet` / `links.msport` / `links.betboro` from
+   fuzzy team matching with the slip's price as a confirming signal (78/22). The price only
+   weighs in for 1X2 legs, because `book_odds` carries no other market. The token gate is what
+   keeps "Manchester United" off "Manchester City": `normalizeTeam` strips both `united` and
+   `city`, so the stripped names alone are not enough. Club-form words that never separate two
+   teams (`BK`, `Boldklub`, `SL`, …) are ignored on both sides, which is what lets "Odense BK"
+   match "Odense Boldklub".
+4. Matched legs are mapped to SportyBet booking ids (`toSportyBetSelections`): 1X2 by side,
+   `Total Goals`/`Over-Under` (line taken from the selection, "Over 1.5"), Double Chance,
+   Draw No Bet and BTTS. Team-total and other unlisted markets are skipped rather than guessed,
+   so the share code can never book a different bet than the screen shows.
+5. Every hit carries `links.sportybet` / `links.msport` / `links.betboro` from
    `shared/deeplinks.js`, which tries the full slug path
    (`…/football/{league}/{home}_vs_{away}/sr:match:{id}`), then the bare Sportradar id, then a
    Google site search (rendered with a 🔍 icon in the UI).
@@ -395,10 +403,11 @@ cd ../.. && npm run worker:deploy
   you cashed out) or **Cash Out** (pick the bookie and enter the amount). Each path shows the
   wallet credits and net result before confirming. A **Rebalancing Hints** panel between the two
   shows each bookie's share of the portfolio (cash + stakes in play) and flags top-ups (< 15%,
-  sized to reach 25% and only when > 20 GHS), withdrawals (> 40%) and any BetBoro balance. The
-  main column ends with **History**, listing settled arbs grouped by day with a date filter,
-  per-day totals, a yellow *Void* / *Cash Out* badge (with amber net figures) and the week's total
-  outlay (active stakes + stakes settled since Monday).
+  sized to reach 25%, rounded up to the next 50 GHS and only when > 20 GHS), withdrawals (> 40%)
+  and any BetBoro balance. Between 08:00 and 10:00 local time it also shows the **Morning Check**
+  funding summary. The main column ends with **History**, listing settled arbs grouped by day
+  with a date filter, per-day totals, a yellow *Void* / *Cash Out* badge (with amber net figures)
+  and the week's total outlay (active stakes + stakes settled since Monday).
 
 **Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet
@@ -418,9 +427,13 @@ settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
 | Alert | Trigger |
 | --- | --- |
 | 🔴 Withdraw from [bookie] | cash share of the portfolio (cash + staked) > 35% |
-| 🟢 Top up [bookie] | cash share of the portfolio < 15% |
+| 🟡 Consider topping up [bookie] | cash share < 15%, only once the shortfall has lasted 4 h **and** the local hour is ≥ 08:00; at most one per day |
 | 🚨 BetBoro Warning | BetBoro cash > 0 (always) |
 | 🎯 Daily Goal Reached | `dailyProfit` (history settled today) > 100 GHS |
+
+Cool-down state (when each bookie first fell below 15%) is kept per mode in `localStorage`, so
+logging a bet never triggers an instant top-up ping — the nudge waits for the 4-hour cool-down
+and the morning cutoff.
 
 Duplicates are suppressed for an hour unless the number moved by ≥ 5 percentage points (share
 alerts) or ≥ 100 GHS (cash alerts). Clicking a notification dismisses it; "Mark all as read"

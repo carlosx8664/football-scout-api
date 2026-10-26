@@ -21,14 +21,23 @@ export function json(body, status = 200) {
   });
 }
 
-/** Turns any query failure into a JSON error, hinting at migrations for missing schema. */
+/** Turns any query failure into a JSON error without leaking raw SQLite text to the UI. */
 export function dbError(error) {
   const message = error instanceof Error ? error.message : String(error);
-  const hint = /no such (table|column)|has no column/i.test(message)
-    ? " Apply the latest migrations: `npm run db:migrate:local` (dev) or `npm run db:migrate` (production)."
-    : "";
 
-  return json({ error: `Database query failed: ${message}.${hint}` }, 500);
+  // Schema drift (an unapplied migration) is the common case and deserves plain language.
+  if (/no such (table|column)|has no column/i.test(message)) {
+    return json(
+      {
+        error:
+          "The ledger database is missing a recent update. Apply migrations with " +
+          "`npm run db:migrate:local` (dev) or `npm run db:migrate` (production), then reload.",
+      },
+      503,
+    );
+  }
+
+  return json({ error: `Could not read the ledger. Please try again. (${message})` }, 500);
 }
 
 /** Returns the D1 binding, or null so handlers can answer 503 instead of throwing. */

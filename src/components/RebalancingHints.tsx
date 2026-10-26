@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { formatGhs } from "../lib/wallets";
 import type { Wallet, WalletsPayload } from "../types";
 import "./RebalancingHints.css";
@@ -8,6 +9,11 @@ const HIGH_PCT = 40;
 /** Target share a top-up aims for, and the smallest transfer worth suggesting. */
 const TARGET_PCT = 25;
 const MIN_TOPUP_GHS = 20;
+/** Deposits are rounded up to this, so suggestions read like a human transfer. */
+const ROUND_TO_GHS = 50;
+/** The daily funding summary only shows inside this local-time window. */
+const MORNING_START_HOUR = 8;
+const MORNING_END_HOUR = 10;
 const SPECIAL_BOOKIE = "BetBoro";
 
 interface RebalancingHintsProps {
@@ -20,6 +26,7 @@ interface RebalancingHintsProps {
 interface Hint {
   tone: "good" | "bad";
   message: string;
+  detail?: string;
 }
 
 /**
@@ -36,14 +43,18 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
     for (const wallet of wallets) {
       const share = (wallet.balance / bankroll) * 100;
       if (share < LOW_PCT) {
-        // The transfer that brings this bookie back to the 25% operational baseline.
-        const topUp = Math.round((TARGET_PCT / 100) * bankroll - wallet.balance);
-        if (topUp > MIN_TOPUP_GHS) {
+        // The transfer that brings this bookie back to the 25% operational baseline, rounded up
+        // to the next 50 GHS so it looks like a real deposit rather than a computed number.
+        const needed = (TARGET_PCT / 100) * bankroll - wallet.balance;
+        const deposit = Math.ceil(needed / ROUND_TO_GHS) * ROUND_TO_GHS;
+
+        if (needed > MIN_TOPUP_GHS) {
           hints.push({
             tone: "good",
             message:
-              `🟢 Top up ${wallet.name} with ${topUp.toLocaleString("en-GH")} GHS to reach ` +
+              `🟢 Top up ${wallet.name} with ${formatGhs(deposit)} to reach ` +
               `${TARGET_PCT}% capacity.`,
+            detail: `Deposit ${formatGhs(deposit)} (Round number for human behavior).`,
           });
         }
       } else if (share > HIGH_PCT) {
@@ -74,6 +85,23 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
   const { bankroll, hints } = buildHints(wallets, staked);
   const shareOf = (balance: number) => (bankroll > 0 ? (balance / bankroll) * 100 : 0);
 
+  // Ticks once a minute so the morning window opens and closes without a reload.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const hour = new Date(now).getHours();
+  const isMorning = hour >= MORNING_START_HOUR && hour < MORNING_END_HOUR;
+  const lowBookies = wallets
+    .filter((wallet) => shareOf(wallet.balance) < LOW_PCT)
+    .map((wallet) => wallet.name);
+  const lowLabel =
+    lowBookies.length <= 1
+      ? (lowBookies[0] ?? "")
+      : `${lowBookies.slice(0, -1).join(", ")} and ${lowBookies[lowBookies.length - 1]}`;
+
   return (
     <section className="rebalance-panel">
       <header className="rebalance-header">
@@ -88,6 +116,12 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
       </header>
 
       {error && <p className="rebalance-error">{error}</p>}
+
+      {isMorning && lowBookies.length > 0 && (
+        <p className="rebalance-morning" role="status">
+          Morning Check: You may want to top up {lowLabel} before today&apos;s matches start.
+        </p>
+      )}
 
       {loading ? (
         <p className="rebalance-empty">Loading wallet split…</p>
@@ -121,6 +155,7 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
               {hints.map((hint) => (
                 <li className={`rebalance-hint ${hint.tone}`} key={hint.message}>
                   {hint.message}
+                  {hint.detail && <span className="rebalance-hint-detail">{hint.detail}</span>}
                 </li>
               ))}
             </ul>

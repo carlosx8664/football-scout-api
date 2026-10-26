@@ -47,9 +47,11 @@ const LEAGUE_ALIASES = {
   78: ["germany bundesliga"],
   88: ["netherlands eredivisie"],
   94: ["portugal liga portugal", "portugal primeira liga"],
+  119: ["denmark superliga"],
   135: ["italy serie a"],
   140: ["spain laliga"],
   144: ["belgium pro league"],
+  203: ["turkiye super lig", "turkey super lig"],
   848: ["international clubs uefa conference league"],
 };
 

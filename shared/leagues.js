@@ -16,6 +16,8 @@ export const LEAGUES = [
   { id: 61, name: "Ligue 1", logo: logo(61) },
   { id: 71, name: "Brasileirão", logo: logo(71) },
   { id: 94, name: "Primeira Liga", logo: logo(94) },
+  { id: 203, name: "Süper Lig", logo: logo(203) },
+  { id: 119, name: "Danish Superliga", logo: logo(119) },
   { id: 144, name: "Belgian Pro League", logo: logo(144) },
   { id: 88, name: "Eredivisie", logo: logo(88) },
   { id: 40, name: "EFL Championship", logo: logo(40) },

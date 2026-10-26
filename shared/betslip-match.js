@@ -69,10 +69,36 @@ const ratio = (a, b) => 1 - levenshtein(a, b) / Math.max(a.length, b.length, 1);
 /** Words `normalizeTeam` strips: a name that differs only by these is the same club. */
 const CLUB_TOKENS = new Set([
   "fc", "sc", "afc", "cf", "united", "utd", "city", "club", "women", "wom", "wfc", "lfc",
+  "sl", "ss", "rc", "ca", "as", "ac", "cd", "ud", "sv", "bk", "fk", "nk", "sk",
 ]);
 
 const tokensOf = (value) =>
   String(value ?? "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+
+/**
+ * Club-form words that never tell two teams apart ("BK", "Boldklub", "SC"). Unlike `CLUB_TOKENS`
+ * these are dropped from token comparison as well, so "Odense BK" and "Odense Boldklub" agree —
+ * while "United" and "City" keep counting, since those *do* separate Manchester's two clubs.
+ */
+const FORM_TOKENS = new Set([
+  "fc", "afc", "sc", "cf", "ac", "as", "cd", "ud", "ca", "rc", "ss", "sl", "sv",
+  "bk", "fk", "nk", "sk", "if", "ff", "ik", "boldklub", "club", "wfc", "lfc", "wom", "women",
+]);
+
+/**
+ * Both names' tokens with club-form words removed. Applied only when each side keeps the same
+ * number of tokens: "Odense BK" then agrees with "Odense Boldklub", while "AC Milan" cannot
+ * collapse onto "Inter Milan" (1 significant token against 2).
+ */
+function formTokens(a, b) {
+  const allLeft = tokensOf(a);
+  const allRight = tokensOf(b);
+  const left = allLeft.filter((token) => !FORM_TOKENS.has(token));
+  const right = allRight.filter((token) => !FORM_TOKENS.has(token));
+
+  const usable = left.length > 0 && right.length > 0 && left.length === right.length;
+  return usable ? [left, right] : [allLeft, allRight];
+}
 
 /** "utd" is a subsequence of "united"; used to spot bookmaker abbreviations. */
 function isSubsequence(short, long) {
@@ -87,8 +113,7 @@ function isSubsequence(short, long) {
 
 /** Token-level agreement, tolerant of abbreviations ("Man Utd" vs "Manchester United"). */
 function tokenScore(a, b) {
-  const left = tokensOf(a);
-  const right = tokensOf(b);
+  const [left, right] = formTokens(a, b);
   if (left.length === 0 || right.length === 0) return 0;
 
   const [short, long] = left.length <= right.length ? [left, right] : [right, left];
@@ -199,6 +224,11 @@ function oddsScoreFor(leg, match) {
   const wanted = Number(leg?.odds);
   if (!Number.isFinite(wanted)) return null;
 
+  // `book_odds` only carries 1X2 prices, so a totals/BTTS/handicap leg has nothing to compare
+  // against. Treating it as unknown keeps a correct team-name match from being dragged under
+  // the threshold by an unrelated price comparison.
+  if (!selectionSide(leg, match)) return null;
+
   const prices = [];
   const sides = match?.book_odds;
   if (sides) {
@@ -243,7 +273,7 @@ function buildLinks(match) {
 
 /** Markets whose selection is not one of the 1X2 outcomes that `book_odds` carries. */
 const NON_RESULT_MARKET =
-  /over|under|handicap|corner|card|booking|both teams|btts|double chance|clean sheet|correct score|odd\/even|odd or even|multi ?goal|half|win to nil|penalt/i;
+  /over|under|total|goal|handicap|corner|card|booking|both teams|btts|double chance|clean sheet|correct score|odd\/even|odd or even|multi ?goal|half|win to nil|penalt/i;
 
 /**
  * Which 1X2 outcome a leg is on, or null when the market is not a plain match result.
@@ -267,8 +297,19 @@ export function selectionSide(leg, match) {
   // Some slips print the team name instead of Home/Away.
   const picked = normalizeTeam(selection);
   if (picked) {
-    if (picked === normalizeTeam(match?.teams?.home?.name)) return "home";
-    if (picked === normalizeTeam(match?.teams?.away?.name)) return "away";
+    const home = normalizeTeam(match?.teams?.home?.name);
+    const away = normalizeTeam(match?.teams?.away?.name);
+    if (picked === home) return "home";
+    if (picked === away) return "away";
+
+    // Abbreviations the slip prints instead of the full name ("PSG", "Spurs"): fall back to
+    // the shared scorer, but only when one side wins clearly so a bad read cannot flip a bet.
+    const homeScore = teamSimilarity(selection, match?.teams?.home?.name);
+    const awayScore = teamSimilarity(selection, match?.teams?.away?.name);
+    const best = Math.max(homeScore, awayScore);
+    if (best >= 0.8 && best - Math.min(homeScore, awayScore) >= 0.15) {
+      return homeScore > awayScore ? "home" : "away";
+    }
   }
 
   return null;
@@ -342,7 +383,15 @@ function sportybetSelection(leg, match) {
     return outcomeId && line ? { marketId: "139", outcomeId, specifier: `total=${line}` } : null;
   }
 
-  if (/\bover\b|\bunder\b/.test(market)) {
+  // SportyBet prints match totals as "Total Goals" and puts the line in the selection
+  // ("Over 1.5"), so the over/under word can sit on either field. Team totals ("Home Team
+  // Goals") are a different market and must not be booked as match O/U.
+  const teamTotal = /\b(?:home|away)\s+team\b|\bteam\s+(?:total|goals?)\b/.test(market);
+  const matchTotal =
+    /\bover\b|\bunder\b/.test(market) ||
+    (/\btotal|\bgoals?\b/.test(market) && /\bover\b|\bunder\b/.test(selection));
+
+  if (!teamTotal && matchTotal) {
     const outcomeId = overUnderOutcome(selection);
     const line = totalLine(leg);
     return outcomeId && line ? { marketId: "18", outcomeId, specifier: `total=${line}` } : null;
