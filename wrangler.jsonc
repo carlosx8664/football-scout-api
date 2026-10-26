@@ -20,18 +20,17 @@
 		}
 	],
 	/**
-	 * D1 database holding `wallets` and `active_bets` for wallet management + simulation mode.
-	 * Replace the placeholder id with the one printed by
-	 * `npx wrangler d1 create football-scout-db`, then apply migrations:
-	 *   npx wrangler d1 migrations apply DB --local    (development)
-	 *   npx wrangler d1 migrations apply DB --remote   (production)
+	 * D1 database holding `wallets`, `active_bets` and `history` for wallet management,
+	 * the arb ledger and simulation mode. The Functions read it as `env.DB`, so the binding
+	 * name must stay "DB".
+	 *   npm run db:migrate:local    (local SQLite, used by `wrangler pages dev`)
+	 *   npm run db:migrate          (production, requires `wrangler login`)
 	 */
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "football-scout-db",
-			"database_id": "00000000-0000-0000-0000-000000000000",
-			"migrations_dir": "migrations"
+			"database_id": "020ff25b-1e9e-4f5b-9981-c9a86e5f7b32"
 		}
 	],
 	"observability": {
