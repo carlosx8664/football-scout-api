@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { fetchActiveBets, settleBet } from "../lib/bets";
 import { formatGhs } from "../lib/wallets";
-import type { ActiveBetRecord, ActiveBetsPayload, SettleBetResult } from "../types";
+import type {
+  ActiveBetRecord,
+  ActiveBetsPayload,
+  SettleBetRequest,
+  SettleBetResult,
+} from "../types";
 import SettleBetModal from "./SettleBetModal";
 import "./ActiveBetsLedger.css";
 
@@ -42,8 +47,8 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
   const loading = payload === null && error === null;
   const bets = payload?.activeBets ?? [];
 
-  const settle = async (bet: ActiveBetRecord, winner: "a" | "b") => {
-    const settled = await settleBet(bet.id, winner, simulation);
+  const settle = async (bet: ActiveBetRecord, request: SettleBetRequest) => {
+    const settled = await settleBet(bet.id, request);
     setTarget(null);
     setLocalRefresh((current) => current + 1);
     onSettled(settled);
@@ -56,8 +61,8 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
           <h2>Active Bets</h2>
           <p className="active-bets-subtitle">
             Unsettled arbs in the {simulation ? "simulation" : "real"} ledger. Both stakes were
-            debited when the bet was logged; settling pays the winning bookie and moves the
-            result to history.
+            debited when the bet was logged; settling records a win, void/refund or cash out and
+            moves the result to history.
           </p>
         </div>
         <span className="active-bets-count">
@@ -140,7 +145,7 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
           bet={target}
           simulation={simulation}
           onClose={() => setTarget(null)}
-          onConfirm={(winner) => settle(target, winner)}
+          onConfirm={(request) => settle(target, request)}
         />
       )}
     </section>

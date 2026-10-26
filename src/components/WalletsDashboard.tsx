@@ -68,7 +68,14 @@ const WalletsDashboard = () => {
 
   const handleSettled = useCallback((settled: SettleBetResult) => {
     setRefreshToken((current) => current + 1);
-    setToast(`Settled: ${settled.winningBookie} won. Net profit ${formatGhs(settled.netProfit)}.`);
+    const label =
+      settled.settlementType === "void"
+        ? "Void"
+        : settled.settlementType === "cashout"
+          ? "Cash out"
+          : "Win";
+    const result = settled.netProfit >= 0 ? "profit" : "loss";
+    setToast(`${label} settled: ${result} ${formatGhs(Math.abs(settled.netProfit))}.`);
   }, []);
 
   return (

@@ -178,3 +178,20 @@
 
 .history-profit { font-weight: 800; white-space: nowrap; color: #15803d; }
 .history-profit.negative { color: #c20a0a; }
+/* Void / cash-out results are amber regardless of sign, so they stand apart from clean wins. */
+.history-profit.adhoc,
+.history-profit.adhoc.negative { color: #b45309; }
+
+.history-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-yellow);
+  color: #4a3a00;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}

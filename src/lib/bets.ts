@@ -2,6 +2,7 @@ import type {
   ActiveBetsPayload,
   LogArbInput,
   LogArbResult,
+  SettleBetRequest,
   SettleBetResult,
 } from "../types";
 
@@ -43,16 +44,15 @@ export async function fetchActiveBets(
   return payload;
 }
 
-/** Settles one bet: pays the winning leg, records history and clears it from the ledger. */
+/** Settles one bet: applies the credits, records history and clears it from the ledger. */
 export async function settleBet(
   id: string,
-  winner: "a" | "b",
-  simulation: boolean,
+  request: SettleBetRequest,
 ): Promise<SettleBetResult> {
   const response = await fetch(`/api/active-bets/${encodeURIComponent(id)}/settle`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ winner, simulation }),
+    body: JSON.stringify(request),
   });
 
   const payload = (await response.json().catch(() => null)) as

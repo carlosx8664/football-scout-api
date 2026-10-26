@@ -170,7 +170,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
-| `POST /api/active-bets/:id/settle` | `{ winner: "a" \| "b" }` → credits the payout to the winning bookie (stakes were already debited), writes `history`, deletes the bet |
+| `POST /api/active-bets/:id/settle` | `{ outcome }` → `win` (`winner`) pays `stake × odds`; `void` (`voided`, plus `remaining`/`cashOutAmount` for a single cancelled leg) refunds the cancelled stake(s); `cashout` (`winner`, `cashOutAmount`) credits the manual amount. Writes `history` (with `settlement_type`), deletes the bet |
 | `GET /api/history` | Settled arbs for one mode (`?simulation=1&from=YYYY-MM-DD&to=YYYY-MM-DD`), plus weekly outlay (active stakes + stakes settled since Monday) |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
@@ -390,12 +390,15 @@ cd ../.. && npm run worker:deploy
 - `/wallets` — **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals,
   available liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit
   (SUM of `history` net profit) and the simulation reset button. Below it, the **Active Bets**
-  ledger lists every unsettled bet with a **Settle** button that asks which leg won and applies
-  the payout. A **Rebalancing Hints** panel between the two shows each bookie's share of the
-  portfolio (cash + stakes in play) and flags top-ups (< 15%, sized to reach 25% and only when
-  > 20 GHS), withdrawals (> 40%) and any BetBoro balance. Below the ledger, **History** lists
-  settled arbs grouped by day with a date filter, per-day totals and the week's total outlay
-  (active stakes + stakes settled since Monday).
+  ledger lists every unsettled bet with a **Settle** button that opens a wizard: **Normal Win**,
+  **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
+  you cashed out) or **Cash Out** (pick the bookie and enter the amount). Each path shows the
+  wallet credits and net result before confirming. A **Rebalancing Hints** panel between the two
+  shows each bookie's share of the portfolio (cash + stakes in play) and flags top-ups (< 15%,
+  sized to reach 25% and only when > 20 GHS), withdrawals (> 40%) and any BetBoro balance. Below
+  the ledger, **History** lists settled arbs grouped by day with a date filter, per-day totals, a
+  yellow *Void* / *Cash Out* badge (with amber net figures) and the week's total outlay (active
+  stakes + stakes settled since Monday).
 
 **Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet

@@ -196,7 +196,14 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                         <span>{timeLabel(entry.settledAt)}</span>
                         <span className="history-when-date">{dayLabel(group.key)}</span>
                       </td>
-                      <td className="history-event">{entry.eventName}</td>
+                      <td className="history-event">
+                        {entry.eventName}
+                        {entry.settlementType !== "win" && (
+                          <span className="history-tag">
+                            {entry.settlementType === "void" ? "Void" : "Cash Out"}
+                          </span>
+                        )}
+                      </td>
                       <td className="history-bookie">
                         {entry.bookieAName ?? "—"}
                         {entry.winningBookie !== null &&
@@ -213,7 +220,9 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                       </td>
                       <td>{formatGhs(entry.totalStake)}</td>
                       <td
-                        className={`history-profit${entry.netProfit < 0 ? " negative" : ""}`}
+                        className={`history-profit${
+                          entry.settlementType !== "win" ? " adhoc" : ""
+                        }${entry.netProfit < 0 ? " negative" : ""}`}
                       >
                         {entry.netProfit >= 0 ? "+" : "−"}
                         {formatGhs(Math.abs(entry.netProfit))}

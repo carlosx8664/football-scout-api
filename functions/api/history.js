@@ -28,6 +28,7 @@ function toEntry(row) {
     totalStake,
     netProfit: round2(Number(row.net_profit ?? 0)),
     settledAt: row.settled_at,
+    settlementType: row.settlement_type ?? "win",
   };
 }
 
@@ -66,7 +67,7 @@ export async function onRequestGet({ request, env }) {
     const [entries, totals] = await Promise.all([
       db
         .prepare(
-          `SELECT id, event_name, winning_bookie, net_profit, settled_at,
+          `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type,
                   bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
              FROM history
             WHERE ${where.join(" AND ")}

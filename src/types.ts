@@ -241,13 +241,34 @@ export interface ActiveBetsPayload {
   activeBets: ActiveBetRecord[];
 }
 
+/** How a bet left the active ledger. */
+export type SettlementOutcome = "win" | "void" | "cashout";
+
+export interface SettleBetRequest {
+  simulation: boolean;
+  outcome: SettlementOutcome;
+  /** Normal win: the winning leg. Cash out: the bookie you cashed out on. */
+  winner?: "a" | "b";
+  /** Void only: which leg(s) were cancelled. */
+  voided?: "a" | "b" | "both";
+  /** Void with one leg cancelled: what happened to the live leg. */
+  remaining?: "won" | "lost" | "cashed";
+  /** Required for a cash out, or for a void whose live leg was cashed out. */
+  cashOutAmount?: number;
+}
+
+export interface SettlementCredit {
+  bookie: string;
+  amount: number;
+}
+
 /** Result of POST /api/active-bets/:id/settle. */
 export interface SettleBetResult {
   id: string;
   eventName: string;
-  winningBookie: string;
-  losingBookie: string;
-  payout: number;
+  settlementType: SettlementOutcome;
+  winningBookie: string | null;
+  credits: SettlementCredit[];
   netProfit: number;
   simulation: boolean;
 }
@@ -267,6 +288,8 @@ export interface HistoryEntry {
   totalStake: number;
   netProfit: number;
   settledAt: string;
+  /** `void` and `cashout` rows are badged in the History table. */
+  settlementType: SettlementOutcome;
 }
 
 export interface HistoryTotals {
