@@ -250,18 +250,16 @@ function toOddsArray(bookOdds) {
   return odds.length === 3 ? odds : null;
 }
 
-/** Words that add no identifying value when comparing team names across bookmakers. */
+/**
+ * Words that add no identifying value when comparing team names across bookmakers. Covers the
+ * club affixes in `shared/teams.js` plus the connectors BetPawa puts between them
+ * ("Atletico de Rafaela" -> {atletico, rafaela}).
+ */
 const NAME_STOP_WORDS = new Set([
-  "fc",
-  "cf",
-  "sc",
-  "afc",
-  "club",
-  "the",
-  "city",
-  "town",
-  "united",
-  "utd",
+  "fc", "cf", "sc", "afc", "club", "the", "city", "town", "united", "utd",
+  "women", "wom", "wfc", "lfc",
+  "ca", "cd", "ud", "sv", "bk", "fk", "nk", "sk", "rc", "sl", "ss", "ac", "as", "if", "ff",
+  "de", "del", "do", "da", "dos", "das", "la", "le", "los", "las",
 ]);
 
 function nameTokens(name) {
@@ -328,10 +326,72 @@ function toBookIds(entry) {
   return { betboro };
 }
 
+/** BoltBet's 1X2 market is `winner3`; other markets are not part of the feed. */
+function boltBetOneXTwo(event) {
+  const odds = { home: null, draw: null, away: null };
+
+  for (const market of Object.values(event?.betting?.markets ?? {})) {
+    if (market?.hidden || !market?.open || market.type !== "winner3") continue;
+    for (const [optionKey, option] of Object.entries(market.options ?? {})) {
+      if (option?.state !== "active" || !(optionKey in odds)) continue;
+      const price = Number(option.odds);
+      if (Number.isFinite(price) && price > 1) odds[optionKey] = price;
+    }
+  }
+
+  return odds;
+}
+
+/** BetPawa's dump already stores 1X2 as `odds.home` / `odds.draw` / `odds.away`. */
+function betPawaOneXTwo(event) {
+  const odds = {};
+
+  for (const key of ["home", "draw", "away"]) {
+    const price = Number(event?.odds?.[key]);
+    if (Number.isFinite(price) && price > 1) odds[key] = price;
+  }
+
+  return odds;
+}
+
 /**
- * BoltBet and BetPawa have fixture ids but no Sportradar ids, so the bet builder can only link to
- * their real fixture pages if those ids are attached here. Both are joined by team names; BoltBet
- * is confirmed by kickoff too, BetPawa's dump has no kickoff (it is today-only).
+ * Adds one bookmaker's 1X2 prices to an already-built match and re-derives the best price, so
+ * the per-book breakdown can list every book that quotes the outcome.
+ */
+function addBookQuotes(match, bookmaker, odds) {
+  const bookOdds = match?.book_odds;
+  if (!bookOdds || !odds) return false;
+
+  let added = false;
+
+  for (const { key } of OUTCOMES) {
+    const price = roundPrice(odds[key]);
+    const side = bookOdds[key];
+    if (price === null || !side) continue;
+
+    side.books = { ...side.books, [bookmaker]: price };
+    if (side.best === null || price > side.best) {
+      side.best = price;
+      side.bookmaker = bookmaker;
+    }
+    added = true;
+  }
+
+  if (!added) return false;
+
+  const best = OUTCOMES.map(({ key }) => bookOdds[key]?.best);
+  match.odds = best.every((price) => typeof price === "number")
+    ? OUTCOMES.map(({ label }, index) => ({ value: label, odd: best[index].toFixed(2) }))
+    : null;
+
+  return true;
+}
+
+/**
+ * BoltBet and BetPawa have fixture ids but no Sportradar ids, so they cannot join the merge
+ * above. They are attached to the built matches by team names instead; BoltBet is confirmed by
+ * kickoff too, BetPawa's dump has no kickoff (it is today-only). Their 1X2 prices come along so
+ * the breakdown shows every bookmaker we track.
  */
 async function attachBoltBetIds(matches, log) {
   let json;
@@ -349,11 +409,18 @@ async function attachBoltBetIds(matches, log) {
     const startTime = new Date(fixture?.metadata?.startedAt ?? fixture?.startsAt ?? 0).getTime();
     if (!fixture?.slug || !names?.home || !names?.away) continue;
     if (!Number.isFinite(startTime) || startTime <= 0) continue;
-    events.push({ slug: fixture.slug, home: names.home, away: names.away, startTime });
+    events.push({
+      slug: fixture.slug,
+      home: names.home,
+      away: names.away,
+      startTime,
+      odds: boltBetOneXTwo(event),
+    });
   }
 
   const KICKOFF_TOLERANCE_MS = 2 * 60 * 60 * 1000;
   let attached = 0;
+  let priced = 0;
 
   for (const match of matches) {
     const kickoff = new Date(match.fixture.date).getTime();
@@ -374,11 +441,12 @@ async function attachBoltBetIds(matches, log) {
 
     if (best && bestScore >= MERGE_THRESHOLD) {
       match.book_ids = { ...(match.book_ids ?? {}), boltbet: { boltbetSlug: best.slug } };
+      if (addBookQuotes(match, "BoltBet", best.odds)) priced += 1;
       attached += 1;
     }
   }
 
-  log(`BoltBet fixture links: ${attached}/${matches.length}.`);
+  log(`BoltBet fixture links: ${attached}/${matches.length} (${priced} with 1X2 prices).`);
 }
 
 async function attachBetPawaIds(matches, log) {
@@ -394,17 +462,21 @@ async function attachBetPawaIds(matches, log) {
   for (const event of json?.events ?? []) {
     const id = String(event?.eventId ?? "").replace(/^betpawa:/, "");
     if (!/^\d+$/.test(id) || !event?.home || !event?.away) continue;
-    events.push({ id, home: event.home, away: event.away });
+    events.push({
+      id,
+      home: event.home,
+      away: event.away,
+      odds: betPawaOneXTwo(event),
+    });
   }
 
-  // No kickoff in this dump, so only today's fixtures are candidates and a name match has to be
-  // unambiguous: a stray pairing would send the user to the wrong fixture page.
-  const today = todayUtc();
-  const candidates = matches.filter(
-    (match) => new Date(match.fixture.date).toISOString().slice(0, 10) === today,
-  );
+  // The dump has no kickoff, so a name match has to be unambiguous: a stray pairing would send
+  // the user to the wrong fixture page. It only holds today + tomorrow at fetch time, which is
+  // the feed window itself, so every built match is a candidate.
+  const candidates = matches;
   const taken = new Set();
   let attached = 0;
+  let priced = 0;
 
   for (const event of events) {
     let best = null;
@@ -428,12 +500,13 @@ async function attachBetPawaIds(matches, log) {
 
     if (best && bestScore >= 0.8 && bestScore - runnerUp >= 0.1) {
       best.book_ids = { ...(best.book_ids ?? {}), betpawa: { betpawaId: event.id } };
+      if (addBookQuotes(best, "BetPawa", event.odds)) priced += 1;
       taken.add(best.fixture.id);
       attached += 1;
     }
   }
 
-  log(`BetPawa fixture links: ${attached}/${candidates.length} today.`);
+  log(`BetPawa fixture links: ${attached}/${candidates.length} (${priced} with 1X2 prices).`);
 }
 
 const ANALYSIS_SYSTEM_PROMPT = [

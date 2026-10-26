@@ -5,7 +5,7 @@
     "from": "2026-10-26",
     "to": "2026-10-27"
   },
-  "generated_at": "2026-10-26T15:41:06.045Z",
+  "generated_at": "2026-10-26T20:04:48.795Z",
   "match_count": 9,
   "analysed_count": 0,
   "matches": [
@@ -20,6 +20,9 @@
           "regionId": "31",
           "competitionId": "306",
           "betBoroId": "90112229"
+        },
+        "boltbet": {
+          "boltbetSlug": "besiktas-istanbul-basaksehir-23938"
         }
       },
       "league": {
@@ -57,7 +60,8 @@
           "books": {
             "SportyBet": 1.39,
             "MSport": 1.37,
-            "BetBoro": 1.3
+            "BetBoro": 1.3,
+            "BoltBet": 1.36
           },
           "best": 1.39,
           "bookmaker": "SportyBet"
@@ -66,7 +70,8 @@
           "books": {
             "SportyBet": 5.72,
             "MSport": 5.42,
-            "BetBoro": 4.61
+            "BetBoro": 4.61,
+            "BoltBet": 5.1
           },
           "best": 5.72,
           "bookmaker": "SportyBet"
@@ -75,7 +80,8 @@
           "books": {
             "SportyBet": 7.29,
             "MSport": 6.9,
-            "BetBoro": 7.92
+            "BetBoro": 7.92,
+            "BoltBet": 6.7
           },
           "best": 7.92,
           "bookmaker": "BetBoro"
@@ -94,6 +100,9 @@
           "regionId": "31",
           "competitionId": "306",
           "betBoroId": "90112203"
+        },
+        "boltbet": {
+          "boltbetSlug": "caykur-rizespor-trabzonspor-23920"
         }
       },
       "league": {
@@ -131,7 +140,8 @@
           "books": {
             "SportyBet": 3.62,
             "MSport": 3.5,
-            "BetBoro": 3.31
+            "BetBoro": 3.31,
+            "BoltBet": 3.34
           },
           "best": 3.62,
           "bookmaker": "SportyBet"
@@ -140,7 +150,8 @@
           "books": {
             "SportyBet": 3.89,
             "MSport": 3.76,
-            "BetBoro": 3.6
+            "BetBoro": 3.6,
+            "BoltBet": 3.85
           },
           "best": 3.89,
           "bookmaker": "SportyBet"
@@ -149,7 +160,8 @@
           "books": {
             "SportyBet": 2.01,
             "MSport": 1.97,
-            "BetBoro": 1.87
+            "BetBoro": 1.87,
+            "BoltBet": 1.92
           },
           "best": 2.01,
           "bookmaker": "SportyBet"
@@ -168,6 +180,9 @@
           "regionId": "51",
           "competitionId": "4204",
           "betBoroId": "93334795"
+        },
+        "boltbet": {
+          "boltbetSlug": "fc-copenhagen-odense-bk-24840"
         }
       },
       "league": {
@@ -205,7 +220,8 @@
           "books": {
             "SportyBet": 1.5,
             "MSport": 1.5,
-            "BetBoro": 1.44
+            "BetBoro": 1.44,
+            "BoltBet": 1.44
           },
           "best": 1.5,
           "bookmaker": "SportyBet"
@@ -214,7 +230,8 @@
           "books": {
             "SportyBet": 4.7,
             "MSport": 4.68,
-            "BetBoro": 4.42
+            "BetBoro": 4.42,
+            "BoltBet": 4.7
           },
           "best": 4.7,
           "bookmaker": "SportyBet"
@@ -223,7 +240,8 @@
           "books": {
             "SportyBet": 5.8,
             "MSport": 5.81,
-            "BetBoro": 5.76
+            "BetBoro": 5.76,
+            "BoltBet": 5.5
           },
           "best": 5.81,
           "bookmaker": "MSport"
@@ -242,6 +260,9 @@
           "regionId": "31",
           "competitionId": "306",
           "betBoroId": "90112219"
+        },
+        "boltbet": {
+          "boltbetSlug": "galatasaray-fenerbahce-24433"
         }
       },
       "league": {
@@ -279,7 +300,8 @@
           "books": {
             "SportyBet": 2.25,
             "MSport": 2.2,
-            "BetBoro": 2.06
+            "BetBoro": 2.06,
+            "BoltBet": 2.13
           },
           "best": 2.25,
           "bookmaker": "SportyBet"
@@ -288,7 +310,8 @@
           "books": {
             "SportyBet": 3.9,
             "MSport": 3.77,
-            "BetBoro": 3.6
+            "BetBoro": 3.6,
+            "BoltBet": 3.68
           },
           "best": 3.9,
           "bookmaker": "SportyBet"
@@ -297,7 +320,8 @@
           "books": {
             "SportyBet": 3.03,
             "MSport": 2.94,
-            "BetBoro": 2.83
+            "BetBoro": 2.83,
+            "BoltBet": 2.96
           },
           "best": 3.03,
           "bookmaker": "SportyBet"
@@ -316,6 +340,9 @@
           "regionId": "35",
           "competitionId": "203",
           "betBoroId": "93895827"
+        },
+        "boltbet": {
+          "boltbetSlug": "santa-clara-sl-benfica-22207"
         }
       },
       "league": {
@@ -337,7 +364,7 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "8.80"
+          "odd": "9.60"
         },
         {
           "value": "Draw",
@@ -353,16 +380,18 @@
           "books": {
             "SportyBet": 8.8,
             "MSport": 8.31,
-            "BetBoro": 8.64
+            "BetBoro": 8.64,
+            "BoltBet": 9.6
           },
-          "best": 8.8,
-          "bookmaker": "SportyBet"
+          "best": 9.6,
+          "bookmaker": "BoltBet"
         },
         "draw": {
           "books": {
             "SportyBet": 5.02,
             "MSport": 4.77,
-            "BetBoro": 4.66
+            "BetBoro": 4.66,
+            "BoltBet": 4.8
           },
           "best": 5.02,
           "bookmaker": "SportyBet"
@@ -371,7 +400,8 @@
           "books": {
             "SportyBet": 1.39,
             "MSport": 1.37,
-            "BetBoro": 1.32
+            "BetBoro": 1.32,
+            "BoltBet": 1.34
           },
           "best": 1.39,
           "bookmaker": "SportyBet"
@@ -390,6 +420,9 @@
           "regionId": "9",
           "competitionId": "328",
           "betBoroId": "93960984"
+        },
+        "boltbet": {
+          "boltbetSlug": "paris-saintgermain-olympique-lyonnais-24554"
         }
       },
       "league": {
@@ -427,7 +460,8 @@
           "books": {
             "SportyBet": 1.43,
             "MSport": 1.42,
-            "BetBoro": 1.34
+            "BetBoro": 1.34,
+            "BoltBet": 1.37
           },
           "best": 1.43,
           "bookmaker": "SportyBet"
@@ -436,7 +470,8 @@
           "books": {
             "SportyBet": 5.72,
             "MSport": 5.63,
-            "BetBoro": 4.99
+            "BetBoro": 4.99,
+            "BoltBet": 5.5
           },
           "best": 5.72,
           "bookmaker": "SportyBet"
@@ -445,7 +480,8 @@
           "books": {
             "SportyBet": 6.92,
             "MSport": 6.8,
-            "BetBoro": 6.72
+            "BetBoro": 6.72,
+            "BoltBet": 6.7
           },
           "best": 6.92,
           "bookmaker": "SportyBet"
@@ -464,6 +500,9 @@
           "regionId": "16",
           "competitionId": "92",
           "betBoroId": "91668528"
+        },
+        "boltbet": {
+          "boltbetSlug": "sevilla-osasuna-20437"
         }
       },
       "league": {
@@ -501,7 +540,8 @@
           "books": {
             "SportyBet": 1.99,
             "MSport": 1.98,
-            "BetBoro": 1.87
+            "BetBoro": 1.87,
+            "BoltBet": 1.87
           },
           "best": 1.99,
           "bookmaker": "SportyBet"
@@ -510,7 +550,8 @@
           "books": {
             "SportyBet": 3.49,
             "MSport": 3.45,
-            "BetBoro": 3.26
+            "BetBoro": 3.26,
+            "BoltBet": 3.3
           },
           "best": 3.49,
           "bookmaker": "SportyBet"
@@ -519,7 +560,8 @@
           "books": {
             "SportyBet": 4.33,
             "MSport": 4.28,
-            "BetBoro": 3.94
+            "BetBoro": 3.94,
+            "BoltBet": 4.1
           },
           "best": 4.33,
           "bookmaker": "SportyBet"
@@ -538,6 +580,9 @@
           "regionId": "7",
           "competitionId": "200",
           "betBoroId": "94090064"
+        },
+        "boltbet": {
+          "boltbetSlug": "coritiba-gremio-fb-porto-alegrense-20357"
         }
       },
       "league": {
@@ -575,7 +620,8 @@
           "books": {
             "SportyBet": 2.2,
             "MSport": 2.2,
-            "BetBoro": 2.13
+            "BetBoro": 2.13,
+            "BoltBet": 2.12
           },
           "best": 2.2,
           "bookmaker": "SportyBet"
@@ -584,7 +630,8 @@
           "books": {
             "SportyBet": 3.4,
             "MSport": 3.42,
-            "BetBoro": 3.22
+            "BetBoro": 3.22,
+            "BoltBet": 3.38
           },
           "best": 3.42,
           "bookmaker": "MSport"
@@ -593,7 +640,8 @@
           "books": {
             "SportyBet": 3.3,
             "MSport": 3.31,
-            "BetBoro": 3.07
+            "BetBoro": 3.07,
+            "BoltBet": 3.21
           },
           "best": 3.31,
           "bookmaker": "MSport"
@@ -612,6 +660,9 @@
           "regionId": "7",
           "competitionId": "200",
           "betBoroId": "94090065"
+        },
+        "boltbet": {
+          "boltbetSlug": "regatas-flamengo-rj-atletico-mg-21093"
         }
       },
       "league": {
@@ -641,7 +692,7 @@
         },
         {
           "value": "Away",
-          "odd": "8.40"
+          "odd": "8.50"
         }
       ],
       "book_odds": {
@@ -649,7 +700,8 @@
           "books": {
             "SportyBet": 1.34,
             "MSport": 1.34,
-            "BetBoro": 1.29
+            "BetBoro": 1.29,
+            "BoltBet": 1.3
           },
           "best": 1.34,
           "bookmaker": "SportyBet"
@@ -658,7 +710,8 @@
           "books": {
             "SportyBet": 5.4,
             "MSport": 5.37,
-            "BetBoro": 4.9
+            "BetBoro": 4.9,
+            "BoltBet": 5.2
           },
           "best": 5.4,
           "bookmaker": "SportyBet"
@@ -667,10 +720,11 @@
           "books": {
             "SportyBet": 8.4,
             "MSport": 8.39,
-            "BetBoro": 8.16
+            "BetBoro": 8.16,
+            "BoltBet": 8.5
           },
-          "best": 8.4,
-          "bookmaker": "SportyBet"
+          "best": 8.5,
+          "bookmaker": "BoltBet"
         }
       },
       "ai_analysis": null

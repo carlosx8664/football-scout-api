@@ -56,7 +56,7 @@ functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the
 functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
 functions/api/history.js      GET /api/history - settled arbs by date range + weekly outlay
 migrations/                    D1 schema + seed (wallets, active_bets)
-scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
+scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro / BoltBet into data/*.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
 src/App.tsx                    Route switch, feed loading, upcoming + league filters
@@ -192,7 +192,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
       "teams": { "home": { "name": "...", "logo": "..." }, "away": { "name": "...", "logo": "..." } },
       "goals": null,
       "odds": [{ "value": "Home", "odd": "1.80" }],
-      "book_odds": { "home": { "books": { "SportyBet": 1.80, "MSport": 1.85, "BetBoro": 1.78 }, "best": 1.85, "bookmaker": "MSport" } },
+      "book_odds": { "home": { "books": { "SportyBet": 1.80, "MSport": 1.85, "BetBoro": 1.78, "BoltBet": 1.90, "BetPawa": 1.82 }, "best": 1.90, "bookmaker": "BoltBet" } },
       "ai_analysis": null
     }
   ]
@@ -202,7 +202,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 The client tries `/api/matches` first, then falls back to `/matches.json`, so a deployment
 without KV data still renders.
 
-## Match feed (SportyBet + MSport + BetBoro)
+## Match feed (SportyBet + MSport + BetBoro + BoltBet + BetPawa)
 
 The match feed is generated from the bookmaker snapshots:
 
@@ -216,9 +216,13 @@ npm run build:matches   # node scripts/build-match-feed.js [--days 2] [--no-ai]
 - Joins the same fixture across bookmakers on the Sportradar id (`sr:match:…`), which all three
   quote. League + kickoff + team-name similarity ("Nottm Forest" vs "Nottingham Forest") is only
   a fallback for events without an id.
+- Attaches BoltBet and BetPawa 1X2 prices after the merge (they carry no Sportradar id, so they
+  are joined by team names; BoltBet is also confirmed by kickoff). Every book that quotes an
+  outcome ends up in the breakdown, not just the three with Sportradar ids.
 - Emits the best price per outcome plus a `book_odds` block. Each outcome carries
   `{ books: { <bookmaker>: price }, best, bookmaker }`, so the hover breakdown lists however many
-  books quote it while the tile always shows the best price.
+  books quote it while the tile always shows the best price. Adding a book recalculates `best`
+  and the `odds` array.
 - Carries the Sportradar id through as `sr_id` on every match, which is what the bet-builder uses
   to open the fixture on SportyBet / MSport (`shared/deeplinks.js`).
 - Adds a `book_ids.betboro` block (`regionId`, `competitionId`, `betBoroId`) when BetBoro quoted
@@ -421,6 +425,11 @@ cd ../.. && npm run worker:deploy
 **Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet
 query filters `is_simulation = 1`; switching it off filters `is_simulation = 0` instead.
+
+**Dark mode** is the `Dark` switch beside it. The choice is stored in `localStorage` under
+`oddtor:theme` (falling back to `prefers-color-scheme`) and applied as `data-theme="dark"` on
+`<html>`, which `src/styles/dark.css` uses to override the design tokens and the few components
+that hard-code a light surface.
 
 **Wallet accounting.** Logging an arb debits each stake from its bookie wallet immediately, so
 `available liquidity = SUM(wallets.balance)` at all times — the cash that is actually sitting in
