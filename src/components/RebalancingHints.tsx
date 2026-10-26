@@ -5,6 +5,9 @@ import "./RebalancingHints.css";
 /** Keep every bookie inside this share of the portfolio. */
 const LOW_PCT = 15;
 const HIGH_PCT = 40;
+/** Target share a top-up aims for, and the smallest transfer worth suggesting. */
+const TARGET_PCT = 25;
+const MIN_TOPUP_GHS = 20;
 const SPECIAL_BOOKIE = "BetBoro";
 
 interface RebalancingHintsProps {
@@ -33,7 +36,16 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
     for (const wallet of wallets) {
       const share = (wallet.balance / bankroll) * 100;
       if (share < LOW_PCT) {
-        hints.push({ tone: "good", message: `🟢 Top up ${wallet.name} for the next arb.` });
+        // The transfer that brings this bookie back to the 25% operational baseline.
+        const topUp = Math.round((TARGET_PCT / 100) * bankroll - wallet.balance);
+        if (topUp > MIN_TOPUP_GHS) {
+          hints.push({
+            tone: "good",
+            message:
+              `🟢 Top up ${wallet.name} with ${topUp.toLocaleString("en-GH")} GHS to reach ` +
+              `${TARGET_PCT}% capacity.`,
+          });
+        }
       } else if (share > HIGH_PCT) {
         hints.push({ tone: "bad", message: `🔴 Withdraw from ${wallet.name} to protect funds.` });
       }
@@ -70,7 +82,7 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
           <p className="rebalance-subtitle">
             Keep each bookie between {LOW_PCT}% and {HIGH_PCT}% of the{" "}
             {simulation ? "simulation" : "real"} portfolio ({formatGhs(bankroll)} — cash plus
-            stakes in play).
+            stakes in play). Top-ups aim for {TARGET_PCT}%.
           </p>
         </div>
       </header>

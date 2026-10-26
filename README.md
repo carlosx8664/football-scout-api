@@ -53,6 +53,7 @@ functions/api/wallets/[id].js  PATCH /api/wallets/:id - log a deposit / withdraw
 functions/api/wallets/reset.js POST /api/wallets/reset - simulation wallets back to 1,000 GHS
 functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the ledger
 functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
+functions/api/history.js      GET /api/history - settled arbs by date range + weekly outlay
 migrations/                    D1 schema + seed (wallets, active_bets)
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro into data/*.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
@@ -95,6 +96,10 @@ Copy the returned `database_id` into the `d1_databases` entry in [`wrangler.json
 npm run db:migrate:local   # local SQLite, used by `wrangler pages dev`
 npm run db:migrate         # production database
 ```
+
+Both commands apply every file in `migrations/` in order, so re-running them after adding a
+migration (e.g. `0002_history_details.sql`, which adds the leg/stake columns `History` displays)
+is safe.
 
 The migration seeds four wallets per mode: `is_simulation = 1` at 250 GHS each (the "Reset
 Simulation Wallets to 1,000 GHS" target) and `is_simulation = 0` at 0 GHS.
@@ -166,6 +171,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
 | `POST /api/active-bets/:id/settle` | `{ winner: "a" \| "b" }` → credits the payout to the winning bookie (stakes were already debited), writes `history`, deletes the bet |
+| `GET /api/history` | Settled arbs for one mode (`?simulation=1&from=YYYY-MM-DD&to=YYYY-MM-DD`), plus weekly outlay (active stakes + stakes settled since Monday) |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
@@ -386,8 +392,10 @@ cd ../.. && npm run worker:deploy
   (SUM of `history` net profit) and the simulation reset button. Below it, the **Active Bets**
   ledger lists every unsettled bet with a **Settle** button that asks which leg won and applies
   the payout. A **Rebalancing Hints** panel between the two shows each bookie's share of the
-  portfolio (cash + stakes in play) and flags top-ups (< 15%), withdrawals (> 40%) and any
-  BetBoro balance.
+  portfolio (cash + stakes in play) and flags top-ups (< 15%, sized to reach 25% and only when
+  > 20 GHS), withdrawals (> 40%) and any BetBoro balance. Below the ledger, **History** lists
+  settled arbs grouped by day with a date filter, per-day totals and the week's total outlay
+  (active stakes + stakes settled since Monday).
 
 **Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet

@@ -1,0 +1,180 @@
+.history-panel {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.history-header h2 { font-size: 1.15rem; font-weight: 700; }
+.history-subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
+.history-badge {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.history-filters {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+}
+.history-filter {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+  transition: background 0.2s, color 0.2s;
+}
+.history-filter:hover { color: var(--color-neutral-7); }
+.history-filter.active { background: var(--color-neutral-1); color: var(--color-neutral-7); }
+
+.history-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--color-neutral-6);
+}
+.history-custom input {
+  padding: 6px 8px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--color-neutral-7);
+}
+
+.history-metrics { margin-bottom: 16px; }
+.history-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-brand);
+  border-radius: 10px;
+  background: var(--color-brand-weak);
+}
+.history-metric > span:first-child {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+.history-metric strong { font-size: 1.15rem; font-weight: 800; color: var(--color-brand-4); }
+.history-metric-hint { font-size: 0.7rem; color: var(--color-neutral-6); }
+
+.history-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #c20a0a;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.history-empty {
+  padding: 20px 0;
+  color: var(--color-neutral-6);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.history-table-wrap {
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 10px;
+}
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--color-neutral-1);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+  border-bottom: 1px solid var(--color-neutral-4);
+  white-space: nowrap;
+}
+.history-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-neutral-3);
+  vertical-align: top;
+}
+
+.history-day-row th {
+  position: sticky;
+  top: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--color-neutral-3);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-neutral-7);
+  text-align: left;
+}
+.history-day-total { font-weight: 800; color: #15803d; }
+.history-day-total.negative { color: #c20a0a; }
+
+.history-when { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.history-when-date { font-size: 0.68rem; color: var(--color-neutral-6); }
+.history-event { font-weight: 600; min-width: 180px; }
+
+.history-bookie { white-space: nowrap; }
+.history-won {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-teal-2);
+  color: var(--color-teal-4);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.history-profit { font-weight: 800; white-space: nowrap; color: #15803d; }
+.history-profit.negative { color: #c20a0a; }

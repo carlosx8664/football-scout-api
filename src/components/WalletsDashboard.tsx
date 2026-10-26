@@ -4,6 +4,7 @@ import { useSimulation } from "../lib/simulation";
 import { fetchWallets, formatGhs } from "../lib/wallets";
 import type { SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
+import HistoryLedger from "./HistoryLedger";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
 import WalletsPanel from "./WalletsPanel";
@@ -91,6 +92,7 @@ const WalletsDashboard = () => {
         refreshToken={refreshToken}
         onSettled={handleSettled}
       />
+      <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
       {toast && <Toast message={toast} />}
     </>
   );

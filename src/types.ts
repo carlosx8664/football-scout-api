@@ -253,6 +253,37 @@ export interface SettleBetResult {
 }
 
 /* ------------------------------------------------------------------ *
+ * History (GET /api/history)
+ * ------------------------------------------------------------------ */
+
+/** One settled arb from the `history` table. */
+export interface HistoryEntry {
+  id: string;
+  eventName: string;
+  winningBookie: string | null;
+  /** Null only for rows settled before `history` stored leg details. */
+  bookieAName: string | null;
+  bookieBName: string | null;
+  totalStake: number;
+  netProfit: number;
+  settledAt: string;
+}
+
+export interface HistoryTotals {
+  /** Stakes currently tied up in `active_bets`. */
+  activeOutlay: number;
+  /** Stakes settled since Monday. */
+  historyOutlay: number;
+  outlayThisWeek: number;
+}
+
+export interface HistoryPayload {
+  simulation: boolean;
+  entries: HistoryEntry[];
+  totals: HistoryTotals;
+}
+
+/* ------------------------------------------------------------------ *
  * Bet builder (POST /api/bet-builder/extract)
  * ------------------------------------------------------------------ */
 

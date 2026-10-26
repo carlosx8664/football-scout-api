@@ -82,10 +82,23 @@ export async function onRequestPost({ request, env, params }) {
         .bind(payout, winningBookie, mode),
       db
         .prepare(
-          `INSERT INTO history (id, event_name, winning_bookie, net_profit, is_simulation)
-           VALUES (?, ?, ?, ?, ?)`,
+          `INSERT INTO history (
+             id, event_name, winning_bookie, net_profit, is_simulation,
+             bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(historyId, bet.event_name, winningBookie, netProfit, mode),
+        .bind(
+          historyId,
+          bet.event_name,
+          winningBookie,
+          netProfit,
+          mode,
+          bet.bookie_a_name,
+          Number(bet.bookie_a_stake),
+          bet.bookie_b_name,
+          Number(bet.bookie_b_stake),
+          totalStake,
+        ),
       db
         .prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?")
         .bind(id, mode),
