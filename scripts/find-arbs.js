@@ -819,6 +819,32 @@ function evaluate(pair, oa, ob) {
 // ============================================================================
 const historyKey = (arb) => `${arb.eventId ?? `${arb.home}|${arb.away}`}|${arb.market}`;
 
+/** Prior legs are matched loosely: bookmakers retitle selections between runs. */
+const legLabel = (leg) =>
+  `${String(leg.bookmaker ?? '').trim().toLowerCase()}|${String(leg.outcome ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')}`;
+
+const bookmakerLabel = (leg) => String(leg.bookmaker ?? '').trim().toLowerCase();
+
+/** Indexes a row's legs by full label, plus by bookmaker when that's unambiguous. */
+function indexLegs(legs) {
+  const byLabel = new Map();
+  const byBookmaker = new Map();
+
+  for (const leg of legs ?? []) {
+    byLabel.set(legLabel(leg), leg);
+    const book = bookmakerLabel(leg);
+    byBookmaker.set(book, byBookmaker.has(book) ? null : leg);
+  }
+
+  return { byLabel, byBookmaker };
+}
+
+const findPriorLeg = (index, leg) =>
+  index.byLabel.get(legLabel(leg)) ?? index.byBookmaker.get(bookmakerLabel(leg)) ?? null;
+
 function loadHistory(file) {
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -835,19 +861,19 @@ function mergeHistory(previous, arbs, nowMs) {
   for (const arb of arbs) {
     const key = historyKey(arb);
     const prior = byKey.get(key);
-    const priorLegs = new Map(
-      (prior?.legs ?? []).map((leg) => [`${leg.bookmaker}|${leg.outcome}`, leg]),
-    );
+    const priorLegs = indexLegs(prior?.legs);
     const kickedOff = nowMs >= arb.kickoff;
 
     const legs = arb.legs.map((leg) => {
-      const old = priorLegs.get(`${leg.bookmaker}|${leg.outcome}`);
+      const old = findPriorLeg(priorLegs, leg);
       return {
         bookmaker: leg.bookmaker,
         outcome: leg.outcome,
         stake: leg.stake ?? null,
         url: leg.url ?? null,
-        openOdds: old?.openOdds ?? leg.odds,
+        // Only a pre-kickoff sighting is a real open price; capturing one after kickoff
+        // would show a fake 0% move against itself.
+        openOdds: old?.openOdds ?? (kickedOff ? null : leg.odds),
         lastOdds: leg.odds,
         finalOdds: old?.finalOdds ?? (kickedOff ? (old?.lastOdds ?? leg.odds) : null),
       };
@@ -882,6 +908,7 @@ function mergeHistory(previous, arbs, nowMs) {
 
     if (nowMs >= row.kickoff) {
       for (const leg of row.legs) {
+        // Freeze the last pre-kickoff price the first time the match shows as started.
         if (leg.finalOdds == null) leg.finalOdds = leg.lastOdds;
       }
       if (row.finalProfitPct == null) row.finalProfitPct = row.profitPct;

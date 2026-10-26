@@ -94,8 +94,8 @@ export interface ArbHistoryLeg {
   bookmaker: string;
   outcome: string;
   stake?: number | null;
-  /** First price seen for this leg. */
-  openOdds: number;
+  /** First price seen for this leg (null when the leg was first seen after kickoff). */
+  openOdds?: number | null;
   /** Price on the most recent run (always a pre-kickoff price). */
   lastOdds: number;
   /** Last price before kickoff, frozen once the match started. */

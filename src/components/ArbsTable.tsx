@@ -142,9 +142,15 @@ function pastCutoff(now: number): number {
 
 /** Open -> close price for a tracked leg, with the percentage move. */
 function oddsDelta(leg: ArbHistoryLeg): { open: number; close: number; pct: number } | null {
-  const close = leg.finalOdds ?? leg.lastOdds;
-  if (!Number.isFinite(leg.openOdds) || !Number.isFinite(close) || leg.openOdds <= 0) return null;
-  return { open: leg.openOdds, close, pct: ((close - leg.openOdds) / leg.openOdds) * 100 };
+  // Odds arrive from JSON, so coerce before comparing: a string "1.8" would otherwise
+  // silently null out the delta and leave the Move column stuck.
+  const open = Number(leg.openOdds);
+  const close = Number(leg.finalOdds ?? leg.lastOdds);
+  if (!Number.isFinite(open) || !Number.isFinite(close) || open <= 0) return null;
+
+  const pct = ((close - open) / open) * 100;
+  // Anything under 0.05% is noise (and would otherwise print as "+0.0%"/"-0.0%").
+  return { open, close, pct: Math.abs(pct) < 0.05 ? 0 : pct };
 }
 
 /**
@@ -632,7 +638,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                   <td className={`arb-move ${moveTone}`}>
                                     {delta === null
                                       ? "—"
-                                      : `${delta.pct >= 0 ? "+" : ""}${delta.pct.toFixed(1)}%`}
+                                      : `${delta.pct > 0 ? "+" : ""}${delta.pct.toFixed(1)}%`}
                                   </td>
 
                                   {legIndex === 0 && (
