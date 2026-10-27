@@ -1,0 +1,4 @@
+# A cached service worker would keep running an old notification handler after a deploy,
+# so the browser must revalidate it on every update check.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate

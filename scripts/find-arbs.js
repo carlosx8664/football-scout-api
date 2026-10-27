@@ -12,6 +12,7 @@ import {
   buildUrl,
 } from '../shared/deeplinks.js';
 import { normalizeTeam } from '../shared/teams.js';
+import { sendPushAlerts } from './push-notify.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -146,6 +147,16 @@ function formatKickoff(kickoff) {
   return `${parts.weekday} ${parts.day} ${parts.month}, ${parts.hour}:${parts.minute} (Local)`;
 }
 
+/** Stakes are quoted in whole tens so they are quick to type into a betslip. */
+const roundTo10 = (value) => Math.round(value / 10) * 10;
+
+/** Fixed-decimal money with thousands separators, e.g. 1,000 and 104.50. */
+const money = (value, decimals) =>
+  Number(value).toLocaleString('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
 function formatAlert(arb) {
   const { hedge, sharp } = executionOrder(arb);
   const { grade, hint } = gradeArb(arb);
@@ -154,7 +165,32 @@ function formatAlert(arb) {
 
   const split = (leg) => (((Number(leg.stake) || 0) / (total || 1)) * 100).toFixed(1);
   // The example is scaled to a 1,000 GHS bankroll so the numbers match the heading.
-  const example = (leg) => (((Number(leg.stake) || 0) / (total || 1)) * 1000).toFixed(2);
+  const scaled = (leg) => ((Number(leg.stake) || 0) / (total || 1)) * 1000;
+  const hedgeShare = (Number(hedge.stake) || 0) / (total || 1);
+
+  // Both stakes are quoted in whole tens so they are quick to type into a betslip. Rounding shifts
+  // money between the legs, and on a thin arb the 10 GHS grid can be too coarse to keep both legs
+  // in profit, so the total steps up in tens until a rounded split works for both.
+  const hedgeOdds = Number(hedge.odds);
+  const sharpOdds = Number(sharp.odds);
+  const baseTotal = roundTo10(scaled(hedge) + scaled(sharp));
+
+  let exampleTotal = baseTotal;
+  let hedgeStake = 0;
+  let sharpStake = 0;
+
+  for (let step = 0; step <= 12; step += 1) {
+    exampleTotal = baseTotal + step * 10;
+    hedgeStake = roundTo10(exampleTotal * hedgeShare);
+    sharpStake = exampleTotal - hedgeStake;
+
+    if (hedgeStake <= 0 || sharpStake <= 0) continue;
+    if (hedgeStake * hedgeOdds - exampleTotal < 0) continue;
+    if (sharpStake * sharpOdds - exampleTotal < 0) continue;
+    break;
+  }
+
+  const profitIfWins = (stake, odds) => stake * odds - exampleTotal;
 
   const lines = [
     `🚨 Found Arb: ${arb.home} vs ${arb.away} (${arb.profitPct.toFixed(2)}%)`,
@@ -168,9 +204,11 @@ function formatAlert(arb) {
     `📊 Stake Split: ${split(sharp)}%`,
     `↳ ${sharp.url}`,
     '',
-    '💡 *Example on GHS 1,000 total stake:*',
-    `*- ${hedge.bookmaker}: GHS ${example(hedge)}*`,
-    `*- ${sharp.bookmaker}: GHS ${example(sharp)}*`,
+    `💡 Example on GHS ${money(exampleTotal, 0)} total stake:`,
+    `- ${hedge.bookmaker}: GHS ${money(hedgeStake, 0)} ` +
+      `(profit GHS ${money(profitIfWins(hedgeStake, hedgeOdds), 2)})`,
+    `- ${sharp.bookmaker}: GHS ${money(sharpStake, 0)} ` +
+      `(profit GHS ${money(profitIfWins(sharpStake, sharpOdds), 2)})`,
     '',
     `⏱️ Kickoff: ${formatKickoff(arb.kickoff)}`,
   ];
@@ -211,10 +249,22 @@ function isAlertable(arb) {
   return Number(arb.profitPct) >= MIN_ALERT_PROFIT;
 }
 
+/**
+ * The arbs that should ping the phone on this run: alertable, and not already alerted within
+ * the dedupe window. Shared by the Telegram and web-push channels so the two never disagree
+ * about what counts as a new opportunity.
+ */
+function pendingAlerts(arbs, previous = [], nowMs = Date.now()) {
+  const alertable = arbs.filter(isAlertable);
+  const previousByKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
+  const pending = alertable.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
+
+  return { alertable, pending, suppressed: arbs.length - alertable.length };
+}
+
 async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
   // Low-value / flagged arbs stay in arbs.json but never reach the phone.
-  const alertable = arbs.filter(isAlertable);
-  const suppressed = arbs.length - alertable.length;
+  const { pending, suppressed } = pendingAlerts(arbs, previous, nowMs);
   if (suppressed > 0) {
     console.log(
       `🔕 Telegram: ${suppressed} low-confidence arb(s) suppressed ` +
@@ -225,10 +275,7 @@ async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
   const token = process.env.TELEGRAM_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
-  if (!token || !chatId || alertable.length === 0) return;
-
-  const previousByKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
-  const pending = alertable.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
+  if (!token || !chatId) return;
   if (pending.length === 0) {
     console.log('No new alerts: every arb was already sent in the last 15 minutes.');
     return;
@@ -257,6 +304,29 @@ async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
     } catch (err) {
       console.error('Failed to send Telegram alert:', err.message);
     }
+  }
+}
+
+/**
+ * Wakes each subscribed browser for the arbs that are new this run. Tapping the notification
+ * opens `/arbs?arb=<key>`, which the arbs page scrolls to and highlights.
+ *
+ * Independent of Telegram on purpose: either channel alone is enough to record the alert, and
+ * a failure in one must not silence the other.
+ */
+async function sendPushAlert(arbs, previous = [], nowMs = Date.now()) {
+  const { pending } = pendingAlerts(arbs, previous, nowMs);
+  if (pending.length === 0) return;
+
+  try {
+    const { deliveredArbs } = await sendPushAlerts(pending);
+    for (const arb of deliveredArbs) {
+      // Recorded in the history row so the next run can dedupe even with no Telegram token.
+      arb.alertedAt = new Date(nowMs).toISOString();
+      arb.alertedProfitPct = arb.profitPct;
+    }
+  } catch (err) {
+    console.error('Failed to send push alerts:', err.message);
   }
 }
 
@@ -1323,6 +1393,8 @@ async function main() {
   const nowMs = Date.now();
   const previousHistory = loadHistory(HISTORY_FILE);
   await sendTelegramAlert(arbs, previousHistory, nowMs);
+  // Same gates, separate channel: the phone ping is what opens the arb card.
+  await sendPushAlert(arbs, previousHistory, nowMs);
 
   console.log(`\nFixtures matched:            ${matched}`);
   console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);

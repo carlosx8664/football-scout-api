@@ -114,6 +114,9 @@ Simulation Wallets to 1,000 GHS" target) and `is_simulation = 0` at 0 GHS.
 | `CF_ACCOUNT_ID` | Cloudflare dashboard → any zone/Workers overview (right-hand account id) |
 | `CF_KV_NAMESPACE_ID` | Output of the `kv namespace create` command above |
 | `CF_API_TOKEN` | Cloudflare → My Profile → API Tokens → create a token with **Workers KV Storage: Edit** (scoped to your account) |
+| `VAPID_PUBLIC_KEY` | Output of `npm run push:keys`. Also set as a Pages *variable* so `/api/push/key` can serve it |
+| `VAPID_PRIVATE_KEY` | Output of `npm run push:keys`. Actions secret only — never sent to the client |
+| `VAPID_SUBJECT` | `mailto:you@example.com`, or your site URL |
 
 Pages Functions need two more, set as Pages secrets (not Actions secrets):
 
@@ -175,8 +178,12 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
+| `DELETE /api/active-bets/:id` | Cancels a logged bet: refunds both stakes to their bookies, deletes the row and writes a zero-profit `cancelled` row to `history` |
 | `POST /api/active-bets/:id/settle` | `{ outcome }` → `win` (`winner`) pays `stake × odds`; `void` (`voided`, plus `remaining`/`cashOutAmount` for a single cancelled leg) refunds the cancelled stake(s); `cashout` (`winner`, `cashOutAmount`) credits the manual amount. Writes `history` (with `settlement_type`), deletes the bet |
 | `GET /api/history` | Settled arbs for one mode (`?simulation=1&from=YYYY-MM-DD&to=YYYY-MM-DD`), plus weekly outlay (active stakes + stakes settled since Monday) |
+| `GET /api/push/key` | VAPID public key for Web Push subscriptions; 503 until `VAPID_PUBLIC_KEY` is set |
+| `POST /api/push/subscribe` | Stores one browser's push subscription in KV (`push-sub:<fingerprint>`), tagged with the origin it was created on |
+| `POST /api/push/unsubscribe` | Drops a subscription by endpoint |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
@@ -370,6 +377,50 @@ Alerts: `find-arbs.js` only messages Telegram for arbs graded above the alert fl
 repository secrets on that step. Kickoffs in the message are rendered with
 `Intl.DateTimeFormat`, so they follow the reader's timezone.
 
+### Phone notifications (Web Push)
+
+Clicking **Allow alerts** in the header opts that browser into Web Push. From then on every arb
+that clears the Telegram gates is also pushed to the phone, and tapping the notification opens
+`/arbs?arb=<key>`, scrolled to and highlighting that card.
+
+How it fits together:
+
+| Piece | Location |
+| --- | --- |
+| Enable/disable control | `src/components/PushToggle.tsx`, `src/lib/push.ts` |
+| Service worker (`push` + `notificationclick`) | `public/sw.js` |
+| Subscription storage | `POST /api/push/subscribe` → KV `push-sub:<fingerprint>` |
+| Sender | `scripts/push-notify.js`, called by `find-arbs.js` after the Telegram step |
+| Deep link | `shared/arb-key.js` — the same key builds the URL and finds the row |
+
+Setup:
+
+```bash
+npm run push:keys   # prints VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+```
+
+Put both halves in Actions secrets, and also set `VAPID_PUBLIC_KEY` as a Pages variable
+(*Settings → Variables and secrets*, or `npx wrangler pages secret put VAPID_PUBLIC_KEY`) so
+`GET /api/push/key` can serve it. The sender also needs `CF_ACCOUNT_ID`,
+`CF_KV_NAMESPACE_ID` and `CF_API_TOKEN` to read and prune subscriptions.
+
+Behaviour worth knowing:
+
+- **One KV entry per device**, keyed by a SHA-256 fingerprint of the push endpoint, so two
+  browsers subscribing at once cannot clobber each other. Capped at 25 devices.
+- **Each subscription stores the origin it was created on**, so notification links follow
+  whichever domain that browser uses (Pages default or a custom one). `SITE_ORIGIN` is only a
+  fallback.
+- **Every arb gets its own notification**, tagged with the arb key so a re-alert replaces the
+  earlier ping instead of stacking. At most 5 per run (`PUSH_MAX_PER_RUN`), highest profit first.
+- **Endpoints the push service reports as gone (404/410) are deleted from KV** on the spot.
+- **Telegram and push are independent**: either can record the alert for de-duplication, and a
+  failure in one never silences the other.
+- Rotating the VAPID pair invalidates every existing subscription — users must press
+  **Allow alerts** again.
+
+Chromium only allows `pushManager.subscribe()` after a user gesture, which is why the control is
+a button rather than something that runs on page load.
 `history` holds every arb seen since the start of today (`--history-days`, default 0), with the first
 price seen, the latest pre-kickoff price and the profit at each. That is what the Past Arbs
 table renders; `arbs` stays limited to matches that have not kicked off.
@@ -425,7 +476,9 @@ cd ../.. && npm run worker:deploy
   (SUM of `history` net profit) and the simulation reset button. The **Active Bets** column on the
   right lists every unsettled bet with a **Settle** button that opens a wizard: **Normal Win**,
   **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
-  you cashed out) or **Cash Out** (pick the bookie and enter the amount). Each path shows the
+  you cashed out) or **Cash Out** (pick the bookie and enter the amount), plus a **Remove** action
+  that refunds both stakes, deletes the bet and leaves a zero-profit *Cancelled* row in History as
+  an audit trail. Each path shows the
   wallet credits and net result before confirming. A **Rebalancing Hints** panel between the two
   shows each bookie's share of the portfolio (cash + stakes in play) and flags top-ups (< 15%,
   sized to reach 25%, rounded up to the next 50 GHS and only when > 20 GHS), withdrawals (> 40%)

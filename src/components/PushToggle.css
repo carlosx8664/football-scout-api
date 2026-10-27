@@ -1,0 +1,76 @@
+.push-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.push-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-neutral-4);
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.push-toggle-button:hover:not(:disabled) {
+  border-color: var(--color-neutral-5);
+  color: var(--color-neutral-7);
+}
+
+.push-toggle-button:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.push-toggle-button.on {
+  background: var(--color-brand-weak);
+  border-color: var(--color-brand);
+  color: var(--color-brand-4);
+}
+
+.push-toggle-button.blocked {
+  border-style: dashed;
+}
+
+/* Hollow when off, filled when subscribed. */
+.push-toggle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.push-toggle-button.on .push-toggle-dot {
+  background: currentColor;
+}
+
+.push-toggle-label {
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Floats under the button instead of widening the header. */
+.push-toggle-error {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-4);
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}

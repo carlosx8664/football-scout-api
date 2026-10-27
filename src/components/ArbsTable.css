@@ -114,6 +114,31 @@
   background: var(--color-brand-weak);
 }
 
+/*
+ * Card targeted by a push notification (?arb=<key>). Fades out over the last second so the
+ * scroll target is obvious without leaving the table permanently marked.
+ */
+.arbs-table tbody tr.arb-row-highlight td {
+  background: var(--color-brand-weak);
+  animation: arb-highlight-fade 6s ease-out forwards;
+}
+
+@keyframes arb-highlight-fade {
+  0%,
+  85% {
+    box-shadow: inset 3px 0 0 var(--color-brand);
+  }
+  100% {
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arbs-table tbody tr.arb-row-highlight td {
+    animation: none;
+  }
+}
+
 /* --- Profit --- */
 .arb-profit {
   white-space: nowrap;

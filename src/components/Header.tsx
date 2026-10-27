@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import BestArbBadge from "./BestArbBadge";
 import NotificationBell from "./NotificationBell";
+import PushToggle from "./PushToggle";
 import SimulationToggle from "./SimulationToggle";
 import ThemeToggle from "./ThemeToggle";
 import "./Header.css";
@@ -31,6 +32,7 @@ const Header = () => {
         <div className="header-right">
           <SimulationToggle />
           <ThemeToggle />
+          <PushToggle />
           <NotificationBell />
           <BestArbBadge />
         </div>

@@ -1,8 +1,10 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
 import ArbCalculator from "./ArbCalculator";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
+// Shared with scripts/push-notify.js so a notification tap finds the same card.
+import { arbDeepLinkKey } from "../../shared/arb-key.js";
 import type {
   ArbHistoryLeg,
   ArbHistoryRecord,
@@ -227,6 +229,39 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const [loggedKeys, setLoggedKeys] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
+  // A push notification deep-links to /arbs?arb=<key>. Read it once on mount, then highlight
+  // that card for a few seconds so the user can see which arb the ping was about.
+  const deepLinkTarget = useRef(new URLSearchParams(window.location.search).get("arb"));
+  const [highlightKey, setHighlightKey] = useState<string | null>(null);
+  const deepLinkDone = useRef(false);
+
+  useEffect(() => {
+    const target = deepLinkTarget.current;
+    if (!target || deepLinkDone.current || feed === null) return;
+    deepLinkDone.current = true;
+
+    // Drop the param straight away so a reload or a later refresh starts clean.
+    window.history.replaceState({}, "", "/arbs");
+
+    const card = [...document.querySelectorAll<HTMLElement>("[data-arb-key]")].find(
+      (node) => node.dataset.arbKey === target,
+    );
+
+    if (!card) {
+      setToast("That arbitrage opportunity is no longer available.");
+      return;
+    }
+
+    setHighlightKey(target);
+    card.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [feed]);
+
+  useEffect(() => {
+    if (!highlightKey) return;
+    const timer = setTimeout(() => setHighlightKey(null), 6000);
+    return () => clearTimeout(timer);
+  }, [highlightKey]);
+
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), 3200);
@@ -404,6 +439,13 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const kickoff = kickoffLabel(arb.kickoff);
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
                       const rowKey = arbKey(arb, legs);
+                      const deepKey = arbDeepLinkKey(arb);
+                      const rowClasses = [
+                        rowClass,
+                        highlightKey === deepKey ? "arb-row-highlight" : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
                       const logged = loggedKeys.includes(rowKey);
 
                       const rawStakes = legs.map((leg) =>
@@ -434,7 +476,12 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                               legStake === null ? null : legStake * leg.odds - laidOut;
 
                             return (
-                            <tr className={rowClass} key={`${leg.bookmaker}-${leg.outcome}`}>
+                            <tr
+                              className={rowClasses || undefined}
+                              // Anchor for the notification deep link; first leg carries it.
+                              data-arb-key={legIndex === 0 ? deepKey : undefined}
+                              key={`${leg.bookmaker}-${leg.outcome}`}
+                            >
                               {legIndex === 0 && (
                                 <td className="arb-profit" rowSpan={LEGS_PER_MATCH}>
                                   <span className="arb-profit-value">

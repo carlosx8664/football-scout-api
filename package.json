@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:matches": "node scripts/build-match-feed.js",
+    "push:keys": "node scripts/generate-vapid-keys.js",
     "worker:deploy": "wrangler deploy --config workers/dispatch-trigger/wrangler.jsonc",
     "worker:dry-run": "wrangler deploy --config workers/dispatch-trigger/wrangler.jsonc --dry-run",
     "lint": "oxlint",
@@ -23,6 +24,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
     "socket.io-client": "^4.8.4",
+    "web-push": "^3.6.7",
     "ws": "^8.22.0"
   },
   "devDependencies": {

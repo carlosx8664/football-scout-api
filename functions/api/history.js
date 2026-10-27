@@ -83,7 +83,8 @@ export async function onRequestGet({ request, env }) {
                 FROM active_bets WHERE is_simulation = ?) AS active_outlay,
              (SELECT COALESCE(SUM(COALESCE(total_stake, bookie_a_stake + bookie_b_stake, 0)), 0)
                 FROM history
-               WHERE is_simulation = ? AND date(settled_at) >= ${WEEK_START}) AS history_outlay`,
+               WHERE is_simulation = ? AND settlement_type != 'cancelled'
+                 AND date(settled_at) >= ${WEEK_START}) AS history_outlay`,
         )
         .bind(mode, mode)
         .first(),

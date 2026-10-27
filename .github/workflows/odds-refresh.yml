@@ -69,6 +69,16 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Web Push: the same arbs are pushed to every subscribed browser. Runs only when
+          # all of these are set; see README ("Phone notifications") for the setup.
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          # Only a fallback: each subscription carries the origin it was created on.
+          SITE_ORIGIN: ${{ vars.SITE_ORIGIN }}
 
       - name: Build match feed
         run: node scripts/build-match-feed.js --no-ai --days="$DAYS"

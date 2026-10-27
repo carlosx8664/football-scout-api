@@ -15,6 +15,12 @@ FOOTBALL_DATA_ORG_TOKEN=
 # CF_KV_NAMESPACE_ID=
 # CF_API_TOKEN=
 
+# Web Push (phone alerts). Generate a pair with `npm run push:keys`:
+# the public half is also served to the browser by GET /api/push/key.
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY=
+# VAPID_SUBJECT=mailto:you@example.com
+
 # Optional: route DeepSeek calls through Cloudflare AI Gateway instead of api.deepseek.com.
 # CF_GATEWAY_ID=
 # CF_AIG_TOKEN=

@@ -115,6 +115,25 @@
 }
 .active-bet-stake { font-size: 0.72rem; font-weight: 700; color: var(--color-neutral-6); }
 
+.active-bet-actions { display: inline-flex; align-items: center; gap: 6px; }
+
+.active-bets-remove {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-4);
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.active-bets-remove:hover:not(:disabled) {
+  border-color: #c20a0a;
+  color: #c20a0a;
+  background: #fdecec;
+}
+.active-bets-remove:disabled { opacity: 0.6; cursor: default; }
+
 .active-bets-settle {
   padding: 6px 14px;
   border-radius: 8px;

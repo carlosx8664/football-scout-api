@@ -1,5 +1,6 @@
 import type {
   ActiveBetsPayload,
+  CancelBetResult,
   LogArbInput,
   LogArbResult,
   SettleBetRequest,
@@ -61,6 +62,24 @@ export async function settleBet(
 
   if (!response.ok || !payload?.id) {
     throw new Error(payload?.error ?? `Could not settle the bet (HTTP ${response.status}).`);
+  }
+
+  return payload;
+}
+
+/** Cancels a bet: refunds both stakes to their bookies and removes it from the ledger. */
+export async function cancelBet(id: string, simulation: boolean): Promise<CancelBetResult> {
+  const response = await fetch(
+    `/api/active-bets/${encodeURIComponent(id)}?simulation=${simulation ? 1 : 0}`,
+    { method: "DELETE" },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | (CancelBetResult & { error?: string })
+    | null;
+
+  if (!response.ok || !payload?.refunded) {
+    throw new Error(payload?.error ?? `Could not cancel the bet (HTTP ${response.status}).`);
   }
 
   return payload;

@@ -200,7 +200,11 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                         {entry.eventName}
                         {entry.settlementType !== "win" && (
                           <span className="history-tag">
-                            {entry.settlementType === "void" ? "Void" : "Cash Out"}
+                            {entry.settlementType === "void"
+                              ? "Void"
+                              : entry.settlementType === "cashout"
+                                ? "Cash Out"
+                                : "Cancelled"}
                           </span>
                         )}
                       </td>
@@ -221,7 +225,11 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                       <td>{formatGhs(entry.totalStake)}</td>
                       <td
                         className={`history-profit${
-                          entry.settlementType !== "win" ? " adhoc" : ""
+                          entry.settlementType === "cancelled"
+                            ? " muted"
+                            : entry.settlementType !== "win"
+                              ? " adhoc"
+                              : ""
                         }${entry.netProfit < 0 ? " negative" : ""}`}
                       >
                         {entry.netProfit >= 0 ? "+" : "−"}

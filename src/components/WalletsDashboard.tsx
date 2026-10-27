@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 import { fetchWallets, formatGhs } from "../lib/wallets";
-import type { SettleBetResult, WalletsPayload } from "../types";
+import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
 import HistoryLedger from "./HistoryLedger";
 import RebalancingHints from "./RebalancingHints";
@@ -78,6 +78,15 @@ const WalletsDashboard = () => {
     setToast(`${label} settled: ${result} ${formatGhs(Math.abs(settled.netProfit))}.`);
   }, []);
 
+  const handleCancelled = useCallback((cancelled: CancelBetResult) => {
+    // Refunded stakes change balances, liquidity and the rebalancing split alike.
+    setRefreshToken((current) => current + 1);
+    setToast(
+      `Bet removed: ${formatGhs(cancelled.totalRefunded)} refunded to ` +
+        `${cancelled.refunded.map((entry) => entry.bookie).join(" and ")}.`,
+    );
+  }, []);
+
   return (
     <>
       <div className="wallets-page">
@@ -102,6 +111,7 @@ const WalletsDashboard = () => {
           simulation={enabled}
           refreshToken={refreshToken}
           onSettled={handleSettled}
+          onCancelled={handleCancelled}
         />
       </aside>
       {toast && <Toast message={toast} />}

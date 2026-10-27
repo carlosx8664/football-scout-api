@@ -181,6 +181,8 @@
 /* Void / cash-out results are amber regardless of sign, so they stand apart from clean wins. */
 .history-profit.adhoc,
 .history-profit.adhoc.negative { color: #b45309; }
+/* Cancellations net to zero: shown greyed so they read as audit trail, not performance. */
+.history-profit.muted { color: var(--color-neutral-6); }
 
 .history-tag {
   display: inline-block;

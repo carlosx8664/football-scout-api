@@ -242,7 +242,7 @@ export interface ActiveBetsPayload {
 }
 
 /** How a bet left the active ledger. */
-export type SettlementOutcome = "win" | "void" | "cashout";
+export type SettlementOutcome = "win" | "void" | "cashout" | "cancelled";
 
 export interface SettleBetRequest {
   simulation: boolean;
@@ -260,6 +260,17 @@ export interface SettleBetRequest {
 export interface SettlementCredit {
   bookie: string;
   amount: number;
+}
+
+/** Result of DELETE /api/active-bets/:id — the bet was cancelled and both stakes refunded. */
+export interface CancelBetResult {
+  id: string;
+  /** Zero-profit `history` row written to keep the audit trail. */
+  historyId: string;
+  eventName: string;
+  simulation: boolean;
+  refunded: SettlementCredit[];
+  totalRefunded: number;
 }
 
 /** Result of POST /api/active-bets/:id/settle. */

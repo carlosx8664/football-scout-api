@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { fetchActiveBets, settleBet } from "../lib/bets";
+import { cancelBet, fetchActiveBets, settleBet } from "../lib/bets";
 import { formatGhs } from "../lib/wallets";
 import type {
   ActiveBetRecord,
   ActiveBetsPayload,
+  CancelBetResult,
   SettleBetRequest,
   SettleBetResult,
 } from "../types";
@@ -15,15 +16,23 @@ interface ActiveBetsLedgerProps {
   /** Bumped by the dashboard after a settlement so the list and wallets refetch together. */
   refreshToken: number;
   onSettled: (result: SettleBetResult) => void;
+  /** Fired after a cancellation so wallets, hints and alerts refetch with the refunded stakes. */
+  onCancelled: (result: CancelBetResult) => void;
 }
 
-const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLedgerProps) => {
+const ActiveBetsLedger = ({
+  simulation,
+  refreshToken,
+  onSettled,
+  onCancelled,
+}: ActiveBetsLedgerProps) => {
   // Tagged with the mode that produced each response so a stale answer cannot be shown.
   const [result, setResult] = useState<{ simulation: boolean; payload: ActiveBetsPayload } | null>(
     null,
   );
   const [problem, setProblem] = useState<{ simulation: boolean; message: string } | null>(null);
   const [target, setTarget] = useState<ActiveBetRecord | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
 
   useEffect(() => {
@@ -52,6 +61,28 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
     setTarget(null);
     setLocalRefresh((current) => current + 1);
     onSettled(settled);
+  };
+
+  const cancel = async (bet: ActiveBetRecord) => {
+    const total = bet.legA.stake + bet.legB.stake;
+    const confirmed = window.confirm(
+      `Remove ${bet.eventName}?\n\nBoth stakes (${formatGhs(total)}) will be refunded to ` +
+        `${bet.legA.name} and ${bet.legB.name}, and the bet will leave the ledger. ` +
+        "A zero-profit “Cancelled” entry is kept in History for your records.",
+    );
+    if (!confirmed) return;
+
+    setCancellingId(bet.id);
+    try {
+      const cancelled = await cancelBet(bet.id, simulation);
+      setProblem(null);
+      setLocalRefresh((current) => current + 1);
+      onCancelled(cancelled);
+    } catch (err) {
+      setProblem({ simulation, message: (err as Error).message });
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   return (
@@ -109,13 +140,24 @@ const ActiveBetsLedger = ({ simulation, refreshToken, onSettled }: ActiveBetsLed
                 <span className="active-bet-stake">
                   Outlay {formatGhs(bet.legA.stake + bet.legB.stake)}
                 </span>
-                <button
-                  type="button"
-                  className="active-bets-settle"
-                  onClick={() => setTarget(bet)}
-                >
-                  Settle
-                </button>
+                <span className="active-bet-actions">
+                  <button
+                    type="button"
+                    className="active-bets-remove"
+                    title="Remove this bet and refund both stakes"
+                    onClick={() => void cancel(bet)}
+                    disabled={cancellingId === bet.id}
+                  >
+                    {cancellingId === bet.id ? "Removing…" : "Remove"}
+                  </button>
+                  <button
+                    type="button"
+                    className="active-bets-settle"
+                    onClick={() => setTarget(bet)}
+                  >
+                    Settle
+                  </button>
+                </span>
               </div>
             </li>
           ))}
