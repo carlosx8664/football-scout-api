@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { computePlan, useBankroll } from "../lib/bankroll";
-import { formatGhs } from "../lib/wallets";
+import {
+  RISK_PROFILES,
+  blendInAmount,
+  computePlan,
+  useBankroll,
+  type RiskProfileKey,
+} from "../lib/bankroll";
+import { formatGhs, formatGhsWhole } from "../lib/wallets";
 import type { WalletsPayload } from "../types";
 import "./BankrollPlan.css";
 
@@ -23,34 +29,34 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
  */
 const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();
-  const [draft, setDraft] = useState({
-    bankroll: String(settings.bankroll),
-    stake: String(settings.stake),
-  });
+  const [draft, setDraft] = useState({ bankroll: String(settings.bankroll) });
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  // Keep the inputs in step when another panel changes the plan.
+  // Keep the input in step when another panel changes the plan.
   useEffect(() => {
-    setDraft({ bankroll: String(settings.bankroll), stake: String(settings.stake) });
-  }, [settings.bankroll, settings.stake]);
+    setDraft({ bankroll: String(settings.bankroll) });
+  }, [settings.bankroll]);
 
   const wallets = payload?.wallets ?? [];
   const plan = computePlan(settings, wallets.length);
   const cash = payload?.liquidity.totalBalance ?? 0;
 
-  const commit = (field: "bankroll" | "stake", raw: string) => {
-    setDraft((current) => ({ ...current, [field]: raw }));
+  const commitBankroll = (raw: string) => {
+    setDraft({ bankroll: raw });
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return;
-    setSettings({ ...settings, [field]: value });
+    setSettings({ ...settings, bankroll: value });
   };
 
-  // Opening balance: the plan's per-bookie target, snapped to a 50 GHS step.
-  const openingBalance =
-    wallets.length > 0
-      ? Math.max(0, Math.round(plan.perWallet / 50) * 50)
-      : Math.round(plan.perWallet / 50) * 50;
+  const commitRiskProfile = (key: RiskProfileKey) => {
+    setSettings({ ...settings, riskProfile: key });
+  };
+
+  // Opening balance: the plan's per-bookie target, so a refresh reproduces the plan exactly.
+  const openingBalance = Math.max(0, Math.round(plan.perWallet * 100) / 100);
+  // What to actually key into a bookie app: exact maths above, round number here.
+  const blendIn = blendInAmount(plan.perWallet);
 
   const startAfresh = async () => {
     const confirmed = window.confirm(
@@ -59,8 +65,9 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         "• every active bet\n" +
         "• the whole settled history\n" +
         "• every deposit/withdrawal record\n\n" +
-        `Each of the ${wallets.length} wallets is then set to ${formatGhs(openingBalance)} ` +
-        "and the page reloads from a clean slate. This cannot be undone.",
+        `Each of the ${wallets.length} wallets is then set to ${formatGhs(openingBalance)}` +
+        (blendIn > 0 ? ` (deposit ${formatGhsWhole(blendIn)} in the app)` : "") +
+        " and the page reloads from a clean slate. This cannot be undone.",
     );
     if (!confirmed) return;
 
@@ -105,30 +112,45 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
             step="100"
             inputMode="numeric"
             value={draft.bankroll}
-            onChange={(event) => commit("bankroll", event.target.value)}
+            onChange={(event) => commitBankroll(event.target.value)}
           />
         </label>
 
         <label className="bankroll-field">
           <span>
-            Stake per arb (GHS)
-            <Tip label="Stake per arb">
-              Total laid across both legs of one arb. A 1,000 GHS arb returns 15–30 GHS at the
-              1.5–3% margins we look for.
+            Risk profile
+            <Tip label="Risk profile">
+              Share of the bankroll staked on one arb. Conservative risks 1%, Aggressive 5%. The
+              stake below is derived from this, so it always tracks the bankroll.
             </Tip>
           </span>
-          <input
-            type="number"
-            min="0"
-            step="50"
-            inputMode="numeric"
-            value={draft.stake}
-            onChange={(event) => commit("stake", event.target.value)}
-          />
+          <select
+            value={plan.riskProfile}
+            onChange={(event) => commitRiskProfile(event.target.value as RiskProfileKey)}
+          >
+            {RISK_PROFILES.map((profile) => (
+              <option key={profile.key} value={profile.key}>
+                {profile.label} · {profile.pct}% per arb
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 
       <div className="bankroll-stats">
+        <div className="bankroll-stat">
+          <span>
+            Stake per arb
+            <Tip label="Stake per arb">
+              {`${plan.riskPct}% of your bankroll, split across both legs of one arb. A ${formatGhs(plan.stake)} arb returns 15–30 GHS at the 1.5–3% margins we look for.`}
+            </Tip>
+          </span>
+          <strong>{formatGhs(plan.stake)}</strong>
+          <span className="bankroll-stat-hint">
+            {plan.riskPct}% of {formatGhs(plan.bankroll)}
+          </span>
+        </div>
+
         <div className="bankroll-stat">
           <span>
             Target per bookie
@@ -141,18 +163,23 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
           <span className="bankroll-stat-hint">
             {wallets.length || 0} wallet{wallets.length === 1 ? "" : "s"} in rotation
           </span>
+          {plan.perWallet > 0 && (
+            <span className="bankroll-stat-action">
+              Action: Deposit ~{formatGhsWhole(blendIn)} to blend in.
+            </span>
+          )}
         </div>
 
         <div className="bankroll-stat">
           <span>
             Minimum float
             <Tip label="Minimum float">
-              About four bets should be able to sit unsettled at once, because payouts take a day
-              or two to land.
+              Enough to cover both legs of one arb, so a slow payout never leaves you unable to
+              place the next fill.
             </Tip>
           </span>
           <strong>{formatGhs(plan.minFloat)}</strong>
-          <span className="bankroll-stat-hint">4 × stake per arb</span>
+          <span className="bankroll-stat-hint">2 × stake per arb</span>
         </div>
 
         <div className="bankroll-stat">
@@ -186,10 +213,11 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         </div>
       </div>
 
-      {plan.underfunded && (
+      {wallets.length > 0 && plan.minFloat > 0 && cash < plan.minFloat && (
         <p className="bankroll-warning" role="alert">
-          ⚠️ Bankroll is below 4× your per-arb stake: a {formatGhs(plan.stake)} arb needs roughly{" "}
-          {formatGhs(plan.minFloat)} floating so a slow payout does not stall the next bet.
+          ⚠️ The wallets hold {formatGhs(cash)}, below the {formatGhs(plan.minFloat)} minimum
+          float. A {formatGhs(plan.stake)} arb needs both legs covered, so deposit before the next
+          fill.
         </p>
       )}
 
@@ -199,7 +227,8 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
           <p>
             Clears active bets, settled history and cash-flow rows for the{" "}
             {simulation ? "simulation" : "real"} ledger, then sets all {wallets.length} wallets to{" "}
-            {formatGhs(openingBalance)}.
+            {formatGhs(openingBalance)}
+            {blendIn > 0 && ` (deposit ${formatGhsWhole(blendIn)} in the app)`}.
           </p>
         </div>
         <button

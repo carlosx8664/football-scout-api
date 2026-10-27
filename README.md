@@ -517,10 +517,17 @@ the bookie accounts. Settling only credits the winning bookie with `winning stak
 and records `net_profit = payout − both stakes` in `history`, so the wallet movement across a
 bet's life (both debits at placement, payout at settlement) equals the recorded profit exactly.
 
-**Bankroll sizing.** The Bankroll Plan panel keeps two numbers in `localStorage`
-(`oddtor:bankroll-plan`): total bankroll and the stake you place per arb. It derives the target
-per bookie (`bankroll ÷ wallet count`), the minimum float (`4 × stake`, because unsettled bets
-lock cash for a day or two), how many arbs can run at once, and a 2–5 arbs/day profit estimate.
+**Bankroll sizing.** The Bankroll Plan panel stores the total bankroll and a risk profile in
+`localStorage` (`oddtor:bankroll-plan`). The stake per arb is derived from those two — never
+typed in — as `bankroll × profile %` (Conservative 1%, Balanced 2%, Confident 3%,
+Aggressive 5%), so the bankroll and the stake can never disagree. From that it derives the target
+per bookie (`bankroll ÷ wallet count`), the minimum float (`2 × stake`, enough to cover both
+legs of one arb), how many arbs the bankroll can fund, and a 2–5 arbs/day profit estimate.
+The Arbs page reads the same stake as its Total Stake default, so both pages always show the same
+position size.
+The plan keeps the exact per-bookie target (e.g. 1,666.67) but tells the user what to actually
+key into a bookie app: the nearest 50 GHS (`blendInAmount`), so deposits read as round numbers
+instead of precise amounts that look automated.
 
 **Rebalancing is cash-only.** Shares are computed against `SUM(wallets.balance)` — money staked in
 pending bets is deliberately excluded, so placing a bet cannot by itself trigger a top-up hint.

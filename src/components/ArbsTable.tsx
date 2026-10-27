@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
 import ArbCalculator from "./ArbCalculator";
-import { DEFAULT_STAKE } from "../lib/bankroll";
+import { computePlan, useBankroll } from "../lib/bankroll";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 // Shared with scripts/push-notify.js so a notification tap finds the same card.
@@ -222,7 +222,10 @@ const UpArrow = () => (
 const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
-  const [totalStake, setTotalStake] = useState(DEFAULT_STAKE);
+  // The stake comes from the Bankroll Plan (bankroll × risk profile), never a fixed number.
+  const { settings } = useBankroll();
+  const planStake = computePlan(settings).stake;
+  const [totalStake, setTotalStake] = useState(planStake);
   const [rounding, setRounding] = useState(DEFAULT_ROUNDING);
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
   const [calculatorOpen, setCalculatorOpen] = useState(false);
@@ -237,6 +240,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   } | null>(null);
   const [loggedKeys, setLoggedKeys] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Follow the Bankroll Plan: changing the bankroll or risk profile re-sizes the stakes here.
+  // Adjusted during render (React's documented pattern) so no extra render pass is needed.
+  const [syncedPlanStake, setSyncedPlanStake] = useState(planStake);
+  if (planStake !== syncedPlanStake) {
+    setSyncedPlanStake(planStake);
+    setTotalStake(planStake);
+    // A rounding step larger than the new stake cannot be honoured.
+    setRounding((current) => (current > planStake ? fittingStep(planStake) : current));
+  }
 
   // A push notification deep-links to /arbs?arb=<key>. Read it once on mount, then highlight
   // that card for a few seconds so the user can see which arb the ping was about.

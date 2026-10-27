@@ -42,6 +42,11 @@ export function formatGhs(amount: number) {
   })}`;
 }
 
+/** Whole-cedi amount, for figures the user types into a bookie app: "GHS 1,650". */
+export function formatGhsWhole(amount: number) {
+  return `GHS ${Math.round(amount).toLocaleString("en-GH", { maximumFractionDigits: 0 })}`;
+}
+
 /** Human-looking transfer sizing shared with the API (50 GHS steps, 50–500 per movement). */
 export const TRANSFER_STEP = 50;
 export const MIN_TRANSFER = 50;

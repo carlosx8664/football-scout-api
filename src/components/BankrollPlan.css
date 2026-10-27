@@ -50,7 +50,8 @@
   text-transform: uppercase;
   color: var(--color-neutral-6);
 }
-.bankroll-field input {
+.bankroll-field input,
+.bankroll-field select {
   padding: 9px 12px;
   border: 1px solid var(--color-neutral-4);
   border-radius: 9px;
@@ -59,7 +60,15 @@
   font-weight: 700;
   color: var(--color-neutral-7);
 }
-.bankroll-field input:focus { outline: 2px solid var(--color-brand-weak-elevated); border-color: var(--color-brand); }
+.bankroll-field select {
+  background: var(--color-neutral-1);
+  cursor: pointer;
+}
+.bankroll-field input:focus,
+.bankroll-field select:focus {
+  outline: 2px solid var(--color-brand-weak-elevated);
+  border-color: var(--color-brand);
+}
 
 .bankroll-tip {
   display: inline-flex;
@@ -79,7 +88,8 @@
 
 .bankroll-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Five stats, and the count changes with the wallet list — let them fit the row they're in. */
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 .bankroll-stat {
@@ -103,6 +113,14 @@
 }
 .bankroll-stat strong { font-size: 0.95rem; font-weight: 800; }
 .bankroll-stat-hint { font-size: 0.68rem; color: var(--color-neutral-6); }
+
+/* What to key into the bookie app: round number, so it reads as advice rather than maths. */
+.bankroll-stat-action {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-brand-4);
+}
 
 .bankroll-warning {
   margin-top: 14px;
