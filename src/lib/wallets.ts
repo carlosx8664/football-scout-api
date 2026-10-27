@@ -108,3 +108,16 @@ export async function fetchTransfers(
 
   return payload;
 }
+
+/** Wipes the mode's ledger (bets, history, cash flow) and re-opens every wallet at one balance. */
+export async function refreshWallets(
+  simulation: boolean,
+  openingBalance: number,
+  scope: "mode" | "all" = "mode",
+): Promise<WalletsPayload> {
+  return request("/api/wallets/refresh", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ simulation, openingBalance, scope }),
+  });
+}

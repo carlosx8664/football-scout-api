@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
-import { createTransfer, fetchWallets, formatGhs } from "../lib/wallets";
+import { createTransfer, fetchWallets, formatGhs, refreshWallets } from "../lib/wallets";
 import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
+import BankrollPlan from "./BankrollPlan";
 import CashFlowPanel from "./CashFlowPanel";
 import HistoryLedger from "./HistoryLedger";
 import RebalancingHints from "./RebalancingHints";
@@ -93,6 +94,17 @@ const WalletsDashboard = () => {
     [applyPayload, enabled],
   );
 
+  /** Start afresh: wipe this mode's ledger and re-open every wallet at one balance. */
+  const handleStartAfresh = useCallback(
+    async (openingBalance: number) => {
+      const next = await refreshWallets(enabled, openingBalance);
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+      setToast(`Fresh start: wallets reset to ${formatGhs(openingBalance)} each.`);
+    },
+    [applyPayload, enabled],
+  );
+
   const handleCancelled = useCallback((cancelled: CancelBetResult) => {
     // Refunded stakes change balances, liquidity and the rebalancing split alike.
     setRefreshToken((current) => current + 1);
@@ -105,6 +117,11 @@ const WalletsDashboard = () => {
   return (
     <>
       <div className="wallets-page">
+        <BankrollPlan
+          payload={payload}
+          simulation={enabled}
+          onStartAfresh={handleStartAfresh}
+        />
         <WalletsPanel
           payload={payload}
           error={error}

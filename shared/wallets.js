@@ -5,6 +5,8 @@
  * or write the other mode's rows.
  */
 
+import { BOOKMAKERS } from "./deeplinks.js";
+
 export const DB_BINDING = "DB";
 export const WALLET_CURRENCY = "GHS";
 /** "Reset Simulation Wallets to 1,000 GHS" across the four wallets. */
@@ -90,6 +92,31 @@ export function round2(value) {
   return Math.round(value * 100) / 100;
 }
 
+/**
+ * Creates a wallet row for every bookmaker the scanner supports, so adding a bookie to
+ * `BOOKMAKERS` (shared/deeplinks.js) automatically surfaces it on the wallets page. Existing
+ * balances are never touched — INSERT OR IGNORE rides on the (bookie_name, is_simulation) index.
+ */
+export async function ensureWallets(db, simulation) {
+  const mode = modeValue(simulation);
+  const prefix = simulation ? "sim" : "real";
+
+  const statements = BOOKMAKERS.map((bookie) =>
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO wallets (id, bookie_name, balance, is_simulation)
+         VALUES (?, ?, 0, ?)`,
+      )
+      .bind(
+        `${prefix}-${bookie.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+        bookie,
+        mode,
+      ),
+  );
+
+  if (statements.length > 0) await db.batch(statements);
+}
+
 function toWallet(row) {
   return {
     id: row.id,
@@ -103,6 +130,8 @@ function toWallet(row) {
 }
 
 export async function loadWallets(db, simulation) {
+  await ensureWallets(db, simulation);
+
   const { results } = await db
     .prepare(
       `SELECT id, bookie_name, balance, is_simulation

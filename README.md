@@ -53,6 +53,7 @@ functions/api/wallets.js       GET /api/wallets - wallets + available liquidity 
 functions/api/wallets/[id].js  PATCH /api/wallets/:id - log a deposit / withdrawal
 functions/api/wallets/reset.js POST /api/wallets/reset - simulation wallets back to 1,000 GHS
 functions/api/wallets/[id]/transfers.js  POST - log a deposit/withdrawal (human-sized amounts)
+functions/api/wallets/refresh.js POST /api/wallets/refresh - wipe a mode's ledger and reopen wallets
 functions/api/transfers.js    GET /api/transfers - cash-flow ledger + totals
 functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the ledger
 functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
@@ -180,6 +181,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`): round 50 GHS steps, 50–500 per movement, one per bookie every 10 minutes |
 | `GET /api/transfers` | Deposit/withdrawal ledger for one mode with totals (count, deposited, withdrawn, net) |
 | `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
+| `POST /api/wallets/refresh` | Start afresh: deletes active bets, history and cash-flow rows for the mode (`scope: "all"` for both) and re-opens every wallet at one balance |
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
 | `DELETE /api/active-bets/:id` | Cancels a logged bet: refunds both stakes to their bookies, deletes the row and writes a zero-profit `cancelled` row to `history` |
@@ -475,11 +477,14 @@ cd ../.. && npm run worker:deploy
 - `/arbs` — live + past arbitrage tables. Each live arb has a **Ledger** checkbox that opens the
   **Log Arb** modal: the computed stakes are pre-filled and can be rounded by hand, and "Save to
   Ledger" inserts them into `active_bets` with `is_simulation` set from the current mode.
-- `/wallets` — **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals,
-  available liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit
-  (SUM of `history` net profit) and the simulation reset button. The **Active Bets** column on the
-  right lists every unsettled bet with a **Settle** button that opens a wizard: **Normal Win**,
-  **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
+- `/wallets` — **Bankroll Plan** (set your bankroll and per-arb stake; targets, float warnings and
+  the deposit/withdraw rhythm update everywhere on the page, and **Start afresh** wipes the mode's
+  bets/history/cash-flow and re-opens every wallet at the plan's per-bookie balance), then
+  **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals, available
+  liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit (SUM of
+  `history` net profit) and the simulation reset button. Wallets are provisioned automatically for
+  every bookmaker in `BOOKMAKERS` (`shared/deeplinks.js`), so a newly added bookie appears with a
+  zero balance. The **Active Bets** column on the  right lists every unsettled bet with a **Settle** button that opens a wizard: **Normal Win**,  **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
   you cashed out) or **Cash Out** (pick the bookie and enter the amount), plus a **Remove** action
   that refunds both stakes, deletes the bet and leaves a zero-profit *Cancelled* row in History as
   an audit trail. Each path shows the
@@ -508,6 +513,13 @@ that hard-code a light surface.
 the bookie accounts. Settling only credits the winning bookie with `winning stake × winning odds`
 and records `net_profit = payout − both stakes` in `history`, so the wallet movement across a
 bet's life (both debits at placement, payout at settlement) equals the recorded profit exactly.
+
+**Bankroll sizing.** The Bankroll Plan panel keeps two numbers in `localStorage`
+(`oddtor:bankroll-plan`): total bankroll and the stake you place per arb. It derives the target
+per bookie (`bankroll ÷ wallet count`), the minimum float (`4 × stake`, because unsettled bets
+lock cash for a day or two), how many arbs can run at once, and a 2–5 arbs/day profit estimate.
+Rebalancing hints use that per-bookie target for the transfer amount, while the 15%/40% band on
+the live portfolio still decides *when* a hint appears.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
 inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` on mount,

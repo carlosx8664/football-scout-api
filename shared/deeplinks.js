@@ -6,8 +6,8 @@
  *   MSport:    https://www.msport.com/gh/web/sports/Soccer/sr:match:72478654
  *   BetBoro:   https://betboro.com.gh/pre-sports/1/region/{regionId}/competition/{competitionId}/fixture/{betBoroId}
  *   BoltBet:   https://boltbet.com.gh/sports/match/football/{fixture.slug}
- *   BetPawa:   https://www.betpawa.com.gh/event/{numeric event id}
- *
+ *   Soccabet:  Google fallback until a verified fixture route is captured                         
+ *   BetPawa:   https://www.betpawa.com.gh/event/{numeric event id} *
  * Sportradar ids ("sr:match:...") are shared by every bookmaker, so one id is enough to
  * link to the same fixture everywhere. BetBoro and BoltBet each need their own ids,
  * which only their raw dumps carry.
@@ -19,6 +19,12 @@ export const BETBORO = 'BetBoro';
 export const BOLTBET = 'BoltBet';
 export const BETPAWA = 'BetPawa';
 export const SOCCABET = 'Soccabet';
+
+/**
+ * Every bookmaker the scanner can read. Wallet management provisions one wallet per entry, so
+ * adding a bookie here is all it takes for it to appear on the wallets page.
+ */
+export const BOOKMAKERS = [SPORTY, MSPORT, BETBORO, BOLTBET, BETPAWA, SOCCABET];
 
 /**
  * Numeric part of a Sportradar id: "sr:match:72478654" -> "72478654".

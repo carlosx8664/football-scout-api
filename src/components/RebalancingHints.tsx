@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { computePlan, useBankroll } from "../lib/bankroll";
 import { MAX_TRANSFER, MIN_TRANSFER, TRANSFER_STEP, formatGhs } from "../lib/wallets";
 import type { Wallet, WalletsPayload } from "../types";
 import "./RebalancingHints.css";
@@ -52,13 +53,20 @@ const snap = (kind: "deposit" | "withdrawal", raw: number): number | null => {
  * money still at risk — otherwise a large pending arb would shrink the portfolio and trigger
  * false withdrawal warnings.
  */
-function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hints: Hint[] } {
+function buildHints(
+  wallets: Wallet[],
+  staked: number,
+  perWalletTarget: number,
+): { bankroll: number; hints: Hint[] } {
   const cash = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
   const bankroll = cash + staked;
   const hints: Hint[] = [];
 
   if (bankroll > 0) {
-    const target = (TARGET_PCT / 100) * bankroll;
+    // Money targets come from the Bankroll Plan (bankroll ÷ number of wallets) so the advice
+    // matches the capital you say you are running, not just today's uneven split.
+    const target =
+      perWalletTarget > 0 ? perWalletTarget : (TARGET_PCT / 100) * bankroll;
 
     for (const wallet of wallets) {
       const share = (wallet.balance / bankroll) * 100;
@@ -72,13 +80,17 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
             tone: "good",
             message:
               `🟢 Top up ${wallet.name} with ${formatGhs(deposit)} to reach ` +
-              `${TARGET_PCT}% capacity.`,
-            detail: `Deposit ${formatGhs(deposit)} (Round number for human behavior).`,
+              `${formatGhs(target)} capacity.`,
+            detail:
+              needed > MAX_TRANSFER
+                ? `Deposit ${formatGhs(needed)} total (${formatGhs(deposit)} per movement, ` +
+                  "round number for human behavior)."
+                : `Deposit ${formatGhs(deposit)} (Round number for human behavior).`,
             action: { walletId: wallet.id, kind: "deposit", amount: deposit },
           });
         }
       } else if (share > HIGH_PCT) {
-        // Protect funds by moving the excess back to 25%, in a single believable withdrawal.
+        // Protect funds by moving the excess back to the target, in believable steps.
         const excess = wallet.balance - target;
         const withdrawal = snap("withdrawal", excess);
 
@@ -87,7 +99,7 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
           message: `🔴 Withdraw from ${wallet.name} to protect funds.`,
           detail:
             withdrawal !== null
-              ? `Withdraw ${formatGhs(withdrawal)} to return to ${TARGET_PCT}% capacity.`
+              ? `Withdraw ${formatGhs(withdrawal)} to return to ${formatGhs(target)} capacity.`
               : "Balance is above the safe band; withdraw when the amount is worth it.",
           action:
             withdrawal !== null
@@ -132,7 +144,9 @@ const RebalancingHints = ({
 }: RebalancingHintsProps) => {
   const wallets = payload?.wallets ?? [];
   const staked = payload?.liquidity.staked ?? 0;
-  const { bankroll, hints } = buildHints(wallets, staked);
+  const { settings } = useBankroll();
+  const plan = computePlan(settings, wallets.length);
+  const { bankroll, hints } = buildHints(wallets, staked, plan.perWallet);
   const shareOf = (balance: number) => (bankroll > 0 ? (balance / bankroll) * 100 : 0);
 
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -179,8 +193,8 @@ const RebalancingHints = ({
           <p className="rebalance-subtitle">
             Keep each bookie between {LOW_PCT}% and {HIGH_PCT}% of the{" "}
             {simulation ? "simulation" : "real"} portfolio ({formatGhs(bankroll)} — cash plus
-            stakes in play). Transfers move GHS {MIN_TRANSFER}–{MAX_TRANSFER} in {TRANSFER_STEP}{" "}
-            steps, one per bookie every 10 minutes.
+            stakes in play). Targets follow the Bankroll Plan: {formatGhs(plan.perWallet)} per
+            bookie, in {TRANSFER_STEP} GHS steps of {MIN_TRANSFER}–{MAX_TRANSFER}.
           </p>
         </div>
       </header>
