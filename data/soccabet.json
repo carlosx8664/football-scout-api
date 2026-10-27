@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-10-26T22:56:04.723Z",
+  "source": "Soccabet",
+  "windowDays": 2,
+  "events": [
+    {
+      "eventId": "soccabet:3804994",
+      "soccabetId": "3804994",
+      "code": "2950",
+      "league": "Saudi Arabia · Saudi Professional League",
+      "home": "Abha Club",
+      "away": "Al Faisaly",
+      "kickoff": 1793104800000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 2.41,
+        "1X2:A": 2.7,
+        "1X2:D": 3.25
+      }
+    },
+    {
+      "eventId": "soccabet:3764562",
+      "soccabetId": "3764562",
+      "code": "2200",
+      "league": "Germany · DFB Pokal",
+      "home": "SG Sonnenhof Grossaspach",
+      "away": "FC Augsburg",
+      "kickoff": 1793120400000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 8.2,
+        "1X2:A": 1.29,
+        "1X2:D": 5.8
+      }
+    },
+    {
+      "eventId": "soccabet:3764563",
+      "soccabetId": "3764563",
+      "code": "2206",
+      "league": "Germany · DFB Pokal",
+      "home": "Rot-Weiss Essen",
+      "away": "RB Leipzig",
+      "kickoff": 1793120400000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 12,
+        "1X2:A": 1.17,
+        "1X2:D": 7.6
+      }
+    },
+    {
+      "eventId": "soccabet:3764564",
+      "soccabetId": "3764564",
+      "code": "2211",
+      "league": "Germany · DFB Pokal",
+      "home": "VfL Bochum",
+      "away": "FSV Mainz",
+      "kickoff": 1793120400000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 4.6,
+        "1X2:A": 1.66,
+        "1X2:D": 4
+      }
+    },
+    {
+      "eventId": "soccabet:3764565",
+      "soccabetId": "3764565",
+      "code": "2219",
+      "league": "Germany · DFB Pokal",
+      "home": "Hamburger SV",
+      "away": "Eintracht Frankfurt",
+      "kickoff": 1793120400000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 3.05,
+        "1X2:A": 2.13,
+        "1X2:D": 3.7
+      }
+    },
+    {
+      "eventId": "soccabet:3764571",
+      "soccabetId": "3764571",
+      "code": "2751",
+      "league": "Italy · Serie A",
+      "home": "Sassuolo Calcio",
+      "away": "Lazio Rome",
+      "kickoff": 1793122200000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 3.2,
+        "1X2:A": 2.18,
+        "1X2:D": 3.55
+      }
+    },
+    {
+      "eventId": "soccabet:3835763",
+      "soccabetId": "3835763",
+      "code": "2057",
+      "league": "Spain · Copa del Rey",
+      "home": "CD Cuarte",
+      "away": "Girona FC",
+      "kickoff": 1793122200000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 16,
+        "1X2:A": 1.15,
+        "1X2:D": 7.2
+      }
+    },
+    {
+      "eventId": "soccabet:3835764",
+      "soccabetId": "3835764",
+      "code": "2058",
+      "league": "Spain · Copa del Rey",
+      "home": "Sestao River Club",
+      "away": "Espanyol Barcelona",
+      "kickoff": 1793124000000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 6.2,
+        "1X2:A": 1.47,
+        "1X2:D": 4.4
+      }
+    },
+    {
+      "eventId": "soccabet:3835766",
+      "soccabetId": "3835766",
+      "code": "2060",
+      "league": "Spain · Copa del Rey",
+      "home": "CF Calamocha",
+      "away": "CE Europa",
+      "kickoff": 1793124000000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 3.95,
+        "1X2:A": 1.81,
+        "1X2:D": 3.8
+      }
+    },
+    {
+      "eventId": "soccabet:3835768",
+      "soccabetId": "3835768",
+      "code": "2063",
+      "league": "Spain · Copa del Rey",
+      "home": "UD Castellonense",
+      "away": "UD Almeria",
+      "kickoff": 1793126700000,
+      "isLive": false,
+      "sel": {
+        "1X2:H": 5.8,
+        "1X2:A": 1.48,
+        "1X2:D": 4.5
+      }
+    }
+  ]
+}
