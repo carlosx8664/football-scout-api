@@ -484,17 +484,22 @@ cd ../.. && npm run worker:deploy
   liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit (SUM of
   `history` net profit) and the simulation reset button. Wallets are provisioned automatically for
   every bookmaker in `BOOKMAKERS` (`shared/deeplinks.js`), so a newly added bookie appears with a
-  zero balance. The **Active Bets** column on the  right lists every unsettled bet with a **Settle** button that opens a wizard: **Normal Win**,  **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
+  zero balance. The **Active Bets** column on the right pages **two bets at a time** (Prev/Next with
+  a page counter) and lists each with a **Settle** button that opens a wizard: **Normal Win**,
+  **Void / Refund** (choose the cancelled leg(s); if one leg survives, say whether it won, lost or
   you cashed out) or **Cash Out** (pick the bookie and enter the amount), plus a **Remove** action
   that refunds both stakes, deletes the bet and leaves a zero-profit *Cancelled* row in History as
   an audit trail. Each path shows the
-  wallet credits and net result before confirming. A **Rebalancing Hints** panel between the two
-  shows each bookie's share of the portfolio (cash + stakes in play) and flags top-ups (< 15%,
+  wallet credits and net result before confirming. Under the ledger sits the **How to move money
+  without looking like a bot** guide (withdrawal cadence, 50 GHS steps, BetBoro rule, per-wallet
+  float from the Bankroll Plan), followed by **Cash Flow** — the deposit/withdrawal ledger with
+  lifetime totals. A **Rebalancing Hints** panel between the two
+  shows each bookie's share of the portfolio (cash + stakes in play) with a red/amber/green gauge
+  (red = under 15%, amber = over 40%, green = healthy) and flags top-ups (< 15%,
   sized to reach 25%, rounded up to the next 50 GHS and only when > 20 GHS), withdrawals (> 40%)
   and any BetBoro balance, each with a one-click **Top up** / **Withdraw** button sized to a
   believable 50 GHS step (50–500 per movement, one per bookie every 10 minutes). Between 08:00
-  and 10:00 local time it also shows the **Morning Check** funding summary. Below it, **Cash Flow**
-  records every deposit and withdrawal with lifetime totals (deposited, withdrawn, net). The main
+  and 10:00 local time it also shows the **Morning Check** funding summary. The main
   column ends with **History**, listing settled arbs grouped by day
   with a date filter, per-day totals, a yellow *Void* / *Cash Out* badge (with amber net figures)
   and the week's total outlay (active stakes + stakes settled since Monday).

@@ -123,3 +123,15 @@
   .cashflow-row { grid-template-columns: 88px minmax(0, 1fr) 100px; }
   .cashflow-when { display: none; }
 }
+
+/* Compact layout when the panel lives in the 340px wallets sidebar. */
+.wallets-aside .cashflow-panel { padding: 20px; }
+.wallets-aside .cashflow-stats { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.wallets-aside .cashflow-stat { padding: 10px 12px; }
+.wallets-aside .cashflow-row {
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+.wallets-aside .cashflow-when { display: none; }
+.wallets-aside .cashflow-list { max-height: 220px; }

@@ -217,15 +217,16 @@ const RebalancingHints = ({
           <ul className="rebalance-split">
             {wallets.map((wallet) => {
               const share = shareOf(wallet.balance);
+              // Gauge colours: red = underfunded, amber = over-concentrated, green = healthy.
+              const band =
+                share < LOW_PCT ? "danger" : share > HIGH_PCT ? "caution" : "healthy";
               return (
                 <li className="rebalance-row" key={wallet.id}>
                   <span className="rebalance-bookie">{wallet.name}</span>
-                  <span className="rebalance-share">{share.toFixed(1)}%</span>
+                  <span className={`rebalance-share ${band}`}>{share.toFixed(1)}%</span>
                   <span className="rebalance-bar">
                     <span
-                      className={`rebalance-bar-fill${
-                        share < LOW_PCT ? " low" : share > HIGH_PCT ? " high" : ""
-                      }`}
+                      className={`rebalance-bar-fill ${band}`}
                       style={{ width: `${Math.min(share, 100)}%` }}
                     />
                   </span>

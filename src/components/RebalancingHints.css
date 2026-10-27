@@ -57,6 +57,10 @@
   color: var(--color-neutral-6);
   text-align: right;
 }
+.rebalance-share.danger { color: #c20a0a; }
+.rebalance-share.caution { color: #a16207; }
+.rebalance-share.healthy { color: #15803d; }
+
 .rebalance-bar {
   position: relative;
   display: block;
@@ -70,10 +74,12 @@
   height: 100%;
   border-radius: 999px;
   background: var(--color-brand);
-  transition: width 0.25s ease;
+  transition: width 0.25s ease, background 0.25s ease;
 }
-.rebalance-bar-fill.low { background: var(--color-neutral-5); }
-.rebalance-bar-fill.high { background: #e0b400; }
+/* Gauge semantics: red = danger (underfunded), amber = caution (over-concentrated), green = healthy. */
+.rebalance-bar-fill.danger { background: #dc2626; }
+.rebalance-bar-fill.caution { background: #e0b400; }
+.rebalance-bar-fill.healthy { background: #16a34a; }
 .rebalance-balance {
   font-size: 0.78rem;
   font-weight: 700;

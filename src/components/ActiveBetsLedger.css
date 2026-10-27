@@ -1,5 +1,10 @@
 /* Lives in the wallets page right sidebar, so every card must fit ~340px. */
-.wallets-aside { min-width: 0; }
+.wallets-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
 
 .active-bets-panel {
   background: var(--color-neutral-1);
@@ -133,6 +138,37 @@
   background: #fdecec;
 }
 .active-bets-remove:disabled { opacity: 0.6; cursor: default; }
+
+.active-bets-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-3);
+}
+.active-bets-page-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-neutral-4);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+}
+.active-bets-page-btn:hover:not(:disabled) {
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-7);
+}
+.active-bets-page-btn:disabled { opacity: 0.45; cursor: default; }
+.active-bets-page-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+}
 
 .active-bets-settle {
   padding: 6px 14px;

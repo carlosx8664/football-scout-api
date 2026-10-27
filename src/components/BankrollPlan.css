@@ -116,28 +116,6 @@
   line-height: 1.45;
 }
 
-.bankroll-guide {
-  margin-top: 14px;
-  border-top: 1px solid var(--color-neutral-3);
-  padding-top: 12px;
-}
-.bankroll-guide summary {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--color-brand-4);
-  cursor: pointer;
-}
-.bankroll-guide ul {
-  margin: 10px 0 0 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--color-neutral-6);
-}
-.bankroll-guide strong { color: var(--color-neutral-7); }
-
 @media (max-width: 900px) {
   .bankroll-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

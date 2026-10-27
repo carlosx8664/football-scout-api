@@ -7,6 +7,7 @@ import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
 import CashFlowPanel from "./CashFlowPanel";
 import HistoryLedger from "./HistoryLedger";
+import MoneyGuide from "./MoneyGuide";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
 import WalletsPanel from "./WalletsPanel";
@@ -137,19 +138,21 @@ const WalletsDashboard = () => {
           simulation={enabled}
           onTransfer={handleTransfer}
         />
-        <CashFlowPanel
-          simulation={enabled}
-          refreshToken={refreshToken}
-          summary={payload?.cashFlow ?? null}
-        />
         <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
       </div>
       <aside className="right-sidebar wallets-aside">
         <ActiveBetsLedger
+          key={enabled ? "sim" : "real"}
           simulation={enabled}
           refreshToken={refreshToken}
           onSettled={handleSettled}
           onCancelled={handleCancelled}
+        />
+        <MoneyGuide wallets={payload?.wallets ?? []} simulation={enabled} />
+        <CashFlowPanel
+          simulation={enabled}
+          refreshToken={refreshToken}
+          summary={payload?.cashFlow ?? null}
         />
       </aside>
       {toast && <Toast message={toast} />}

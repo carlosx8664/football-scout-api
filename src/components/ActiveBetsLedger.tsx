@@ -11,6 +11,9 @@ import type {
 import SettleBetModal from "./SettleBetModal";
 import "./ActiveBetsLedger.css";
 
+/** Two cards per page keeps the sidebar readable once several arbs are live. */
+const PAGE_SIZE = 2;
+
 interface ActiveBetsLedgerProps {
   simulation: boolean;
   /** Bumped by the dashboard after a settlement so the list and wallets refetch together. */
@@ -34,6 +37,7 @@ const ActiveBetsLedger = ({
   const [target, setTarget] = useState<ActiveBetRecord | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,6 +59,12 @@ const ActiveBetsLedger = ({
   const error = problem?.simulation === simulation ? problem.message : null;
   const loading = payload === null && error === null;
   const bets = payload?.activeBets ?? [];
+
+  // Clamped during render, so settling/cancelling the last card on a page can never strand the
+  // view on an empty page.
+  const pageCount = Math.max(1, Math.ceil(bets.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const visible = bets.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
   const settle = async (bet: ActiveBetRecord, request: SettleBetRequest) => {
     const settled = await settleBet(bet.id, request);
@@ -107,61 +117,87 @@ const ActiveBetsLedger = ({
           No active bets. Tick an arb on the <a href="/arbs">Arbs</a> page to log one.
         </p>
       ) : (
-        <ul className="active-bets-list">
-          {bets.map((bet) => (
-            <li className="active-bet-card" key={bet.id}>
-              <div className="active-bet-top">
-                <span className="active-bet-event">{bet.eventName}</span>
-                <span
-                  className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}
-                >
-                  {bet.profitPercent.toFixed(2)}%
-                </span>
-              </div>
-
-              {bet.createdAt && (
-                <span className="active-bet-when">
-                  {new Date(bet.createdAt).toLocaleString("en-GB")}
-                </span>
-              )}
-
-              <ul className="active-bet-legs">
-                {[bet.legA, bet.legB].map((leg, index) => (
-                  <li key={`${leg.name}-${index}`}>
-                    <span className="active-bet-bookie">{leg.name}</span>
-                    <span className="active-bet-leg-meta">
-                      {leg.odds.toFixed(2)} · {formatGhs(leg.stake)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="active-bet-footer">
-                <span className="active-bet-stake">
-                  Outlay {formatGhs(bet.legA.stake + bet.legB.stake)}
-                </span>
-                <span className="active-bet-actions">
-                  <button
-                    type="button"
-                    className="active-bets-remove"
-                    title="Remove this bet and refund both stakes"
-                    onClick={() => void cancel(bet)}
-                    disabled={cancellingId === bet.id}
+        <>
+          <ul className="active-bets-list">
+            {visible.map((bet) => (
+              <li className="active-bet-card" key={bet.id}>
+                <div className="active-bet-top">
+                  <span className="active-bet-event">{bet.eventName}</span>
+                  <span
+                    className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}
                   >
-                    {cancellingId === bet.id ? "Removing…" : "Remove"}
-                  </button>
-                  <button
-                    type="button"
-                    className="active-bets-settle"
-                    onClick={() => setTarget(bet)}
-                  >
-                    Settle
-                  </button>
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
+                    {bet.profitPercent.toFixed(2)}%
+                  </span>
+                </div>
+
+                {bet.createdAt && (
+                  <span className="active-bet-when">
+                    {new Date(bet.createdAt).toLocaleString("en-GB")}
+                  </span>
+                )}
+
+                <ul className="active-bet-legs">
+                  {[bet.legA, bet.legB].map((leg, index) => (
+                    <li key={`${leg.name}-${index}`}>
+                      <span className="active-bet-bookie">{leg.name}</span>
+                      <span className="active-bet-leg-meta">
+                        {leg.odds.toFixed(2)} · {formatGhs(leg.stake)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="active-bet-footer">
+                  <span className="active-bet-stake">
+                    Outlay {formatGhs(bet.legA.stake + bet.legB.stake)}
+                  </span>
+                  <span className="active-bet-actions">
+                    <button
+                      type="button"
+                      className="active-bets-remove"
+                      title="Remove this bet and refund both stakes"
+                      onClick={() => void cancel(bet)}
+                      disabled={cancellingId === bet.id}
+                    >
+                      {cancellingId === bet.id ? "Removing…" : "Remove"}
+                    </button>
+                    <button
+                      type="button"
+                      className="active-bets-settle"
+                      onClick={() => setTarget(bet)}
+                    >
+                      Settle
+                    </button>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {pageCount > 1 && (
+            <nav className="active-bets-pager" aria-label="Active bets pages">
+              <button
+                type="button"
+                className="active-bets-page-btn"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 0}
+              >
+                ← Prev
+              </button>
+              <span className="active-bets-page-label">
+                Page {currentPage + 1} of {pageCount}
+              </span>
+              <button
+                type="button"
+                className="active-bets-page-btn"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= pageCount - 1}
+              >
+                Next →
+              </button>
+            </nav>
+          )}
+        </>
       )}
 
       {target && (

@@ -193,33 +193,6 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         </p>
       )}
 
-      <details className="bankroll-guide">
-        <summary>How to move money without looking like a bot</summary>
-        <ul>
-          <li>
-            <strong>Withdraw only profits</strong>, once or twice a week, in 200–500 GHS chunks
-            per bookie. Batching avoids mobile-money fees on every transfer.
-          </li>
-          <li>
-            <strong>Deposit reactively</strong> — only when a bookie drops under 15% of the
-            portfolio, in 50 GHS steps (the buttons below the hints already size it for you).
-          </li>
-          <li>
-            <strong>Never send odd amounts</strong> (GHS 137.42) or repeat within minutes; one
-            movement per bookie every 10 minutes is the cap the app enforces.
-          </li>
-          <li>
-            <strong>Keep BetBoro light</strong> — withdraw after each settlement and leave just
-            enough to cover a leg, since payouts there are slow.
-          </li>
-          <li>
-            <strong>Hold the float</strong>:{" "}
-            {wallets.map((wallet) => wallet.name).join(", ") || "your wallets"} should average{" "}
-            {formatGhs(plan.perWallet)} each at {formatGhs(plan.bankroll)} bankroll.
-          </li>
-        </ul>
-      </details>
-
       <div className="bankroll-danger">
         <div>
           <strong>Start afresh</strong>
