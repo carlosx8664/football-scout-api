@@ -52,6 +52,8 @@ functions/api/bet-builder/extract.js  POST /api/bet-builder/extract - screenshot
 functions/api/wallets.js       GET /api/wallets - wallets + available liquidity for one mode
 functions/api/wallets/[id].js  PATCH /api/wallets/:id - log a deposit / withdrawal
 functions/api/wallets/reset.js POST /api/wallets/reset - simulation wallets back to 1,000 GHS
+functions/api/wallets/[id]/transfers.js  POST - log a deposit/withdrawal (human-sized amounts)
+functions/api/transfers.js    GET /api/transfers - cash-flow ledger + totals
 functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the ledger
 functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
 functions/api/history.js      GET /api/history - settled arbs by date range + weekly outlay
@@ -101,8 +103,8 @@ npm run db:migrate         # production database
 ```
 
 Both commands apply every file in `migrations/` in order, so re-running them after adding a
-migration (e.g. `0002_history_details.sql`, which adds the leg/stake columns `History` displays)
-is safe.
+migration (e.g. `0002_history_details.sql`, which adds the leg/stake columns `History` displays,
+or `0004_wallet_transfers.sql` for the cash-flow ledger) is safe.
 
 The migration seeds four wallets per mode: `is_simulation = 1` at 250 GHS each (the "Reset
 Simulation Wallets to 1,000 GHS" target) and `is_simulation = 0` at 0 GHS.
@@ -175,6 +177,8 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
 | `GET /api/wallets` | Wallets + available liquidity for one mode (`?simulation=1` or `0`), plus total and today's realised profit, from D1 |
 | `PATCH /api/wallets/:id` | Set a wallet balance (`balance`) or apply a `delta`, scoped to that mode's `is_simulation` |
+| `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`): round 50 GHS steps, 50–500 per movement, one per bookie every 10 minutes |
+| `GET /api/transfers` | Deposit/withdrawal ledger for one mode with totals (count, deposited, withdrawn, net) |
 | `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
@@ -482,8 +486,11 @@ cd ../.. && npm run worker:deploy
   wallet credits and net result before confirming. A **Rebalancing Hints** panel between the two
   shows each bookie's share of the portfolio (cash + stakes in play) and flags top-ups (< 15%,
   sized to reach 25%, rounded up to the next 50 GHS and only when > 20 GHS), withdrawals (> 40%)
-  and any BetBoro balance. Between 08:00 and 10:00 local time it also shows the **Morning Check**
-  funding summary. The main column ends with **History**, listing settled arbs grouped by day
+  and any BetBoro balance, each with a one-click **Top up** / **Withdraw** button sized to a
+  believable 50 GHS step (50–500 per movement, one per bookie every 10 minutes). Between 08:00
+  and 10:00 local time it also shows the **Morning Check** funding summary. Below it, **Cash Flow**
+  records every deposit and withdrawal with lifetime totals (deposited, withdrawn, net). The main
+  column ends with **History**, listing settled arbs grouped by day
   with a date filter, per-day totals, a yellow *Void* / *Cash Out* badge (with amber net figures)
   and the week's total outlay (active stakes + stakes settled since Monday).
 

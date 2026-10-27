@@ -1,0 +1,125 @@
+.cashflow-panel {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.cashflow-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.cashflow-header h2 { font-size: 1.15rem; font-weight: 700; }
+.cashflow-subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
+.cashflow-subtitle code {
+  font-size: 0.75rem;
+  background: var(--color-neutral-3);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.cashflow-count {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cashflow-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #c20a0a;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.cashflow-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.cashflow-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 10px;
+  background: var(--color-neutral-2);
+}
+.cashflow-stat span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+.cashflow-stat strong { font-size: 1rem; font-weight: 800; }
+.cashflow-stat.net { background: var(--color-teal-2); border-color: var(--color-teal-4); }
+.cashflow-stat.net strong { color: var(--color-teal-4); }
+.cashflow-stat.net.negative { background: #fdecec; border-color: #c20a0a; }
+.cashflow-stat.net.negative strong { color: #c20a0a; }
+
+.cashflow-empty {
+  padding: 8px 0;
+  color: var(--color-neutral-6);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.cashflow-list {
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.cashflow-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 120px 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--color-neutral-3);
+  font-size: 0.8rem;
+}
+.cashflow-kind {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+.cashflow-kind.deposit { background: #e8f7ee; color: #15803d; }
+.cashflow-kind.withdrawal { background: #fdecec; color: #b91c1c; }
+.cashflow-bookie { font-weight: 700; }
+.cashflow-amount { font-weight: 800; text-align: right; white-space: nowrap; }
+.cashflow-when {
+  color: var(--color-neutral-6);
+  font-size: 0.72rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .cashflow-stats { grid-template-columns: minmax(0, 1fr); }
+  .cashflow-row { grid-template-columns: 88px minmax(0, 1fr) 100px; }
+  .cashflow-when { display: none; }
+}

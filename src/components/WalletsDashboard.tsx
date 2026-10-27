@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
-import { fetchWallets, formatGhs } from "../lib/wallets";
+import { createTransfer, fetchWallets, formatGhs } from "../lib/wallets";
 import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
+import CashFlowPanel from "./CashFlowPanel";
 import HistoryLedger from "./HistoryLedger";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
@@ -78,6 +79,20 @@ const WalletsDashboard = () => {
     setToast(`${label} settled: ${result} ${formatGhs(Math.abs(settled.netProfit))}.`);
   }, []);
 
+  /** Deposit/withdrawal buttons in Rebalancing Hints. Rejects so the panel can show why. */
+  const handleTransfer = useCallback(
+    async (walletId: string, kind: "deposit" | "withdrawal", amount: number) => {
+      const next = await createTransfer(walletId, kind, amount, enabled);
+      applyPayload(next);
+      const bookie = next.wallets.find((wallet) => wallet.id === walletId)?.name ?? "wallet";
+      setToast(
+        `${kind === "deposit" ? "Topped up" : "Withdrew"} ${formatGhs(amount)} ` +
+          `${kind === "deposit" ? "to" : "from"} ${bookie}.`,
+      );
+    },
+    [applyPayload, enabled],
+  );
+
   const handleCancelled = useCallback((cancelled: CancelBetResult) => {
     // Refunded stakes change balances, liquidity and the rebalancing split alike.
     setRefreshToken((current) => current + 1);
@@ -103,6 +118,12 @@ const WalletsDashboard = () => {
           error={error}
           loading={loading}
           simulation={enabled}
+          onTransfer={handleTransfer}
+        />
+        <CashFlowPanel
+          simulation={enabled}
+          refreshToken={refreshToken}
+          summary={payload?.cashFlow ?? null}
         />
         <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
       </div>

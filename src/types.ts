@@ -180,6 +180,36 @@ export interface LiquiditySummary {
   available: number;
 }
 
+/** Deposit/withdrawal totals for the current mode. */
+export interface CashFlowSummary {
+  count: number;
+  deposited: number;
+  withdrawn: number;
+  net: number;
+  bookies: number;
+}
+
+/** One deposit or withdrawal. */
+export interface WalletTransfer {
+  id: string;
+  walletId: string;
+  bookie: string;
+  kind: "deposit" | "withdrawal";
+  amount: number;
+  createdAt: string;
+}
+
+export interface TransfersPayload {
+  simulation: boolean;
+  transfers: WalletTransfer[];
+  totals: {
+    count: number;
+    deposited: number;
+    withdrawn: number;
+    net: number;
+  };
+}
+
 export interface WalletsPayload {
   /** True when these rows came from `is_simulation = 1`. */
   simulation: boolean;
@@ -190,6 +220,7 @@ export interface WalletsPayload {
   totalProfit: number;
   /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
   dailyProfit: number;
+  cashFlow: CashFlowSummary;
 }
 
 /* ------------------------------------------------------------------ *

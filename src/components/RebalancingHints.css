@@ -117,6 +117,29 @@
   line-height: 1.45;
 }
 
+.rebalance-action {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.rebalance-action.deposit {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
+}
+.rebalance-action.deposit:hover:not(:disabled) { background: #116b33; }
+.rebalance-action.withdraw {
+  background: #fff;
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+.rebalance-action.withdraw:hover:not(:disabled) { background: #fdecec; }
+.rebalance-action:disabled { opacity: 0.6; cursor: default; }
+
 @media (max-width: 720px) {
   .rebalance-row { grid-template-columns: 84px 48px minmax(0, 1fr); }
   .rebalance-balance { grid-column: 1 / -1; text-align: left; }

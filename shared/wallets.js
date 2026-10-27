@@ -10,6 +10,31 @@ export const WALLET_CURRENCY = "GHS";
 /** "Reset Simulation Wallets to 1,000 GHS" across the four wallets. */
 export const SIMULATION_RESET_PER_WALLET = 250;
 
+/* ------------------------------------------------------------------ *
+ * Human-looking cash movements
+ * ------------------------------------------------------------------ */
+
+/** Deposits/withdrawals are snapped to round numbers in this range — never odd cents. */
+export const TRANSFER_STEP = 50;
+export const MIN_TRANSFER = 50;
+export const MAX_TRANSFER = 500;
+/** One movement per bookie per mode in this window, so bursts never look automated. */
+export const TRANSFER_COOLDOWN_MS = 10 * 60 * 1000;
+
+/** Snaps a raw requirement to a believable transfer size, or null when nothing sensible fits. */
+export function suggestTransfer(kind, needed) {
+  const value = Number(needed);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  const rounded =
+    kind === "withdrawal"
+      ? Math.floor(value / TRANSFER_STEP) * TRANSFER_STEP
+      : Math.ceil(value / TRANSFER_STEP) * TRANSFER_STEP;
+
+  const clamped = Math.min(MAX_TRANSFER, Math.max(MIN_TRANSFER, rounded));
+  return clamped >= MIN_TRANSFER ? clamped : null;
+}
+
 export const DB_UNAVAILABLE_MESSAGE =
   `D1 binding "${DB_BINDING}" is not configured. Add a d1_databases entry to wrangler.jsonc and run ` +
   `\`npx wrangler d1 migrations apply ${DB_BINDING} --local\`.`;
@@ -126,7 +151,7 @@ export async function loadLiquidity(db, simulation) {
 export async function walletPayload(db, simulation) {
   const mode = modeValue(simulation);
 
-  const [wallets, liquidity, history] = await Promise.all([
+  const [wallets, liquidity, history, transfers] = await Promise.all([
     loadWallets(db, simulation),
     loadLiquidity(db, simulation),
     db
@@ -136,6 +161,17 @@ export async function walletPayload(db, simulation) {
            COALESCE(SUM(CASE WHEN date(settled_at) = date('now') THEN net_profit ELSE 0 END), 0)
              AS daily_profit
            FROM history WHERE is_simulation = ?`,
+      )
+      .bind(mode)
+      .first(),
+    db
+      .prepare(
+        `SELECT
+           COUNT(*) AS count,
+           COALESCE(SUM(CASE WHEN kind = 'deposit' THEN amount ELSE 0 END), 0) AS deposited,
+           COALESCE(SUM(CASE WHEN kind = 'withdrawal' THEN amount ELSE 0 END), 0) AS withdrawn,
+           COUNT(DISTINCT bookie_name) AS bookies
+         FROM wallet_transfers WHERE is_simulation = ?`,
       )
       .bind(mode)
       .first(),
@@ -149,5 +185,12 @@ export async function walletPayload(db, simulation) {
     totalProfit: round2(Number(history?.total_profit ?? 0)),
     /** Realised profit settled today (UTC) — drives the "take a break" alert. */
     dailyProfit: round2(Number(history?.daily_profit ?? 0)),
+    cashFlow: {
+      count: Number(transfers?.count ?? 0),
+      deposited: round2(Number(transfers?.deposited ?? 0)),
+      withdrawn: round2(Number(transfers?.withdrawn ?? 0)),
+      net: round2(Number(transfers?.deposited ?? 0) - Number(transfers?.withdrawn ?? 0)),
+      bookies: Number(transfers?.bookies ?? 0),
+    },
   };
 }

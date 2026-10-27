@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatGhs } from "../lib/wallets";
+import { MAX_TRANSFER, MIN_TRANSFER, TRANSFER_STEP, formatGhs } from "../lib/wallets";
 import type { Wallet, WalletsPayload } from "../types";
 import "./RebalancingHints.css";
 
@@ -9,8 +9,6 @@ const HIGH_PCT = 40;
 /** Target share a top-up aims for, and the smallest transfer worth suggesting. */
 const TARGET_PCT = 25;
 const MIN_TOPUP_GHS = 20;
-/** Deposits are rounded up to this, so suggestions read like a human transfer. */
-const ROUND_TO_GHS = 50;
 /** The daily funding summary only shows inside this local-time window. */
 const MORNING_START_HOUR = 8;
 const MORNING_END_HOUR = 10;
@@ -21,13 +19,33 @@ interface RebalancingHintsProps {
   error: string | null;
   loading: boolean;
   simulation: boolean;
+  /** Logs a deposit/withdrawal; rejects with a message when the API refuses it. */
+  onTransfer: (walletId: string, kind: "deposit" | "withdrawal", amount: number) => Promise<void>;
+}
+
+interface HintAction {
+  walletId: string;
+  kind: "deposit" | "withdrawal";
+  amount: number;
 }
 
 interface Hint {
   tone: "good" | "bad";
   message: string;
   detail?: string;
+  action?: HintAction;
 }
+
+/** Round human-sized figures only: 50 GHS steps, 50–500 per movement. */
+const snap = (kind: "deposit" | "withdrawal", raw: number): number | null => {
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+  const rounded =
+    kind === "withdrawal"
+      ? Math.floor(raw / TRANSFER_STEP) * TRANSFER_STEP
+      : Math.ceil(raw / TRANSFER_STEP) * TRANSFER_STEP;
+  const clamped = Math.min(MAX_TRANSFER, Math.max(MIN_TRANSFER, rounded));
+  return clamped >= MIN_TRANSFER ? clamped : null;
+};
 
 /**
  * Stakes are debited at log time, so `balance` alone is cash on hand. The bankroll is cash plus
@@ -40,25 +58,42 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
   const hints: Hint[] = [];
 
   if (bankroll > 0) {
+    const target = (TARGET_PCT / 100) * bankroll;
+
     for (const wallet of wallets) {
       const share = (wallet.balance / bankroll) * 100;
-      if (share < LOW_PCT) {
-        // The transfer that brings this bookie back to the 25% operational baseline, rounded up
-        // to the next 50 GHS so it looks like a real deposit rather than a computed number.
-        const needed = (TARGET_PCT / 100) * bankroll - wallet.balance;
-        const deposit = Math.ceil(needed / ROUND_TO_GHS) * ROUND_TO_GHS;
 
-        if (needed > MIN_TOPUP_GHS) {
+      if (share < LOW_PCT) {
+        const needed = target - wallet.balance;
+        const deposit = snap("deposit", needed);
+
+        if (needed > MIN_TOPUP_GHS && deposit !== null) {
           hints.push({
             tone: "good",
             message:
               `🟢 Top up ${wallet.name} with ${formatGhs(deposit)} to reach ` +
               `${TARGET_PCT}% capacity.`,
             detail: `Deposit ${formatGhs(deposit)} (Round number for human behavior).`,
+            action: { walletId: wallet.id, kind: "deposit", amount: deposit },
           });
         }
       } else if (share > HIGH_PCT) {
-        hints.push({ tone: "bad", message: `🔴 Withdraw from ${wallet.name} to protect funds.` });
+        // Protect funds by moving the excess back to 25%, in a single believable withdrawal.
+        const excess = wallet.balance - target;
+        const withdrawal = snap("withdrawal", excess);
+
+        hints.push({
+          tone: "bad",
+          message: `🔴 Withdraw from ${wallet.name} to protect funds.`,
+          detail:
+            withdrawal !== null
+              ? `Withdraw ${formatGhs(withdrawal)} to return to ${TARGET_PCT}% capacity.`
+              : "Balance is above the safe band; withdraw when the amount is worth it.",
+          action:
+            withdrawal !== null
+              ? { walletId: wallet.id, kind: "withdrawal", amount: withdrawal }
+              : undefined,
+        });
       }
     }
   }
@@ -68,10 +103,19 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
     (wallet) => wallet.name.toLowerCase() === SPECIAL_BOOKIE.toLowerCase(),
   );
   if (betboro && betboro.balance > 0) {
+    const withdrawal = snap("withdrawal", betboro.balance);
     hints.push({
       tone: "bad",
       message:
         "🚨 BetBoro Warning: Withdraw profits immediately to avoid slow withdrawal limits.",
+      detail:
+        withdrawal !== null
+          ? `Withdraw ${formatGhs(withdrawal)} now (${TRANSFER_STEP} GHS steps look natural).`
+          : undefined,
+      action:
+        withdrawal !== null
+          ? { walletId: betboro.id, kind: "withdrawal", amount: withdrawal }
+          : undefined,
     });
   }
 
@@ -79,11 +123,20 @@ function buildHints(wallets: Wallet[], staked: number): { bankroll: number; hint
 }
 
 /** Capital rebalancing hints: per-bookie share of the portfolio plus top-up/withdraw advice. */
-const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHintsProps) => {
+const RebalancingHints = ({
+  payload,
+  error,
+  loading,
+  simulation,
+  onTransfer,
+}: RebalancingHintsProps) => {
   const wallets = payload?.wallets ?? [];
   const staked = payload?.liquidity.staked ?? 0;
   const { bankroll, hints } = buildHints(wallets, staked);
   const shareOf = (balance: number) => (bankroll > 0 ? (balance / bankroll) * 100 : 0);
+
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
 
   // Ticks once a minute so the morning window opens and closes without a reload.
   const [now, setNow] = useState(() => Date.now());
@@ -102,6 +155,22 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
       ? (lowBookies[0] ?? "")
       : `${lowBookies.slice(0, -1).join(", ")} and ${lowBookies[lowBookies.length - 1]}`;
 
+  const run = async (hint: Hint) => {
+    if (!hint.action) return;
+    const { walletId, kind, amount } = hint.action;
+    const key = `${walletId}:${kind}`;
+
+    setBusyKey(key);
+    setProblem(null);
+    try {
+      await onTransfer(walletId, kind, amount);
+    } catch (err) {
+      setProblem((err as Error).message);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   return (
     <section className="rebalance-panel">
       <header className="rebalance-header">
@@ -110,12 +179,14 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
           <p className="rebalance-subtitle">
             Keep each bookie between {LOW_PCT}% and {HIGH_PCT}% of the{" "}
             {simulation ? "simulation" : "real"} portfolio ({formatGhs(bankroll)} — cash plus
-            stakes in play). Top-ups aim for {TARGET_PCT}%.
+            stakes in play). Transfers move GHS {MIN_TRANSFER}–{MAX_TRANSFER} in {TRANSFER_STEP}{" "}
+            steps, one per bookie every 10 minutes.
           </p>
         </div>
       </header>
 
       {error && <p className="rebalance-error">{error}</p>}
+      {problem && <p className="rebalance-error">{problem}</p>}
 
       {isMorning && lowBookies.length > 0 && (
         <p className="rebalance-morning" role="status">
@@ -156,6 +227,22 @@ const RebalancingHints = ({ payload, error, loading, simulation }: RebalancingHi
                 <li className={`rebalance-hint ${hint.tone}`} key={hint.message}>
                   {hint.message}
                   {hint.detail && <span className="rebalance-hint-detail">{hint.detail}</span>}
+                  {hint.action && (
+                    <button
+                      type="button"
+                      className={`rebalance-action ${
+                        hint.action.kind === "deposit" ? "deposit" : "withdraw"
+                      }`}
+                      onClick={() => void run(hint)}
+                      disabled={busyKey === `${hint.action.walletId}:${hint.action.kind}`}
+                    >
+                      {busyKey === `${hint.action.walletId}:${hint.action.kind}`
+                        ? "Recording…"
+                        : `${hint.action.kind === "deposit" ? "Top up" : "Withdraw"} ${formatGhs(
+                            hint.action.amount,
+                          )}`}
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
