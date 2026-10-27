@@ -130,10 +130,22 @@ const ActiveBetsLedger = ({
                   </span>
                 </div>
 
-                {bet.createdAt && (
+                {bet.kickoff != null ? (
                   <span className="active-bet-when">
-                    {new Date(bet.createdAt).toLocaleString("en-GB")}
+                    Kickoff {new Date(bet.kickoff).toLocaleString("en-GB", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
+                ) : (
+                  bet.createdAt && (
+                    <span className="active-bet-when">
+                      Placed {new Date(bet.createdAt).toLocaleString("en-GB")}
+                    </span>
+                  )
                 )}
 
                 <ul className="active-bet-legs">

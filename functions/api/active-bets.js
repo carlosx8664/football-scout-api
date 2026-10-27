@@ -27,6 +27,8 @@ function toActiveBet(row) {
     },
     profitPercent: round2(Number(row.profit_percent)),
     createdAt: row.created_at ?? null,
+    /** Epoch ms from the arb feed; null for bets logged before kickoff was stored. */
+    kickoff: Number.isFinite(Number(row.kickoff)) ? Number(row.kickoff) : null,
     isSimulation: row.is_simulation === 1,
   };
 }
@@ -44,7 +46,7 @@ export async function onRequestGet({ request, env }) {
         `SELECT id, event_name,
                 bookie_a_name, bookie_a_odds, bookie_a_stake,
                 bookie_b_name, bookie_b_odds, bookie_b_stake,
-                profit_percent, is_simulation, created_at
+                profit_percent, is_simulation, created_at, kickoff
            FROM active_bets
           WHERE is_simulation = ?
           ORDER BY created_at DESC`,
@@ -111,6 +113,9 @@ export async function onRequestPost({ request, env }) {
   const profitPercent = round2(((worstPayout - total) / total) * 100);
   const simulation = parseSimulation(body?.simulation);
   const id = crypto.randomUUID();
+  // Kickoff comes from the arb feed so the card can show when the match starts.
+  const kickoff = Number(body?.kickoff);
+  const kickoffValue = Number.isFinite(kickoff) && kickoff > 0 ? Math.round(kickoff) : null;
 
   try {
     // A bookie can appear on both legs; group the stakes before checking the balance.
@@ -165,8 +170,8 @@ export async function onRequestPost({ request, env }) {
              id, event_name,
              bookie_a_name, bookie_a_odds, bookie_a_stake,
              bookie_b_name, bookie_b_odds, bookie_b_stake,
-             profit_percent, is_simulation
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             profit_percent, is_simulation, kickoff
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -179,6 +184,7 @@ export async function onRequestPost({ request, env }) {
           legB.stake,
           profitPercent,
           modeValue(simulation),
+          kickoffValue,
         ),
     ]);
 
@@ -188,6 +194,7 @@ export async function onRequestPost({ request, env }) {
         eventName,
         profitPercent,
         totalStake: total,
+        kickoff: kickoffValue,
         simulation,
         legs: [
           { name: legA.name, odds: legA.odds, stake: legA.stake },

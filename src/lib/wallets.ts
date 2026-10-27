@@ -35,11 +35,6 @@ export function updateWalletBalance(id: string, balance: number, simulation: boo
   });
 }
 
-/** Puts the four simulation wallets back to 250 GHS each (1,000 GHS total). */
-export function resetSimulationWallets() {
-  return request("/api/wallets/reset", { method: "POST" });
-}
-
 export function formatGhs(amount: number) {
   return `GHS ${amount.toLocaleString("en-GH", {
     minimumFractionDigits: 2,
@@ -69,14 +64,11 @@ export async function createTransfer(
   amount: number,
   simulation: boolean,
 ): Promise<WalletsPayload> {
-  const response = await fetch(
-    `/api/wallets/${encodeURIComponent(walletId)}/transfers`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, amount, simulation }),
-    },
-  );
+  const response = await fetch(`/api/wallets/${encodeURIComponent(walletId)}/transfers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind, amount, simulation }),
+  });
 
   const payload = (await response.json().catch(() => null)) as
     | (WalletsPayload & { error?: string })

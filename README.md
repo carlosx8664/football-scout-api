@@ -51,14 +51,13 @@ functions/api/standings.js     GET /api/standings - league table via football-da
 functions/api/bet-builder/extract.js  POST /api/bet-builder/extract - screenshot -> matched legs
 functions/api/wallets.js       GET /api/wallets - wallets + available liquidity for one mode
 functions/api/wallets/[id].js  PATCH /api/wallets/:id - log a deposit / withdrawal
-functions/api/wallets/reset.js POST /api/wallets/reset - simulation wallets back to 1,000 GHS
 functions/api/wallets/[id]/transfers.js  POST - log a deposit/withdrawal (human-sized amounts)
 functions/api/wallets/refresh.js POST /api/wallets/refresh - wipe a mode's ledger and reopen wallets
 functions/api/transfers.js    GET /api/transfers - cash-flow ledger + totals
 functions/api/active-bets.js  POST /api/active-bets - log a two-leg arb into the ledger
 functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result to history
 functions/api/history.js      GET /api/history - settled arbs by date range + weekly outlay
-migrations/                    D1 schema + seed (wallets, active_bets)
+migrations/                    D1 schema + seed (wallets, active_bets, history, wallet_transfers)
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro / BoltBet into data/*.json
 scripts/fetch-betpawa.js       Playwright scrape of BetPawa, incl. kickoff parsing -> data/betpawa.json
 scripts/fetch-soccabet.js      Playwright + socket capture of Soccabet (isd.js) -> data/soccabet.json
@@ -180,9 +179,8 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `PATCH /api/wallets/:id` | Set a wallet balance (`balance`) or apply a `delta`, scoped to that mode's `is_simulation` |
 | `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`): round 50 GHS steps, 50–500 per movement, one per bookie every 10 minutes |
 | `GET /api/transfers` | Deposit/withdrawal ledger for one mode with totals (count, deposited, withdrawn, net) |
-| `POST /api/wallets/reset` | Reset the four simulation wallets to 250 GHS each (1,000 GHS total) |
 | `POST /api/wallets/refresh` | Start afresh: deletes active bets, history and cash-flow rows for the mode (`scope: "all"` for both) and re-opens every wallet at one balance |
-| `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet, as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
+| `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet (with the match kickoff), as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
 | `GET /api/active-bets` | Unsettled bets for one mode (`?simulation=1` or `0`), newest first |
 | `DELETE /api/active-bets/:id` | Cancels a logged bet: refunds both stakes to their bookies, deletes the row and writes a zero-profit `cancelled` row to `history` |
 | `POST /api/active-bets/:id/settle` | `{ outcome }` → `win` (`winner`) pays `stake × odds`; `void` (`voided`, plus `remaining`/`cashOutAmount` for a single cancelled leg) refunds the cancelled stake(s); `cashout` (`winner`, `cashOutAmount`) credits the manual amount. Writes `history` (with `settlement_type`), deletes the bet |
@@ -482,7 +480,7 @@ cd ../.. && npm run worker:deploy
   bets/history/cash-flow and re-opens every wallet at the plan's per-bookie balance), then
   **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals, available
   liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit (SUM of
-  `history` net profit) and the simulation reset button. Wallets are provisioned automatically for
+  `history` net profit). Wallets are provisioned automatically for
   every bookmaker in `BOOKMAKERS` (`shared/deeplinks.js`), so a newly added bookie appears with a
   zero balance. The **Active Bets** column on the right pages **two bets at a time** (Prev/Next with
   a page counter) and lists each with a **Settle** button that opens a wizard: **Normal Win**,

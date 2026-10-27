@@ -1,10 +1,7 @@
 import { useState } from "react";
-import { formatGhs, resetSimulationWallets, updateWalletBalance } from "../lib/wallets";
+import { formatGhs, updateWalletBalance } from "../lib/wallets";
 import type { WalletsPayload } from "../types";
 import "./WalletsPanel.css";
-
-/** Four simulation wallets at 250 GHS each. */
-const SIMULATION_RESET_TOTAL = 1_000;
 
 interface EditState {
   id: string;
@@ -12,16 +9,16 @@ interface EditState {
 }
 
 /**
- * "My Wallets" section: balances from D1, click-to-edit deposits/withdrawals, the available
- * liquidity summary, and the simulation reset button. The dashboard owns the fetch so the page
- * only calls GET /api/wallets once; writes report the fresh payload back up.
+ * "My Wallets" section: balances from D1, click-to-edit deposits/withdrawals and the liquidity
+ * summary. The dashboard owns the fetch so the page only calls GET /api/wallets once; writes
+ * report the fresh payload back up.
  */
 interface WalletsPanelProps {
   payload: WalletsPayload | null;
   error: string | null;
   loading: boolean;
   simulation: boolean;
-  /** Fresh payload after a PATCH/reset, already tagged with its own mode. */
+  /** Fresh payload after a PATCH, already tagged with its own mode. */
   onPayload: (payload: WalletsPayload) => void;
   onError: (message: string | null, simulation: boolean) => void;
 }
@@ -36,7 +33,6 @@ const WalletsPanel = ({
 }: WalletsPanelProps) => {
   const [edit, setEdit] = useState<EditState | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [resetting, setResetting] = useState(false);
 
   const save = async (walletId: string, rawValue: string) => {
     const balance = Number(rawValue);
@@ -58,26 +54,6 @@ const WalletsPanel = ({
     }
   };
 
-  const reset = async () => {
-    const confirmed = window.confirm(
-      `Reset the 4 simulation wallets to ${SIMULATION_RESET_TOTAL.toLocaleString("en-GH")} GHS ` +
-        "(250 GHS each)?",
-    );
-    if (!confirmed) return;
-
-    setResetting(true);
-    try {
-      const next = await resetSimulationWallets();
-      onPayload(next);
-      onError(null, true);
-      setEdit(null);
-    } catch (err) {
-      onError((err as Error).message, true);
-    } finally {
-      setResetting(false);
-    }
-  };
-
   const wallets = payload?.wallets ?? [];
   const liquidity = payload?.liquidity ?? null;
   return (
@@ -87,8 +63,8 @@ const WalletsPanel = ({
           <h2>My Wallets</h2>
           <p className="wallets-subtitle">
             {simulation
-              ? "Simulated bookmaker balances — click a balance to log a deposit or withdrawal."
-              : "Real bookmaker balances — click a balance to log a deposit or withdrawal."}
+              ? "Simulated bookmaker balances â€” click a balance to log a deposit or withdrawal."
+              : "Real bookmaker balances â€” click a balance to log a deposit or withdrawal."}
           </p>
         </div>
         <span className={`wallets-mode ${simulation ? "sim" : "real"}`}>
@@ -124,7 +100,7 @@ const WalletsPanel = ({
       )}
 
       {loading ? (
-        <p className="wallets-empty">Loading wallets…</p>
+        <p className="wallets-empty">Loading walletsâ€¦</p>
       ) : !payload ? null : wallets.length === 0 ? (
         <p className="wallets-empty">
           No {simulation ? "simulation" : "real"} wallets found. Apply the D1 migration
@@ -169,7 +145,7 @@ const WalletsPanel = ({
                     type="submit"
                     disabled={savingId === wallet.id}
                   >
-                    {savingId === wallet.id ? "Saving…" : "Save"}
+                    {savingId === wallet.id ? "Savingâ€¦" : "Save"}
                   </button>
                   <button className="wallet-cancel" type="button" onClick={() => setEdit(null)}>
                     Cancel
@@ -192,19 +168,6 @@ const WalletsPanel = ({
             </li>
           ))}
         </ul>
-      )}
-
-      {simulation && (
-        <button
-          className="wallets-reset"
-          type="button"
-          onClick={() => void reset()}
-          disabled={resetting}
-        >
-          {resetting
-            ? "Resetting…"
-            : `Reset Simulation Wallets to ${SIMULATION_RESET_TOTAL.toLocaleString("en-GH")} GHS`}
-        </button>
       )}
     </section>
   );

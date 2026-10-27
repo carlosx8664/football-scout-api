@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
 import ArbCalculator from "./ArbCalculator";
+import { DEFAULT_STAKE } from "../lib/bankroll";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 // Shared with scripts/push-notify.js so a notification tap finds the same card.
@@ -40,6 +41,14 @@ const REFRESH_MS = 5 * 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
 const ROUNDING_STEPS = [5, 10, 20, 50, 100, 200];
+/** Stakes are always rounded, so there is no "none" option. */
+const DEFAULT_ROUNDING = 10;
+
+/** Largest configured step that still fits inside `total`, else the smallest step we offer. */
+function fittingStep(total: number): number {
+  const fitting = ROUNDING_STEPS.filter((step) => step <= total);
+  return fitting.length > 0 ? fitting[fitting.length - 1] : ROUNDING_STEPS[0];
+}
 
 /**
  * Rounds each leg to a multiple of `step` while keeping the pair within the requested total.
@@ -213,8 +222,8 @@ const UpArrow = () => (
 const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
-  const [totalStake, setTotalStake] = useState(100);
-  const [rounding, setRounding] = useState(0);
+  const [totalStake, setTotalStake] = useState(DEFAULT_STAKE);
+  const [rounding, setRounding] = useState(DEFAULT_ROUNDING);
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { enabled: simulation } = useSimulation();
@@ -399,8 +408,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     const next = Number(event.target.value);
                     const value = Number.isFinite(next) ? Math.max(0, next) : 0;
                     setTotalStake(value);
-                    // A rounding step larger than the stake cannot be honoured.
-                    setRounding((current) => (current > value ? 0 : current));
+                    // A rounding step larger than the stake cannot be honoured, so fall back to
+                    // the largest step that still fits.
+                    setRounding((current) => (current > value ? fittingStep(value) : current));
                   }}
                 />
 
@@ -410,9 +420,12 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   value={rounding}
                   onChange={(event) => setRounding(Number(event.target.value))}
                 >
-                  <option value={0}>None</option>
                   {ROUNDING_STEPS.map((step) => (
-                    <option key={step} value={step} disabled={step > totalStake}>
+                    <option
+                      key={step}
+                      value={step}
+                      disabled={step > totalStake && step !== rounding}
+                    >
                       {step}
                     </option>
                   ))}
@@ -579,9 +592,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                   ? `Updated ${new Date(feed.generatedAt).toLocaleString("en-GB")} · `
                   : ""}
                 {liveRows.length} {liveRows.length === 1 ? "opportunity" : "opportunities"}
-                {rounding > 0
-                  ? ` · Stakes scaled from ${totalStake.toFixed(2)}, rounded to nearest ${rounding}`
-                  : ` · Stakes scaled to ${totalStake.toFixed(2)} in total`}
+                {` · Stakes scaled from ${totalStake.toFixed(2)}, rounded to nearest ${rounding}`}
               </p>
             </div>
               </>

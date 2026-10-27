@@ -243,6 +243,8 @@ export interface LogArbInput {
   /** The `active_bets` table stores exactly two legs (bookie A and bookie B). */
   legs: [LogArbLegInput, LogArbLegInput];
   simulation: boolean;
+  /** Epoch milliseconds, taken from the arb feed so the card shows the match start. */
+  kickoff?: number;
 }
 
 export interface LogArbResult {
@@ -251,6 +253,7 @@ export interface LogArbResult {
   /** Recomputed server-side from the saved stakes and prices. */
   profitPercent: number;
   totalStake: number;
+  kickoff: number | null;
   simulation: boolean;
   legs: LogArbLegInput[];
 }
@@ -269,6 +272,8 @@ export interface ActiveBetRecord {
   legB: ActiveBetLegRecord;
   profitPercent: number;
   createdAt: string | null;
+  /** Match kickoff in epoch ms; null for bets logged before it was stored. */
+  kickoff: number | null;
   isSimulation: boolean;
 }
 

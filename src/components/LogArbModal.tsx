@@ -102,6 +102,7 @@ const LogArbModal = ({
           { name: legs[1].bookmaker, odds: legs[1].odds, stake: numbers[1] },
         ],
         simulation,
+        kickoff: Number.isFinite(arb.kickoff) ? arb.kickoff : undefined,
       });
       setSaving(false);
       onSaved();
