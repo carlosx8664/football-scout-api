@@ -23,6 +23,11 @@ export const DEFAULT_RISK_PROFILE: RiskProfileKey = "balanced";
 export const FLOAT_MULTIPLE = 2;
 /** Deposits in round steps look human; precise amounts look automated. */
 export const BLEND_STEP = 50;
+/**
+ * Opening deposits are also round: the per-bookie share is rounded DOWN to this step so the
+ * deposits never add up to more than the bankroll. The leftover becomes unallocated cash.
+ */
+export const OPENING_STEP = 50;
 /** Share of the bankroll each bookie should hold when everything is balanced. */
 export const BOOKIE_SHARE_PCT = 25;
 
@@ -34,6 +39,22 @@ export const BOOKIE_SHARE_PCT = 25;
 export function blendInAmount(amount: number): number {
   if (!Number.isFinite(amount) || amount <= 0) return 0;
   return Math.max(BLEND_STEP, Math.round(amount / BLEND_STEP) * BLEND_STEP);
+}
+
+/**
+ * Per-bookie opening deposit: the exact share rounded DOWN to a round step, so N deposits can
+ * never exceed the bankroll. 10,000 across 6 bookies -> 1,650 each.
+ */
+export function openingBalanceFor(perWallet: number): number {
+  if (!Number.isFinite(perWallet) || perWallet <= 0) return 0;
+  return Math.max(0, Math.floor(perWallet / OPENING_STEP) * OPENING_STEP);
+}
+
+/** Bankroll that N round deposits leave behind — the mobile-money wallet. */
+export function unallocatedFor(bankroll: number, perWallet: number, wallets: number): number {
+  const safeBankroll = Math.max(0, Number(bankroll) || 0);
+  const count = Math.max(0, wallets);
+  return Math.max(0, Math.round((safeBankroll - openingBalanceFor(perWallet) * count) * 100) / 100);
 }
 
 export interface BankrollSettings {

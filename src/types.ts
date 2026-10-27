@@ -216,6 +216,8 @@ export interface WalletsPayload {
   currency: string;
   wallets: Wallet[];
   liquidity: LiquiditySummary;
+  /** Mobile-money wallet: bankroll not sitting in a bookie account. */
+  cashReserve: number;
   /** SUM(net_profit) over `history` for the same mode. */
   totalProfit: number;
   /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
@@ -225,6 +227,43 @@ export interface WalletsPayload {
   pendingSettlement: {
     windowHours: number;
     bookies: string[];
+  };
+}
+
+/** One mug bet: a small single on a real match, kept to keep the account looking human. */
+export interface MugBet {
+  id: string;
+  bookie: string;
+  eventName: string;
+  stake: number;
+  odds: number;
+  status: "open" | "won" | "lost";
+  payout: number;
+  createdAt: string;
+  settledAt: string | null;
+}
+
+export interface MugTotals {
+  count: number;
+  open: number;
+  staked: number;
+  returned: number;
+  /** Stakes out minus payouts back — what the habit has cost. */
+  net: number;
+}
+
+export interface MugBetsPayload {
+  simulation: boolean;
+  mugBets: MugBet[];
+  totals: MugTotals;
+}
+
+/** Result of POST /api/wallets/cash-out. */
+export interface CashOutResult extends WalletsPayload {
+  cashOut: {
+    total: number;
+    bookies: Array<{ bookie: string; amount: number }>;
+    reserve: number;
   };
 }
 
@@ -356,6 +395,9 @@ export interface HistoryPayload {
   simulation: boolean;
   entries: HistoryEntry[];
   totals: HistoryTotals;
+  /** Mug bets in the same window — kept apart from the arb entries above. */
+  mugBets: MugBet[];
+  mugTotals: MugTotals;
 }
 
 /* ------------------------------------------------------------------ *

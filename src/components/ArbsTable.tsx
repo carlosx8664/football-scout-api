@@ -44,10 +44,19 @@ const ROUNDING_STEPS = [5, 10, 20, 50, 100, 200];
 /** Stakes are always rounded, so there is no "none" option. */
 const DEFAULT_ROUNDING = 10;
 
-/** Largest configured step that still fits inside `total`, else the smallest step we offer. */
+/**
+ * Largest configured step that can round both legs without pushing the outlay past `total`.
+ * A step bigger than half the stake would have to round a leg up past its budget.
+ */
 function fittingStep(total: number): number {
-  const fitting = ROUNDING_STEPS.filter((step) => step <= total);
+  const ceiling = total / LEGS_PER_MATCH;
+  const fitting = ROUNDING_STEPS.filter((step) => step <= ceiling);
   return fitting.length > 0 ? fitting[fitting.length - 1] : ROUNDING_STEPS[0];
+}
+
+/** The rounding a stake should use: the default when it fits both legs, else the widest that does. */
+function stepFor(total: number): number {
+  return DEFAULT_ROUNDING <= total / LEGS_PER_MATCH ? DEFAULT_ROUNDING : fittingStep(total);
 }
 
 /**
@@ -226,7 +235,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   const { settings } = useBankroll();
   const planStake = computePlan(settings).stake;
   const [totalStake, setTotalStake] = useState(planStake);
-  const [rounding, setRounding] = useState(DEFAULT_ROUNDING);
+  // Rounding is not derived from the plan — it stays at the default unless that step would not
+  // fit inside a leg (a small bankroll can produce a stake below 20).
+  const [rounding, setRounding] = useState(() => stepFor(planStake));
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { enabled: simulation } = useSimulation();
@@ -247,8 +258,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   if (planStake !== syncedPlanStake) {
     setSyncedPlanStake(planStake);
     setTotalStake(planStake);
-    // A rounding step larger than the new stake cannot be honoured.
-    setRounding((current) => (current > planStake ? fittingStep(planStake) : current));
+    // A rounding step wider than one leg cannot be honoured.
+    setRounding((current) =>
+      current > planStake / LEGS_PER_MATCH ? stepFor(planStake) : current,
+    );
   }
 
   // A push notification deep-links to /arbs?arb=<key>. Read it once on mount, then highlight
@@ -421,9 +434,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     const next = Number(event.target.value);
                     const value = Number.isFinite(next) ? Math.max(0, next) : 0;
                     setTotalStake(value);
-                    // A rounding step larger than the stake cannot be honoured, so fall back to
-                    // the largest step that still fits.
-                    setRounding((current) => (current > value ? fittingStep(value) : current));
+                    // A rounding step wider than one leg cannot be honoured.
+                    setRounding((current) =>
+                      current > value / LEGS_PER_MATCH ? stepFor(value) : current,
+                    );
                   }}
                 />
 
@@ -437,7 +451,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     <option
                       key={step}
                       value={step}
-                      disabled={step > totalStake && step !== rounding}
+                      // A step wider than one leg cannot be honoured; the selected one stays.
+                      disabled={step > totalStake / LEGS_PER_MATCH && step !== rounding}
                     >
                       {step}
                     </option>

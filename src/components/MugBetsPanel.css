@@ -1,0 +1,263 @@
+.mugbets-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  background: var(--color-neutral-1);
+}
+
+.mugbets-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mugbets-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-neutral-7);
+}
+
+.mugbets-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
+
+.mugbets-count {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+}
+
+/* The habit itself: a rule of thumb, not a statistic. */
+.mugbets-tip {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--color-brand-weak-elevated);
+  background: var(--color-brand-weak);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--color-brand-4);
+}
+
+.mugbets-tip strong {
+  font-weight: 800;
+}
+
+.mugbets-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.mugbets-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mugbets-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mugbets-form label.grow {
+  grid-column: 1 / -1;
+}
+
+.mugbets-form span {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+
+.mugbets-form input,
+.mugbets-form select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  background: var(--color-neutral-1);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+}
+
+.mugbets-form input:focus,
+.mugbets-form select:focus {
+  outline: 2px solid var(--color-brand-weak-elevated);
+  border-color: var(--color-brand);
+}
+
+.mugbets-add {
+  grid-column: 1 / -1;
+  padding: 8px 12px;
+  border: 1px solid var(--color-brand);
+  border-radius: 8px;
+  background: var(--color-brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mugbets-add:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.mugbets-add:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mugbets-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.72rem;
+  color: var(--color-neutral-6);
+}
+
+.mugbets-totals strong {
+  color: var(--color-neutral-7);
+  font-weight: 800;
+}
+
+.mugbets-totals .cost strong {
+  color: #b91c1c;
+}
+
+.mugbets-empty {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--color-neutral-6);
+}
+
+.mugbets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mugbets-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+  font-size: 0.76rem;
+}
+
+.mugbets-row.lost {
+  opacity: 0.72;
+}
+
+.mugbets-bookie {
+  font-weight: 800;
+  color: var(--color-neutral-7);
+  white-space: nowrap;
+}
+
+.mugbets-event {
+  color: var(--color-neutral-6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mugbets-stake {
+  color: var(--color-neutral-6);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mugbets-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+}
+
+.mugbets-actions button {
+  flex: 1;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--color-neutral-4);
+  background: var(--color-neutral-1);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mugbets-won {
+  color: #15803d;
+  border-color: #86efac;
+}
+
+.mugbets-won:hover:not(:disabled) {
+  background: #f0fdf4;
+}
+
+.mugbets-lost {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.mugbets-lost:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.mugbets-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.mugbets-status {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.mugbets-status.won {
+  color: #15803d;
+}
+
+.mugbets-status.lost {
+  color: #b91c1c;
+}
+
+.mugbets-when {
+  color: var(--color-neutral-6);
+  font-weight: 600;
+}

@@ -188,6 +188,10 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `GET /api/push/key` | VAPID public key for Web Push subscriptions; 503 until `VAPID_PUBLIC_KEY` is set |
 | `POST /api/push/subscribe` | Stores one browser's push subscription in KV (`push-sub:<fingerprint>`), tagged with the origin it was created on |
 | `POST /api/push/unsubscribe` | Drops a subscription by endpoint |
+| `POST /api/wallets/cash-out` | Withdraws every bookie's balance above `baseTarget` into the cash reserve, rounded down to whole 50s |
+| `GET /api/mug-bets` | Mug bets for one mode (open first) plus lifetime totals |
+| `POST /api/mug-bets` | Logs a mug bet and debits the stake from that bookie |
+| `POST /api/mug-bets/:id/settle` | `{ won }` ? a win credits `stake ? odds` back to the bookie, a loss changes nothing |
 
 `/api/matches` returns the payload produced by `scripts/build-match-feed.js`:
 
@@ -534,6 +538,22 @@ pending bets is deliberately excluded, so placing a bet cannot by itself trigger
 Bookies with an unsettled bet placed in the last 4 hours
 (`payload.pendingSettlement`, from `active_bets.created_at`) are skipped entirely and shown as
 *in play* until that stake settles.
+
+**Cash flow, unallocated cash and weekly withdrawals.** `wallet_transfers` is the deposit/
+withdrawal ledger. `cash_reserve` holds one row per mode: the mobile-money wallet, i.e. bankroll
+that is not sitting in a bookie account.
+
+- **Start afresh** rounds each wallet's opening deposit DOWN to a round 50
+  (`openingBalanceFor`), so 10,000 across 6 bookies becomes 6 ? 1,650 = 9,900 with the remaining
+  100 parked in `cash_reserve`. The exact per-bookie target (1,666.67) is still shown ? only the
+  deposit is rounded.
+- **Withdraw Weekly Profits** keeps `baseTarget` (the plan's opening deposit) in every bookie and
+  sweeps the excess into `cash_reserve`, rounded down to whole 50s. A 1,750 balance against a
+  1,650 base withdraws 100. The sweep deliberately skips the manual buttons' 50?500 cap and
+  10-minute cooldown: one deliberate weekly action is not a bot pattern.
+- **Mug bets** live in `mug_bets`, separate from `history` so arb profit stays a pure measure of
+  the arbitrage book. Logging one debits the stake; settling a win credits `stake ? odds` back.
+  History reports "arb profit vs net mug cost" for the selected window instead of merging them.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
 inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` on mount,

@@ -3,6 +3,8 @@ import {
   RISK_PROFILES,
   blendInAmount,
   computePlan,
+  openingBalanceFor,
+  unallocatedFor,
   useBankroll,
   type RiskProfileKey,
 } from "../lib/bankroll";
@@ -53,8 +55,10 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
     setSettings({ ...settings, riskProfile: key });
   };
 
-  // Opening balance: the plan's per-bookie target, so a refresh reproduces the plan exactly.
-  const openingBalance = Math.max(0, Math.round(plan.perWallet * 100) / 100);
+  // Opening balance: the plan's per-bookie target rounded DOWN to a round 50, so the deposits
+  // never exceed the bankroll. Whatever is left over stays as unallocated (mobile-money) cash.
+  const openingBalance = openingBalanceFor(plan.perWallet);
+  const unallocated = unallocatedFor(plan.bankroll, plan.perWallet, wallets.length);
   // What to actually key into a bookie app: exact maths above, round number here.
   const blendIn = blendInAmount(plan.perWallet);
 
@@ -64,9 +68,10 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         "This deletes:\n" +
         "• every active bet\n" +
         "• the whole settled history\n" +
-        "• every deposit/withdrawal record\n\n" +
+        "• every deposit/withdrawal record\n" +
+        "• every mug bet\n\n" +
         `Each of the ${wallets.length} wallets is then set to ${formatGhs(openingBalance)}` +
-        (blendIn > 0 ? ` (deposit ${formatGhsWhole(blendIn)} in the app)` : "") +
+        (unallocated > 0 ? `, leaving ${formatGhs(unallocated)} as unallocated cash` : "") +
         " and the page reloads from a clean slate. This cannot be undone.",
     );
     if (!confirmed) return;
@@ -225,10 +230,10 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         <div>
           <strong>Start afresh</strong>
           <p>
-            Clears active bets, settled history and cash-flow rows for the{" "}
+            Clears active bets, settled history, cash-flow rows and mug bets for the{" "}
             {simulation ? "simulation" : "real"} ledger, then sets all {wallets.length} wallets to{" "}
             {formatGhs(openingBalance)}
-            {blendIn > 0 && ` (deposit ${formatGhsWhole(blendIn)} in the app)`}.
+            {unallocated > 0 && ` and leaves ${formatGhs(unallocated)} unallocated`}.
           </p>
         </div>
         <button

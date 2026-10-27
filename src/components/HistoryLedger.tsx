@@ -92,6 +92,8 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
   const loading = payload === null && error === null;
   const entries = payload?.entries ?? [];
   const groups = useMemo(() => groupByDay(entries), [entries]);
+  /** Arb profit for the chosen window, to sit next to what the mug bets cost. */
+  const arbProfit = entries.reduce((sum, entry) => sum + entry.netProfit, 0);
 
   return (
     <section className="history-panel">
@@ -241,6 +243,54 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {payload && payload.mugTotals.count > 0 && (
+        <div className="history-mug">
+          <header className="history-mug-header">
+            <h3>Mug bets vs arb profit</h3>
+            <span className="history-mug-hint">what the habit costs, in the same window</span>
+          </header>
+
+          <div className="history-mug-metrics">
+            <div className="history-mug-metric">
+              <span>Arb profit</span>
+              <strong className={arbProfit < 0 ? "negative" : "positive"}>
+                {formatGhs(arbProfit)}
+              </strong>
+            </div>
+            <div className="history-mug-metric">
+              <span>Mug staked</span>
+              <strong>{formatGhs(payload.mugTotals.staked)}</strong>
+            </div>
+            <div className="history-mug-metric">
+              <span>Mug returned</span>
+              <strong>{formatGhs(payload.mugTotals.returned)}</strong>
+            </div>
+            <div className="history-mug-metric">
+              <span>Net mug cost</span>
+              <strong className={payload.mugTotals.net > 0 ? "negative" : "positive"}>
+                {formatGhs(payload.mugTotals.net)}
+              </strong>
+            </div>
+          </div>
+
+          <ul className="history-mug-list">
+            {payload.mugBets.slice(0, 8).map((bet) => (
+              <li key={bet.id}>
+                <span className="history-mug-bookie">{bet.bookie}</span>
+                <span className="history-mug-event">{bet.eventName}</span>
+                <span className={`history-mug-status ${bet.status}`}>
+                  {bet.status === "open"
+                    ? "open"
+                    : bet.status === "won"
+                      ? `won ${formatGhs(bet.payout)}`
+                      : `lost ${formatGhs(bet.stake)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </section>

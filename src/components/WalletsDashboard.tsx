@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from "react";
+import { computePlan, openingBalanceFor, useBankroll } from "../lib/bankroll";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
-import { createTransfer, fetchWallets, formatGhs, refreshWallets } from "../lib/wallets";
+import {
+  cashOutWeeklyProfits,
+  createTransfer,
+  fetchWallets,
+  formatGhs,
+  refreshWallets,
+} from "../lib/wallets";
 import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
 import CashFlowPanel from "./CashFlowPanel";
 import HistoryLedger from "./HistoryLedger";
 import MoneyGuide from "./MoneyGuide";
+import MugBetsPanel from "./MugBetsPanel";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
 import WalletsPanel from "./WalletsPanel";
@@ -19,6 +27,7 @@ import WalletsPanel from "./WalletsPanel";
  */
 const WalletsDashboard = () => {
   const { enabled } = useSimulation();
+  const { settings } = useBankroll();
   const { refresh: refreshNotifications } = useNotifications();
   const [refreshToken, setRefreshToken] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -98,12 +107,42 @@ const WalletsDashboard = () => {
   /** Start afresh: wipe this mode's ledger and re-open every wallet at one balance. */
   const handleStartAfresh = useCallback(
     async (openingBalance: number) => {
-      const next = await refreshWallets(enabled, openingBalance);
+      // The bankroll lets the server park the leftover as unallocated cash.
+      const next = await refreshWallets(enabled, openingBalance, "mode", settings.bankroll);
       applyPayload(next);
       setRefreshToken((current) => current + 1);
       setToast(`Fresh start: wallets reset to ${formatGhs(openingBalance)} each.`);
     },
-    [applyPayload, enabled],
+    [applyPayload, enabled, settings.bankroll],
+  );
+
+  /** Per-bookie base the weekly sweep leaves behind: the plan's rounded opening deposit. */
+  const baseTarget = (() => {
+    const wallets = payload?.wallets.length ?? 0;
+    if (wallets === 0) return 0;
+    return openingBalanceFor(computePlan(settings, wallets).perWallet);
+  })();
+
+  /** Withdraw weekly profits from every bookie into the mobile-money wallet. */
+  const handleCashOut = useCallback(async () => {
+    const next = await cashOutWeeklyProfits(enabled, baseTarget);
+    applyPayload(next);
+    setRefreshToken((current) => current + 1);
+
+    if (next.cashOut.total > 0) {
+      setToast(`Cashed out ${formatGhs(next.cashOut.total)} from ${next.cashOut.bookies.length} bookies.`);
+    } else {
+      setToast(`No profits to withdraw above ${formatGhs(baseTarget)} per bookie.`);
+    }
+  }, [applyPayload, baseTarget, enabled]);
+
+  /** Mug-bet writes return the fresh wallet payload, so balances repaint immediately. */
+  const handleMugBetChange = useCallback(
+    (next: WalletsPayload) => {
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+    },
+    [applyPayload],
   );
 
   const handleCancelled = useCallback((cancelled: CancelBetResult) => {
@@ -153,6 +192,15 @@ const WalletsDashboard = () => {
           simulation={enabled}
           refreshToken={refreshToken}
           summary={payload?.cashFlow ?? null}
+          cashReserve={payload?.cashReserve ?? 0}
+          baseTarget={baseTarget}
+          onCashOut={handleCashOut}
+        />
+        <MugBetsPanel
+          simulation={enabled}
+          refreshToken={refreshToken}
+          wallets={payload?.wallets ?? []}
+          onChanged={handleMugBetChange}
         />
       </aside>
       {toast && <Toast message={toast} />}

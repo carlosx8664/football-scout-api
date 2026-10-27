@@ -1,4 +1,4 @@
-import type { TransfersPayload, WalletsPayload } from "../types";
+import type { CashOutResult, TransfersPayload, WalletsPayload } from "../types";
 
 interface WalletErrorPayload {
   error?: string;
@@ -106,15 +106,42 @@ export async function fetchTransfers(
   return payload;
 }
 
-/** Wipes the mode's ledger (bets, history, cash flow) and re-opens every wallet at one balance. */
+/** Wipes the mode's ledger (bets, history, cash flow, mug bets) and re-opens every wallet. */
 export async function refreshWallets(
   simulation: boolean,
   openingBalance: number,
   scope: "mode" | "all" = "mode",
+  /** Total money the user has; anything above `openingBalance × wallets` becomes cash reserve. */
+  bankroll?: number,
 ): Promise<WalletsPayload> {
   return request("/api/wallets/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ simulation, openingBalance, scope }),
+    body: JSON.stringify({ simulation, openingBalance, scope, bankroll }),
   });
+}
+
+/**
+ * Withdraws every bookie's profit above `baseTarget` into the mobile-money wallet, rounding down
+ * to whole 50s. A 1,750 balance against a 1,650 base withdraws 100 and leaves exactly 1,650.
+ */
+export async function cashOutWeeklyProfits(
+  simulation: boolean,
+  baseTarget: number,
+): Promise<CashOutResult> {
+  const response = await fetch("/api/wallets/cash-out", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ simulation, baseTarget }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (CashOutResult & { error?: string })
+    | null;
+
+  if (!response.ok || !payload?.wallets) {
+    throw new Error(payload?.error ?? `Could not cash out (HTTP ${response.status}).`);
+  }
+
+  return payload;
 }

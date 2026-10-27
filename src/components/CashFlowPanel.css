@@ -135,3 +135,33 @@
 }
 .wallets-aside .cashflow-when { display: none; }
 .wallets-aside .cashflow-list { max-height: 220px; }
+
+/* Weekly sweep: the one deliberate cash-out that moves profit to mobile money. */
+.cashflow-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px;
+}
+
+.cashflow-cashout {
+  padding: 9px 12px;
+  border: 1px solid var(--color-brand);
+  border-radius: 9px;
+  background: var(--color-brand);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cashflow-cashout:hover:not(:disabled) { filter: brightness(1.05); }
+.cashflow-cashout:disabled { opacity: 0.55; cursor: default; }
+
+.cashflow-actions-hint {
+  font-size: 0.68rem;
+  color: var(--color-neutral-6);
+}
+
+.cashflow-stat.reserve strong { color: var(--color-brand-4); }

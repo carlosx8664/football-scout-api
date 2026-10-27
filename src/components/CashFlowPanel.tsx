@@ -9,6 +9,11 @@ interface CashFlowPanelProps {
   refreshToken: number;
   /** Lifetime totals already returned by GET /api/wallets, so the cards paint immediately. */
   summary: { count: number; deposited: number; withdrawn: number; net: number } | null;
+  /** Mobile-money balance: bankroll that is not sitting in a bookie account. */
+  cashReserve: number;
+  /** Per-bookie balance the weekly sweep leaves behind; 0 disables the button. */
+  baseTarget: number;
+  onCashOut: () => Promise<void>;
 }
 
 const when = (iso: string) =>
@@ -20,9 +25,17 @@ const when = (iso: string) =>
   });
 
 /** Deposit/withdrawal ledger: how much went in, how much came out, and the recent movements. */
-const CashFlowPanel = ({ simulation, refreshToken, summary }: CashFlowPanelProps) => {
+const CashFlowPanel = ({
+  simulation,
+  refreshToken,
+  summary,
+  cashReserve,
+  baseTarget,
+  onCashOut,
+}: CashFlowPanelProps) => {
   const [result, setResult] = useState<{ key: string; payload: TransfersPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
+  const [cashingOut, setCashingOut] = useState(false);
 
   const key = simulation ? "sim" : "real";
 
@@ -79,8 +92,41 @@ const CashFlowPanel = ({ simulation, refreshToken, summary }: CashFlowPanelProps
             <span>Net cash in</span>
             <strong>{formatGhs(totals.net)}</strong>
           </div>
+          <div
+            className="cashflow-stat reserve"
+            title="Bankroll that stayed in mobile money instead of going into a bookie"
+          >
+            <span>Unallocated cash</span>
+            <strong>{formatGhs(cashReserve)}</strong>
+          </div>
         </div>
       )}
+
+      <div className="cashflow-actions">
+        <button
+          type="button"
+          className="cashflow-cashout"
+          onClick={async () => {
+            setCashingOut(true);
+            try {
+              await onCashOut();
+            } finally {
+              setCashingOut(false);
+            }
+          }}
+          disabled={cashingOut || baseTarget <= 0}
+          title={
+            baseTarget > 0
+              ? `Keep ${formatGhs(baseTarget)} in each bookie and withdraw the rest`
+              : "Set a bankroll first so there is a base target to keep"
+          }
+        >
+          {cashingOut ? "Withdrawing…" : "Withdraw Weekly Profits"}
+        </button>
+        <span className="cashflow-actions-hint">
+          Keeps {formatGhs(baseTarget)} per bookie · sweeps the excess in 50s
+        </span>
+      </div>
 
       {loading ? (
         <p className="cashflow-empty">Loading cash flow…</p>

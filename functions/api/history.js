@@ -7,6 +7,10 @@ import {
   parseSimulation,
   round2,
 } from "../../shared/wallets.js";
+import {
+  loadMugBets,
+  loadMugTotals,
+} from "../../shared/mug-bets.js";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 /** Monday of the current week (UTC), to match SQLite's date() output. */
@@ -64,7 +68,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   try {
-    const [entries, totals] = await Promise.all([
+    const [entries, totals, mugRows, mugTotals] = await Promise.all([
       db
         .prepare(
           `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type,
@@ -88,6 +92,8 @@ export async function onRequestGet({ request, env }) {
         )
         .bind(mode, mode)
         .first(),
+      loadMugBets(db, simulation, { from, to }, 100),
+      loadMugTotals(db, simulation, { from, to }),
     ]);
 
     const activeOutlay = round2(Number(totals?.active_outlay ?? 0));
@@ -101,6 +107,9 @@ export async function onRequestGet({ request, env }) {
         historyOutlay,
         outlayThisWeek: round2(activeOutlay + historyOutlay),
       },
+      // Mug bets sit alongside the arbs, not inside them: `entries` stays pure arbitrage.
+      mugBets: mugRows,
+      mugTotals,
     });
   } catch (error) {
     return dbError(error);

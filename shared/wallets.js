@@ -200,11 +200,41 @@ export async function loadLiquidity(db, simulation) {
   };
 }
 
-/** Response body shared by GET /api/wallets, PATCH /api/wallets/:id and POST /api/wallets/reset. */
-export async function walletPayload(db, simulation) {
-  const mode = modeValue(simulation);
+/**
+ * Cash that is not in a bookie account — the mobile-money wallet. Seeded by "Start afresh" with
+ * the leftover from rounding opening deposits down, and topped up by weekly cash-outs.
+ */
+export async function loadCashReserve(db, simulation) {
+  const row = await db
+    .prepare("SELECT balance FROM cash_reserve WHERE is_simulation = ?")
+    .bind(modeValue(simulation))
+    .first();
 
-  const [wallets, liquidity, history, transfers, pending] = await Promise.all([
+  return round2(Number(row?.balance ?? 0));
+}
+
+/** Overwrites the reserve for one mode and returns the stored value. */
+export async function setCashReserve(db, simulation, balance) {
+  const value = Math.max(0, round2(Number(balance) || 0));
+
+  await db
+    .prepare(
+      `INSERT INTO cash_reserve (is_simulation, balance, updated_at)
+       VALUES (?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+       ON CONFLICT (is_simulation) DO UPDATE SET
+         balance = excluded.balance,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(modeValue(simulation), value)
+    .run();
+
+  return value;
+}
+
+/** Response body shared by GET /api/wallets, PATCH /api/wallets/:id and POST /api/wallets/reset. */
+export async function walletPayload(db, simulation) {  const mode = modeValue(simulation);
+
+  const [wallets, liquidity, history, transfers, pending, cashReserve] = await Promise.all([
     loadWallets(db, simulation),
     loadLiquidity(db, simulation),
     db
@@ -229,6 +259,7 @@ export async function walletPayload(db, simulation) {
       .bind(mode)
       .first(),
     loadPendingSettlement(db, simulation),
+    loadCashReserve(db, simulation),
   ]);
 
   return {
@@ -236,6 +267,8 @@ export async function walletPayload(db, simulation) {
     currency: WALLET_CURRENCY,
     wallets,
     liquidity,
+    /** Mobile-money wallet: bankroll that is not sitting in a bookie account. */
+    cashReserve,
     totalProfit: round2(Number(history?.total_profit ?? 0)),
     /** Realised profit settled today (UTC) — drives the "take a break" alert. */
     dailyProfit: round2(Number(history?.daily_profit ?? 0)),

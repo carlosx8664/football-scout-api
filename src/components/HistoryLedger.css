@@ -197,3 +197,100 @@
   text-transform: uppercase;
   vertical-align: middle;
 }
+
+/* Mug bets sit beside the arb ledger, never inside its totals. */
+.history-mug {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 10px;
+  background: var(--color-neutral-2);
+}
+
+.history-mug-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.history-mug-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-neutral-7);
+}
+
+.history-mug-hint {
+  font-size: 0.68rem;
+  color: var(--color-neutral-6);
+}
+
+.history-mug-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.history-mug-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-mug-metric > span {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+
+.history-mug-metric strong {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--color-neutral-7);
+}
+
+.history-mug-metric strong.negative { color: #b91c1c; }
+.history-mug-metric strong.positive { color: #15803d; }
+
+.history-mug-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-mug-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--color-neutral-6);
+}
+
+.history-mug-bookie {
+  font-weight: 800;
+  color: var(--color-neutral-7);
+  white-space: nowrap;
+}
+
+.history-mug-event {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-mug-status {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-mug-status.won { color: #15803d; }
+.history-mug-status.lost { color: #b91c1c; }
