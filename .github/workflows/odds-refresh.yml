@@ -44,6 +44,11 @@ jobs:
       - name: Fetch odds from BetPawa (Playwright)
         run: node scripts/fetch-betpawa.js
 
+      - name: Fetch odds from Soccabet (Playwright)
+        # New source: a failed capture keeps the previous snapshot and must not kill the run.
+        continue-on-error: true
+        run: node scripts/fetch-soccabet.js
+
       - name: Restore arb history from KV
         continue-on-error: true
         env:
@@ -60,7 +65,7 @@ jobs:
             || echo "No previous arb history in KV; starting a fresh one."
 
       - name: Build arbitrage feed and send alerts
-        run: node scripts/find-arbs.js
+        run: node scripts/find-arbs.js --alert-min=1.5
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

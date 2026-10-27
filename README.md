@@ -57,6 +57,8 @@ functions/api/active-bets/[id]/settle.js  POST - settle a bet, move the result t
 functions/api/history.js      GET /api/history - settled arbs by date range + weekly outlay
 migrations/                    D1 schema + seed (wallets, active_bets)
 scripts/fetch-odds.js          Scrapes SportyBet / MSport / BetBoro / BoltBet into data/*.json
+scripts/fetch-betpawa.js       Playwright scrape of BetPawa, incl. kickoff parsing -> data/betpawa.json
+scripts/fetch-soccabet.js      Playwright + socket capture of Soccabet (isd.js) -> data/soccabet.json
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
 src/App.tsx                    Route switch, feed loading, upcoming + league filters
@@ -132,7 +134,9 @@ Add the Actions ones under **Settings → Secrets and variables → Actions → 
 Actions → **Odds refresh** → *Run workflow*, or locally:
 
 ```bash
-node scripts/fetch-odds.js            # data/sportybet.json, data/msport.json
+node scripts/fetch-odds.js            # data/sportybet.json, data/msport.json, …
+node scripts/fetch-betpawa.js         # data/betpawa.json (Playwright)
+node scripts/fetch-soccabet.js        # data/soccabet.json (Playwright)
 node scripts/find-arbs.js             # public/arbs.json
 node scripts/build-match-feed.js --no-ai   # public/matches.json
 ```
@@ -353,10 +357,18 @@ client downscales further. Requires `DEEPSEEK_API_KEY` as a Pages secret (see st
 late under load) and publishes straight to KV, so the site never redeploys to update odds:
 
 1. Restore `feed-arbs-history` from KV into `data/arbs-history.json`
-2. `node scripts/fetch-odds.js` → `data/sportybet.json`, `data/msport.json`
-3. `node scripts/find-arbs.js` → `public/arbs.json` (with `arbs` + `history`) and `data/arbs-history.json`
-4. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
-5. The files are `PUT` into KV as `feed-matches`, `feed-arbs` and `feed-arbs-history`
+2. `node scripts/fetch-odds.js` → `data/sportybet.json`, `data/msport.json`, `data/betboro.json`, `data/boltbet.json`
+3. `node scripts/fetch-betpawa.js` → `data/betpawa.json` (Playwright; real kickoffs parsed from the card)
+4. `node scripts/fetch-soccabet.js` → `data/soccabet.json` (Playwright + socket; `continue-on-error` so a bad capture keeps the last snapshot)
+5. `node scripts/find-arbs.js --alert-min=1.5` → `public/arbs.json` (with `arbs` + `history`) and `data/arbs-history.json`
+6. `node scripts/build-match-feed.js --no-ai` → `public/matches.json`
+7. The files are `PUT` into KV as `feed-matches`, `feed-arbs` and `feed-arbs-history`
+
+Alerts: `find-arbs.js` only messages Telegram for arbs graded above the alert floor
+(`--alert-min`, default 1.5%). Anything lower, or flagged as a palpable error (>7%), stays in
+`arbs.json` but is suppressed from the phone; `TELEGRAM_TOKEN` and `TELEGRAM_CHAT_ID` come from
+repository secrets on that step. Kickoffs in the message are rendered with
+`Intl.DateTimeFormat`, so they follow the reader's timezone.
 
 `history` holds every arb seen since the start of today (`--history-days`, default 0), with the first
 price seen, the latest pre-kickoff price and the profit at each. That is what the Past Arbs

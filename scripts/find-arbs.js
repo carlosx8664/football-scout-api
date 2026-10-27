@@ -61,6 +61,8 @@ const num = (x) => {
 // ============================================================================
 const ALERT_DEDUP_MS = 15 * 60_000;
 const ALERT_PROFIT_DELTA = 0.5;
+/** Phone pings are only for arbs worth acting on; anything thinner is logged, not sent. */
+const MIN_ALERT_PROFIT = Number(opt('alert-min', '1.5'));
 
 const GRADE_EXECUTE = '🚨 EXECUTE NOW (RECOMMENDED)';
 const GRADE_PALPABLE_ERROR = '🔴 AVOID (PALPABLE ERROR)';
@@ -96,8 +98,11 @@ function gradeArb(arb) {
       hint: 'Suspected void. High risk of voided bet. Do not execute.',
     };
   }
-  if (profit < 1.2) {
-    return { grade: GRADE_LOW_PROFIT, hint: 'Too low profit. Not worth the account risk.' };
+  if (profit < MIN_ALERT_PROFIT) {
+    return {
+      grade: GRADE_LOW_PROFIT,
+      hint: `Too low profit (under ${MIN_ALERT_PROFIT}%). Not worth the account risk.`,
+    };
   }
   if (profit >= 2.0 && profit <= 6.0 && !women && !bTeam && !obscure) {
     return { grade: GRADE_EXECUTE, hint: null };
@@ -121,18 +126,64 @@ function executionOrder(arb) {
   return { hedge, sharp };
 }
 
+/** "Tue 27 Oct, 20:00" in the reader's own timezone. */
+const KICKOFF_FORMAT = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+function formatKickoff(kickoff) {
+  const ts = Number(kickoff);
+  if (!Number.isFinite(ts) || ts <= 0) return 'TBC (Local)';
+
+  const parts = Object.fromEntries(
+    KICKOFF_FORMAT.formatToParts(new Date(ts)).map((part) => [part.type, part.value]),
+  );
+  return `${parts.weekday} ${parts.day} ${parts.month}, ${parts.hour}:${parts.minute} (Local)`;
+}
+
 function formatAlert(arb) {
   const { hedge, sharp } = executionOrder(arb);
   const { grade, hint } = gradeArb(arb);
+  const total =
+    Number(arb.totalStake) || arb.legs.reduce((sum, leg) => sum + (Number(leg.stake) || 0), 0);
+
+  const split = (leg) => (((Number(leg.stake) || 0) / (total || 1)) * 100).toFixed(1);
+  // The example is scaled to a 1,000 GHS bankroll so the numbers match the heading.
+  const example = (leg) => (((Number(leg.stake) || 0) / (total || 1)) * 1000).toFixed(2);
+
   const lines = [
-    grade,
     `🚨 Found Arb: ${arb.home} vs ${arb.away} (${arb.profitPct.toFixed(2)}%)`,
     `League: ${arb.tournament ?? 'Unknown'}`,
     '',
     `🟢 1st BET (Hedge): ${hedge.bookmaker} - ${hedge.outcome} @ ${hedge.odds.toFixed(2)}`,
+    `📊 Stake Split: ${split(hedge)}%`,
+    `↳ ${hedge.url}`,
+    '',
     `🟣 2nd BET (Sharp): ${sharp.bookmaker} - ${sharp.outcome} @ ${sharp.odds.toFixed(2)}`,
+    `📊 Stake Split: ${split(sharp)}%`,
+    `↳ ${sharp.url}`,
+    '',
+    '💡 *Example on GHS 1,000 total stake:*',
+    `*- ${hedge.bookmaker}: GHS ${example(hedge)}*`,
+    `*- ${sharp.bookmaker}: GHS ${example(sharp)}*`,
+    '',
+    `⏱️ Kickoff: ${formatKickoff(arb.kickoff)}`,
   ];
-  if (grade !== GRADE_EXECUTE && hint) lines.push('', hint);
+
+  // Only a single, actionable note rides along: obscure-market review first, then caution.
+  const notes = [];
+  if (arb.needsRuleReview) {
+    notes.push(`⚠️ Note: Market review recommended (${arb.market}).`);
+  } else if (grade === GRADE_CAUTION && hint) {
+    notes.push(`⚠️ Note: ${hint}.`);
+  }
+  if (notes.length > 0) lines.push('', ...notes);
+
   return lines.join('\n');
 }
 
@@ -150,14 +201,34 @@ function shouldAlert(arb, previousByKey, nowMs) {
   return Math.abs(arb.profitPct - lastProfit) >= ALERT_PROFIT_DELTA;
 }
 
+/**
+ * True when an arb deserves a phone notification: it clears the "avoid" grades and the minimum
+ * alert profit. Caution-graded arbs still alert (with a note) — they are playable at lower stakes.
+ */
+function isAlertable(arb) {
+  const { grade } = gradeArb(arb);
+  if (grade === GRADE_PALPABLE_ERROR || grade === GRADE_LOW_PROFIT) return false;
+  return Number(arb.profitPct) >= MIN_ALERT_PROFIT;
+}
+
 async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
+  // Low-value / flagged arbs stay in arbs.json but never reach the phone.
+  const alertable = arbs.filter(isAlertable);
+  const suppressed = arbs.length - alertable.length;
+  if (suppressed > 0) {
+    console.log(
+      `🔕 Telegram: ${suppressed} low-confidence arb(s) suppressed ` +
+        `(profit < ${MIN_ALERT_PROFIT}% or flagged palpable/low-value).`,
+    );
+  }
+
   const token = process.env.TELEGRAM_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
-  if (!token || !chatId || arbs.length === 0) return;
+  if (!token || !chatId || alertable.length === 0) return;
 
   const previousByKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
-  const pending = arbs.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
+  const pending = alertable.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
   if (pending.length === 0) {
     console.log('No new alerts: every arb was already sent in the last 15 minutes.');
     return;
@@ -1212,6 +1283,7 @@ async function main() {
               kickoff: event.kickoff,
               market: pair.market,
               profitPct: Number(profitPct.toFixed(3)),
+              totalStake: TOTAL_STAKE,
               legs: [
                 { 
                   bookmaker: bookA, 
