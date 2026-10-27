@@ -18,6 +18,7 @@ export const MSPORT = 'MSport';
 export const BETBORO = 'BetBoro';
 export const BOLTBET = 'BoltBet';
 export const BETPAWA = 'BetPawa';
+export const SOCCABET = 'Soccabet';
 
 /**
  * Numeric part of a Sportradar id: "sr:match:72478654" -> "72478654".
@@ -33,6 +34,7 @@ const SEARCH_SITES = {
   [BETBORO]: 'betboro.com.gh',
   [BOLTBET]: 'boltbet.com.gh',
   [BETPAWA]: 'betpawa.com.gh',
+  [SOCCABET]: 'soccabet.com',
 };
 
 /** "Premier League" -> "Premier_League"; encoded so accents survive the path. */
@@ -56,6 +58,14 @@ function searchUrl(bookmaker, home, away) {
   if (!site || !home || !away) return null;
   const query = encodeURIComponent(`site:${site} "${home}" "${away}"`);
   return `https://www.google.com/search?q=${query}`;
+}
+
+/** Plain (unscoped) Google search, used where a bookmaker has no verified fixture route. */
+function plainSearchUrl(bookmaker, home, away) {
+  if (!home || !away) return null;
+  return `https://www.google.com/search?q=${bookmaker.toLowerCase()}+${encodeURIComponent(
+    home,
+  )}+vs+${encodeURIComponent(away)}`;
 }
 
 /**
@@ -138,6 +148,17 @@ export function directUrl(bookmaker, eventId, context = {}) {
       return `https://www.betpawa.com.gh/event/${betPawaId}`;
     }
     return searchUrl(bookmaker, home, away);
+  }
+
+  // -------------------------------------------------------------------------
+  // Soccabet — isd.js exposes numeric match ids (soccabetId) but the public fixture route is
+  // unverified, so link to a plain Google search until we capture a real href. A raw
+  // `soccabetUrl` wins when a future fetcher starts storing the deep link.
+  // -------------------------------------------------------------------------
+  if (bookmaker === SOCCABET) {
+    const direct = context?.soccabetUrl ?? context?.url;
+    if (typeof direct === 'string' && /^https?:\/\//.test(direct)) return direct;
+    return plainSearchUrl(bookmaker, home, away);
   }
 
   return searchUrl(bookmaker, home, away);

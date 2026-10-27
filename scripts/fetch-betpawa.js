@@ -12,6 +12,56 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const BASE_URL = 'https://www.betpawa.com.gh/events?categoryId=2';
 const DAYS = ['today', 'tomorrow'];
+const MONTHS = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * Turns BetPawa's card text into an epoch-ms kickoff.
+ *
+ * The listing renders either an ISO `datetime` attribute or human text such as
+ * "27 Oct 20:00", "27/10 20:00" or just "20:00". A bare time is anchored to the
+ * "today / tomorrow" tab that produced the row, and Ghana is UTC+0 so the wall clock
+ * is the UTC clock. Returns null when nothing parseable is found.
+ */
+function parseKickoff(raw, dayOffset = 0, nowMs = Date.now()) {
+  const text = String(raw ?? '');
+  if (!text) return null;
+
+  const iso = text.match(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?/);
+  if (iso) {
+    const parsed = Date.parse(iso[0]);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  const time = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (!time) return null;
+  const hours = Number(time[1]);
+  const minutes = Number(time[2]);
+
+  const dayMonth = text.match(/\b(\d{1,2})\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\b/i);
+  const daySlash = text.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+
+  const base = new Date(nowMs + dayOffset * 24 * 3600_000);
+  let year = base.getUTCFullYear();
+  let month = base.getUTCMonth();
+  let day = base.getUTCDate();
+
+  if (dayMonth) {
+    day = Number(dayMonth[1]);
+    month = MONTHS[dayMonth[2].toLowerCase()];
+  } else if (daySlash) {
+    day = Number(daySlash[1]);
+    month = Number(daySlash[2]) - 1;
+  }
+
+  let ts = Date.UTC(year, month, day, hours, minutes);
+
+  // Cards rendered just after midnight can describe yesterday's slot; roll forward instead.
+  if (ts < nowMs - 6 * 3600_000) ts += 24 * 3600_000;
+  return ts;
+}
 const MARKETS = [
   { param: 'marketId=1X2', type: '1X2' },
   { param: 'marketId=Total%20Goals%20Over%2FUnder', type: 'OU' },
@@ -96,7 +146,22 @@ async function fetchBetPawa() {
           const home = teamSpans[0].innerText.trim();
           const away = teamSpans[1].innerText.trim();
 
-          const eventData = { eventId, home, away, odds: {} };
+          // Start time lives inside the card, usually as a <time> element but sometimes as
+          // plain text ("27 Oct 20:00"). Keep the raw string; the day context is known in Node.
+          const timeEl = link.querySelector('time');
+          const kickoffText = [
+            timeEl?.getAttribute('datetime'),
+            timeEl?.textContent,
+            link.querySelector('[data-test-id*="start" i]')?.textContent,
+            link.querySelector('[class*="startTime" i], [class*="StartTime" i]')?.textContent,
+            link.querySelector('[class*="startDate" i], [class*="date" i]')?.textContent,
+            link.innerText,
+          ]
+            .map((value) => (value ?? '').trim())
+            .filter(Boolean)
+            .join(' | ');
+
+          const eventData = { eventId, home, away, kickoffText, odds: {} };
 
           const buttons = link.querySelectorAll('button[data-test-id^="odd-"]');
           
@@ -133,12 +198,17 @@ async function fetchBetPawa() {
       }, market.type);
 
       // --- MERGE LOGIC ---
+      const dayOffset = Math.max(0, DAYS.indexOf(day));
       for (const ev of extracted) {
+        const { kickoffText, ...rest } = ev;
+        const kickoff = parseKickoff(kickoffText, dayOffset) ?? undefined;
+
         if (!allEvents.has(ev.eventId)) {
-          allEvents.set(ev.eventId, { ...ev, odds: {} });
+          allEvents.set(ev.eventId, { ...rest, kickoff, odds: {} });
         }
         const existing = allEvents.get(ev.eventId);
-        
+        if (!existing.kickoff && kickoff) existing.kickoff = kickoff;
+
         for (const [key, val] of Object.entries(ev.odds)) {
           existing.odds[key] = val;
         }
@@ -155,6 +225,15 @@ async function fetchBetPawa() {
   const outFile = path.join(OUT_DIR, 'betpawa.json');
   fs.writeFileSync(outFile, JSON.stringify({ events: finalEvents }, null, 2));
   console.log(`\n💾 Saved ${finalEvents.length} total matches to ${outFile}`);
+
+  const missing = finalEvents.filter((e) => !e.kickoff).length;
+  const kickoffs = finalEvents.length - missing;
+  console.log(`   Kickoffs resolved: ${kickoffs}/${finalEvents.length}`);
+  if (missing > 0) {
+    console.log(
+      `⚠️ ${missing} event(s) had no readable start time; find-arbs.js cannot time-match those.`,
+    );
+  }
 
   await browser.close();
 }

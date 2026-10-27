@@ -7,6 +7,7 @@ import {
   BETPAWA,
   BOLTBET,
   MSPORT,
+  SOCCABET,
   SPORTY,
   buildUrl,
 } from '../shared/deeplinks.js';
@@ -30,6 +31,7 @@ const MSPORT_FILE = path.join(DATA_DIR, `msport${FILE_SUFFIX}.json`);
 const BETBORO_FILE = path.join(DATA_DIR, `betboro${FILE_SUFFIX}.json`);
 const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
 const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
+const SOCCABET_FILE = path.join(DATA_DIR, `soccabet${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
@@ -720,11 +722,58 @@ function loadBetPawa(file) {
       eventId: e.eventId,
       home: e.home,
       away: e.away,
-      kickoff: Date.now() + 3600000, 
+      // Real kickoff written by fetch-betpawa.js; the old Date.now() guess only remains as a
+      // fallback for snapshots captured before that fix.
+      kickoff: Number(e.kickoff) > 0 ? Number(e.kickoff) : Date.now() + 3600000,
       tournament: 'BetPawa',
       notStarted: true,
       sel,
       raw: { eventId: e.eventId },
+    });
+  }
+  return { events, typeCounts };
+}
+
+/**
+ * Soccabet — pre-match snapshot from `scripts/fetch-soccabet.js` (isd.js + socket).
+ *
+ * Already in canonical `sel` keys (`1X2:H`, `BTTS:Y`, `OU:2.5:O`, …), so no re-mapping here.
+ * isd.js publishes `0` and `101` sentinel prices for suspended/hidden markets: anything at or
+ * below 1, or at 101+, is dropped so it can never produce a phantom arb.
+ */
+function loadSoccabet(file) {
+  if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const events = new Map();
+  const typeCounts = {};
+
+  for (const e of raw.events ?? []) {
+    if (!e.eventId || !e.home || !e.away || !e.sel) continue;
+    if (e.isLive) continue;
+
+    const sel = {};
+    for (const [key, value] of Object.entries(e.sel)) {
+      const price = num(value);
+      if (price === null || price <= 1 || price >= 101) continue;
+      sel[key] = price;
+      const type = key.split(':')[0];
+      typeCounts[type] = (typeCounts[type] ?? 0) + 1;
+    }
+
+    if (Object.keys(sel).length === 0) continue;
+
+    const kickoff = Number(e.kickoff);
+    if (!Number.isFinite(kickoff)) continue;
+
+    events.set(e.eventId, {
+      eventId: e.eventId,
+      home: e.home,
+      away: e.away,
+      kickoff,
+      tournament: e.league ?? 'Soccabet',
+      notStarted: true,
+      sel,
+      raw: { soccabetId: e.soccabetId, code: e.code, league: e.league },
     });
   }
   return { events, typeCounts };
@@ -930,6 +979,7 @@ async function main() {
   const betboro = loadBetBoro(BETBORO_FILE);
   const boltbet = loadBoltBet(BOLTBET_FILE);
   const betpawa = loadBetPawa(BETPAWA_FILE);
+  const soccabet = loadSoccabet(SOCCABET_FILE);
 
   const sources = [
     { name: SPORTY, book: sporty },
@@ -937,6 +987,7 @@ async function main() {
     { name: BETBORO, book: betboro },
     { name: BOLTBET, book: boltbet },
     { name: BETPAWA, book: betpawa },
+    { name: SOCCABET, book: soccabet },
   ];
 
   for (const { name, book } of sources) {
@@ -954,6 +1005,11 @@ async function main() {
 
   const fixturesBySrId = new Map();
   const fixturesByTeam = new Map();
+  // Same teams without the kickoff bucket, so a fixture split across a bucket boundary
+  // (e.g. 19:59 on one book, 20:01 on another) still matches.
+  const fixturesByName = new Map();
+  /** Kickoffs further apart than this are treated as different fixtures. */
+  const KICKOFF_TOLERANCE_MS = 2 * 60 * 60 * 1000;
 
   for (const { name, book } of sources) {
     for (const ev of book.events.values()) {
@@ -962,22 +1018,41 @@ async function main() {
       const srKey = ev.eventId && ev.eventId.startsWith('sr:match:') ? ev.eventId : null;
       // 2-hour kickoff tolerance for team-name matching
       const timeKey = Math.floor(ev.kickoff / 7200000);
-      const teamKey = `${normalizeTeam(ev.home)}|${normalizeTeam(ev.away)}|${timeKey}`;
+      const homeKey = normalizeTeam(ev.home);
+      const awayKey = normalizeTeam(ev.away);
+      const teamKey = `${homeKey}|${awayKey}|${timeKey}`;
+      const nameKey = `${homeKey}|${awayKey}`;
 
       let fixture = null;
 
       // 1. sr:match ID priority
       if (srKey && fixturesBySrId.has(srKey)) {
         fixture = fixturesBySrId.get(srKey);
-      } 
-      // 2. Team name fallback
+      }
+      // 2. Exact team-name + kickoff bucket
       else if (fixturesByTeam.has(teamKey)) {
         fixture = fixturesByTeam.get(teamKey);
+      }
+      // 3. Team names within the kickoff tolerance (covers bucket edges and books with
+      //    slightly different start times, which is how Soccabet usually lines up).
+      else {
+        fixture =
+          (fixturesByName.get(nameKey) ?? []).find(
+            (candidate) =>
+              Math.abs(candidate.event.kickoff - ev.kickoff) <= KICKOFF_TOLERANCE_MS &&
+              !candidate.books[name],
+          ) ?? null;
       }
 
       if (!fixture) {
         fixture = { event: ev, books: {}, raw: {}, selIds: {} };
         if (srKey) fixturesBySrId.set(srKey, fixture);
+        fixturesByTeam.set(teamKey, fixture);
+        const siblings = fixturesByName.get(nameKey) ?? [];
+        siblings.push(fixture);
+        fixturesByName.set(nameKey, siblings);
+      } else if (!fixturesByTeam.has(teamKey)) {
+        // Remember the extra bucket so later books with the same kickoff resolve directly.
         fixturesByTeam.set(teamKey, fixture);
       }
 
@@ -990,6 +1065,20 @@ async function main() {
   const fixtures = new Map();
   for (const f of fixturesBySrId.values()) fixtures.set(f.event.eventId, f);
   for (const f of fixturesByTeam.values()) fixtures.set(f.event.eventId, f);
+
+  // Per-bookie coverage over joinable fixtures only: shows whether each book actually overlaps
+  // with the others (a book at 0 is present but not matched to anything).
+  const coverage = {};
+  let joinable = 0;
+  for (const f of fixtures.values()) {
+    if (Object.keys(f.books).length < 2) continue;
+    joinable++;
+    for (const name of Object.keys(f.books)) coverage[name] = (coverage[name] ?? 0) + 1;
+  }
+  console.log(`\nFixture coverage (${joinable} joinable of ${fixtures.size} fixtures)`);
+  for (const { name } of sources) {
+    console.log(`  ${name.padEnd(10)} ${coverage[name] ?? 0}`);
+  }
 
   const arbs = [];
   const evals = [];
