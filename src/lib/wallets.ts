@@ -1,4 +1,4 @@
-import type { CashOutResult, TransfersPayload, WalletsPayload } from "../types";
+import type { CashOutResult, RecycleResult, TransfersPayload, WalletsPayload } from "../types";
 
 interface WalletErrorPayload {
   error?: string;
@@ -52,6 +52,13 @@ export const TRANSFER_STEP = 50;
 export const MIN_TRANSFER = 50;
 export const MAX_TRANSFER = 500;
 
+/**
+ * Merchant-line MoMo transfers are assumed fee-free. Nothing in the app deducts a transaction
+ * fee from a balance or from reported profit — this constant exists so the assumption is stated
+ * in one place and shown in the Cash Flow panel.
+ */
+export const MOMO_FEE_PCT = 0;
+
 /** Snaps a requirement to a believable deposit/withdrawal size, or null when nothing fits. */
 export function suggestTransfer(kind: "deposit" | "withdrawal", needed: number): number | null {
   if (!Number.isFinite(needed) || needed <= 0) return null;
@@ -101,6 +108,33 @@ export async function fetchTransfers(
 
   if (!response.ok || !payload?.transfers) {
     throw new Error(payload?.error ?? `Could not load cash flow (HTTP ${response.status}).`);
+  }
+
+  return payload;
+}
+
+/**
+ * Moves capital from an overfunded bookie to an underfunded one: one withdrawal plus one deposit,
+ * so Cash Flow records both sides and the portfolio total is unchanged.
+ */
+export async function recycleCapital(
+  simulation: boolean,
+  fromWalletId: string,
+  toWalletId: string,
+  amount: number,
+): Promise<RecycleResult> {
+  const response = await fetch("/api/wallets/recycle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ simulation, fromWalletId, toWalletId, amount }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (RecycleResult & { error?: string })
+    | null;
+
+  if (!response.ok || !payload?.wallets) {
+    throw new Error(payload?.error ?? `Could not recycle capital (HTTP ${response.status}).`);
   }
 
   return payload;

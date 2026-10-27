@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import {
-  RISK_PROFILES,
+  HIGH_RISK_PCT,
+  MICRO_MUG_PCT,
+  WEEKEND_ANCHOR_PCT,
   blendInAmount,
   computePlan,
   openingBalanceFor,
   unallocatedFor,
   useBankroll,
-  type RiskProfileKey,
 } from "../lib/bankroll";
 import { formatGhs, formatGhsWhole } from "../lib/wallets";
 import type { WalletsPayload } from "../types";
@@ -31,28 +32,27 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
  */
 const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();
-  const [draft, setDraft] = useState({ bankroll: String(settings.bankroll) });
+  const [draft, setDraft] = useState({
+    bankroll: String(settings.bankroll),
+    stake: String(settings.stake),
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  // Keep the input in step when another panel changes the plan.
+  // Keep the inputs in step when another panel changes the plan.
   useEffect(() => {
-    setDraft({ bankroll: String(settings.bankroll) });
-  }, [settings.bankroll]);
+    setDraft({ bankroll: String(settings.bankroll), stake: String(settings.stake) });
+  }, [settings.bankroll, settings.stake]);
 
   const wallets = payload?.wallets ?? [];
   const plan = computePlan(settings, wallets.length);
   const cash = payload?.liquidity.totalBalance ?? 0;
 
-  const commitBankroll = (raw: string) => {
-    setDraft({ bankroll: raw });
+  const commitField = (field: "bankroll" | "stake", raw: string) => {
+    setDraft((current) => ({ ...current, [field]: raw }));
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return;
-    setSettings({ ...settings, bankroll: value });
-  };
-
-  const commitRiskProfile = (key: RiskProfileKey) => {
-    setSettings({ ...settings, riskProfile: key });
+    setSettings({ ...settings, [field]: value });
   };
 
   // Opening balance: the plan's per-bookie target rounded DOWN to a round 50, so the deposits
@@ -117,42 +117,46 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
             step="100"
             inputMode="numeric"
             value={draft.bankroll}
-            onChange={(event) => commitBankroll(event.target.value)}
+            onChange={(event) => commitField("bankroll", event.target.value)}
           />
         </label>
 
         <label className="bankroll-field">
           <span>
-            Risk profile
-            <Tip label="Risk profile">
-              Share of the bankroll staked on one arb. Conservative risks 1%, Aggressive 5%. The
-              stake below is derived from this, so it always tracks the bankroll.
+            Stake per arb (GHS)
+            <Tip label="Stake per arb">
+              {`What you are willing to lay across both legs of one arb. Everything below is sized from this: float, camouflage mug bets and the profit estimate. Flagged above ${HIGH_RISK_PCT}% of your bankroll.`}
             </Tip>
           </span>
-          <select
-            value={plan.riskProfile}
-            onChange={(event) => commitRiskProfile(event.target.value as RiskProfileKey)}
-          >
-            {RISK_PROFILES.map((profile) => (
-              <option key={profile.key} value={profile.key}>
-                {profile.label} · {profile.pct}% per arb
-              </option>
-            ))}
-          </select>
+          <input
+            type="number"
+            min="0"
+            step="10"
+            inputMode="decimal"
+            value={draft.stake}
+            onChange={(event) => commitField("stake", event.target.value)}
+          />
         </label>
       </div>
+
+      {plan.highRisk && (
+        <p className="bankroll-risk" role="alert">
+          ⚠️ High Risk: This stake size leaves very little room for error. Ensure you have enough
+          float in your MoMo.
+        </p>
+      )}
 
       <div className="bankroll-stats">
         <div className="bankroll-stat">
           <span>
             Stake per arb
             <Tip label="Stake per arb">
-              {`${plan.riskPct}% of your bankroll, split across both legs of one arb. A ${formatGhs(plan.stake)} arb returns 15–30 GHS at the 1.5–3% margins we look for.`}
+              {`${plan.riskPct.toFixed(1)}% of your bankroll, split across both legs of one arb. A ${formatGhs(plan.stake)} arb returns 15–30 GHS at the 1.5–3% margins we look for.`}
             </Tip>
           </span>
           <strong>{formatGhs(plan.stake)}</strong>
           <span className="bankroll-stat-hint">
-            {plan.riskPct}% of {formatGhs(plan.bankroll)}
+            {plan.riskPct.toFixed(1)}% of {formatGhs(plan.bankroll)}
           </span>
         </div>
 
@@ -185,6 +189,28 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
           </span>
           <strong>{formatGhs(plan.minFloat)}</strong>
           <span className="bankroll-stat-hint">2 × stake per arb</span>
+        </div>
+
+        <div className="bankroll-stat">
+          <span>
+            Daily micro-mug
+            <Tip label="Daily micro-mug">
+              {`Camouflage protocol: a small single most days keeps the account looking like a normal punter. ${MICRO_MUG_PCT}% of your stake.`}
+            </Tip>
+          </span>
+          <strong>{formatGhs(plan.microMug)}</strong>
+          <span className="bankroll-stat-hint">{MICRO_MUG_PCT}% of stake</span>
+        </div>
+
+        <div className="bankroll-stat">
+          <span>
+            Weekend anchor
+            <Tip label="Weekend anchor">
+              {`Camouflage protocol: the bigger Saturday bet on a televised match. ${WEEKEND_ANCHOR_PCT}% of your stake.`}
+            </Tip>
+          </span>
+          <strong>{formatGhs(plan.weekendAnchor)}</strong>
+          <span className="bankroll-stat-hint">{WEEKEND_ANCHOR_PCT}% of stake</span>
         </div>
 
         <div className="bankroll-stat">

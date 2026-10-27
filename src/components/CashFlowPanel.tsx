@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchTransfers, formatGhs } from "../lib/wallets";
+import { MOMO_FEE_PCT, fetchTransfers, formatGhs } from "../lib/wallets";
 import type { TransfersPayload } from "../types";
 import "./CashFlowPanel.css";
 
@@ -68,7 +68,11 @@ const CashFlowPanel = ({
           <h2>Cash Flow</h2>
           <p className="cashflow-subtitle">
             Deposits and withdrawals in the {simulation ? "simulation" : "real"} ledger, kept in{" "}
-            <code>wallet_transfers</code>.
+            <code>wallet_transfers</code>.{" "}
+            <span className="cashflow-fees">
+              {MOMO_FEE_PCT}% MoMo fees (merchant line) — profits are not reduced by transaction
+              fees.
+            </span>
           </p>
         </div>
         <span className="cashflow-count">

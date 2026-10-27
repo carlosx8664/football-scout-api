@@ -173,3 +173,16 @@
 }
 .bankroll-refresh:hover:not(:disabled) { background: #b91c1c; color: #fff; }
 .bankroll-refresh:disabled { opacity: 0.6; cursor: default; }
+
+/* Danger band: one arb is too big a share of the bankroll to recover from easily. */
+.bankroll-risk {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}

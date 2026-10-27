@@ -3,21 +3,14 @@ import { createContext, useContext } from "react";
 export const BANKROLL_STORAGE_KEY = "oddtor:bankroll-plan";
 
 export const DEFAULT_BANKROLL = 5_000;
+/** Stake per arb is entered by hand; this is only what a fresh install starts at. */
+export const DEFAULT_STAKE = 1_000;
 
-/**
- * How much of the bankroll goes on one arb. The stake is derived from this instead of being
- * typed in, so the bankroll and the stake can never drift apart.
- */
-export const RISK_PROFILES = [
-  { key: "conservative", label: "Conservative", pct: 1 },
-  { key: "balanced", label: "Balanced", pct: 2 },
-  { key: "confident", label: "Confident", pct: 3 },
-  { key: "aggressive", label: "Aggressive", pct: 5 },
-] as const;
-
-export type RiskProfileKey = (typeof RISK_PROFILES)[number]["key"];
-
-export const DEFAULT_RISK_PROFILE: RiskProfileKey = "balanced";
+/** Above this share of the bankroll, one arb is too big to recover from. */
+export const HIGH_RISK_PCT = 20;
+/** Camouflage protocol: a small daily single and a bigger weekend anchor, both sized off stake. */
+export const MICRO_MUG_PCT = 5;
+export const WEEKEND_ANCHOR_PCT = 20;
 
 /** Both legs of one arb must be covered, so the float is 2× the stake. */
 export const FLOAT_MULTIPLE = 2;
@@ -60,17 +53,22 @@ export function unallocatedFor(bankroll: number, perWallet: number, wallets: num
 export interface BankrollSettings {
   /** Total capital you keep across the bookie wallets. */
   bankroll: number;
-  riskProfile: RiskProfileKey;
+  /** Total laid across both legs of one arb — entered by hand. */
+  stake: number;
 }
 
 export interface BankrollPlan {
   bankroll: number;
-  riskProfile: RiskProfileKey;
-  riskLabel: string;
-  /** Percentage of the bankroll staked on one arb. */
-  riskPct: number;
-  /** Derived from bankroll × riskPct — never entered directly. */
+  /** The manual stake, echoed back after clamping. */
   stake: number;
+  /** Stake as a share of the bankroll. */
+  riskPct: number;
+  /** True when one arb is more than HIGH_RISK_PCT of the bankroll. */
+  highRisk: boolean;
+  /** Camouflage protocol: a small single most days. */
+  microMug: number;
+  /** Camouflage protocol: the bigger weekend bet. */
+  weekendAnchor: number;
   /** How many arbs the bankroll can fund at once. */
   concurrency: number;
   /** Float needed to place both legs of one arb without running dry. */
@@ -85,30 +83,25 @@ export interface BankrollPlan {
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
-/** The profile for `key`, falling back to the default when storage holds something unknown. */
-export function riskProfileOf(key: RiskProfileKey) {
-  return (
-    RISK_PROFILES.find((profile) => profile.key === key) ??
-    RISK_PROFILES.find((profile) => profile.key === DEFAULT_RISK_PROFILE) ??
-    RISK_PROFILES[0]
-  );
-}
-
 /**
+ * Everything the dashboard shows is derived from the two numbers the user actually owns: the
+ * bankroll and the stake they are willing to put on one arb.
+ *
  * @param walletCount wallets in rotation; only affects `perWallet`.
  */
 export function computePlan(settings: BankrollSettings, walletCount = 1): BankrollPlan {
-  const bankroll = Math.max(0, settings.bankroll);
-  const profile = riskProfileOf(settings.riskProfile);
-  const stake = round2((bankroll * profile.pct) / 100);
+  const bankroll = Math.max(0, Number(settings.bankroll) || 0);
+  const stake = Math.max(0, Number(settings.stake) || 0);
   const wallets = Math.max(1, walletCount);
+  const riskPct = bankroll > 0 ? (stake / bankroll) * 100 : 0;
 
   return {
     bankroll,
-    riskProfile: profile.key,
-    riskLabel: profile.label,
-    riskPct: profile.pct,
     stake,
+    riskPct,
+    highRisk: bankroll > 0 && stake > (bankroll * HIGH_RISK_PCT) / 100,
+    microMug: round2((stake * MICRO_MUG_PCT) / 100),
+    weekendAnchor: round2((stake * WEEKEND_ANCHOR_PCT) / 100),
     concurrency: stake > 0 ? Math.floor(bankroll / stake) : 0,
     minFloat: round2(stake * FLOAT_MULTIPLE),
     perWallet: bankroll / wallets,
@@ -133,24 +126,16 @@ export function useBankroll() {
   return context;
 }
 
-const isRiskProfileKey = (value: unknown): value is RiskProfileKey =>
-  RISK_PROFILES.some((profile) => profile.key === value);
-
-/** Maps a legacy stored `stake` onto the nearest profile, so old plans survive the upgrade. */
-function closestRiskProfile(stake: number, bankroll: number): RiskProfileKey {
-  if (!(stake > 0) || !(bankroll > 0)) return DEFAULT_RISK_PROFILE;
-
-  const pct = (stake / bankroll) * 100;
-  return RISK_PROFILES.reduce((best, profile) =>
-    Math.abs(profile.pct - pct) < Math.abs(best.pct - pct) ? profile : best,
-  ).key;
-}
+/** Older plans stored a risk profile; map its percentage back onto a concrete stake. */
+const LEGACY_PROFILE_PCT: Record<string, number> = {
+  conservative: 1,
+  balanced: 2,
+  confident: 3,
+  aggressive: 5,
+};
 
 export function readStoredBankroll(): BankrollSettings {
-  const fallback: BankrollSettings = {
-    bankroll: DEFAULT_BANKROLL,
-    riskProfile: DEFAULT_RISK_PROFILE,
-  };
+  const fallback: BankrollSettings = { bankroll: DEFAULT_BANKROLL, stake: DEFAULT_STAKE };
 
   if (typeof window === "undefined") return fallback;
 
@@ -158,17 +143,27 @@ export function readStoredBankroll(): BankrollSettings {
     const raw = window.localStorage.getItem(BANKROLL_STORAGE_KEY);
     if (!raw) return fallback;
 
-    // `stake` is read too: plans saved before the risk-profile change stored it directly.
-    const parsed = JSON.parse(raw) as Partial<BankrollSettings> & { stake?: number };
+    const parsed = JSON.parse(raw) as {
+      bankroll?: number;
+      stake?: number;
+      riskProfile?: string;
+    };
 
     const bankroll = Number(parsed.bankroll);
     const safeBankroll = Number.isFinite(bankroll) && bankroll > 0 ? bankroll : DEFAULT_BANKROLL;
 
-    const riskProfile = isRiskProfileKey(parsed.riskProfile)
-      ? parsed.riskProfile
-      : closestRiskProfile(Number(parsed.stake), safeBankroll);
+    const storedStake = Number(parsed.stake);
+    if (Number.isFinite(storedStake) && storedStake > 0) {
+      return { bankroll: safeBankroll, stake: storedStake };
+    }
 
-    return { bankroll: safeBankroll, riskProfile };
+    // A plan saved while risk profiles existed: turn its percentage back into a stake.
+    const pct = LEGACY_PROFILE_PCT[parsed.riskProfile ?? ""];
+    if (pct) {
+      return { bankroll: safeBankroll, stake: Math.round((safeBankroll * pct) / 100) };
+    }
+
+    return { bankroll: safeBankroll, stake: DEFAULT_STAKE };
   } catch {
     return fallback;
   }

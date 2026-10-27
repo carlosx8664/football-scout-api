@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { computePlan, useBankroll } from "../lib/bankroll";
 import { MAX_TRANSFER, MIN_TRANSFER, TRANSFER_STEP, formatGhs } from "../lib/wallets";
 import type { Wallet, WalletsPayload } from "../types";
+import RecycleCooldown from "./RecycleCooldown";
 import "./RebalancingHints.css";
 
 /** Keep every bookie inside this share of the portfolio. */
@@ -22,6 +23,8 @@ interface RebalancingHintsProps {
   simulation: boolean;
   /** Logs a deposit/withdrawal; rejects with a message when the API refuses it. */
   onTransfer: (walletId: string, kind: "deposit" | "withdrawal", amount: number) => Promise<void>;
+  /** Moves capital from one bookie to another; rejects with a message when the API refuses it. */
+  onRecycle: (fromWalletId: string, toWalletId: string, amount: number) => Promise<void>;
 }
 
 interface HintAction {
@@ -134,6 +137,34 @@ function buildHints(
 
   return { cash, hints };
 }
+
+/**
+ * The single most useful capital move: from the bookie holding the most above target to the one
+ * holding the least below it, in a believable 50 GHS step.
+ */
+function recyclePair(
+  wallets: Wallet[],
+  target: number,
+  pendingBookies: string[],
+): { from: Wallet; to: Wallet; amount: number } | null {
+  if (!(target > 0)) return null;
+
+  const pending = new Set(pendingBookies.map((name) => name.toLowerCase()));
+  const eligible = wallets.filter((wallet) => !pending.has(wallet.name.toLowerCase()));
+
+  const over = eligible
+    .filter((wallet) => wallet.balance - target >= MIN_TRANSFER)
+    .sort((a, b) => b.balance - a.balance)[0];
+  const under = eligible
+    .filter((wallet) => target - wallet.balance >= MIN_TRANSFER)
+    .sort((a, b) => a.balance - b.balance)[0];
+
+  if (!over || !under || over.id === under.id) return null;
+
+  // Move the smaller of the two gaps so neither bookie overshoots the target.
+  const amount = snap("withdrawal", Math.min(over.balance - target, target - under.balance));
+  return amount === null ? null : { from: over, to: under, amount };
+}
 /** Capital rebalancing hints: per-bookie share of the portfolio plus top-up/withdraw advice. */
 const RebalancingHints = ({
   payload,
@@ -141,12 +172,14 @@ const RebalancingHints = ({
   loading,
   simulation,
   onTransfer,
+  onRecycle,
 }: RebalancingHintsProps) => {
   const wallets = payload?.wallets ?? [];
   const pendingBookies = payload?.pendingSettlement?.bookies ?? [];
   const { settings } = useBankroll();
   const plan = computePlan(settings, wallets.length);
   const { cash, hints } = buildHints(wallets, plan.perWallet, pendingBookies);
+  const recycle = recyclePair(wallets, plan.perWallet, pendingBookies);
   const shareOf = (balance: number) => (cash > 0 ? (balance / cash) * 100 : 0);
 
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -182,6 +215,19 @@ const RebalancingHints = ({
     setProblem(null);
     try {
       await onTransfer(walletId, kind, amount);
+    } catch (err) {
+      setProblem((err as Error).message);
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const runRecycle = async () => {
+    if (!recycle) return;
+    setBusyKey("recycle");
+    setProblem(null);
+    try {
+      await onRecycle(recycle.from.id, recycle.to.id, recycle.amount);
     } catch (err) {
       setProblem((err as Error).message);
     } finally {
@@ -259,6 +305,29 @@ const RebalancingHints = ({
               );
             })}
           </ul>
+
+          <RecycleCooldown />
+
+          {recycle && (
+            <div className="rebalance-recycle">
+              <div className="rebalance-recycle-copy">
+                <strong>Recycle Capital</strong>
+                <p>
+                  Move {formatGhs(recycle.amount)} from {recycle.from.name} to {recycle.to.name}.
+                  Logs one withdrawal and one deposit in Cash Flow, so the portfolio total is
+                  unchanged.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rebalance-recycle-btn"
+                onClick={() => void runRecycle()}
+                disabled={busyKey === "recycle"}
+              >
+                {busyKey === "recycle" ? "Recycling…" : `Recycle ${formatGhs(recycle.amount)}`}
+              </button>
+            </div>
+          )}
 
           {hints.length > 0 ? (
             <ul className="rebalance-hints">

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { computePlan, openingBalanceFor, useBankroll } from "../lib/bankroll";
+import { startRecycleCooldown } from "../lib/cooldown";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 import {
@@ -7,6 +8,7 @@ import {
   createTransfer,
   fetchWallets,
   formatGhs,
+  recycleCapital,
   refreshWallets,
 } from "../lib/wallets";
 import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
@@ -145,6 +147,21 @@ const WalletsDashboard = () => {
     [applyPayload],
   );
 
+  /** Merchant-MoMo capital move; starts the 15-minute cool-down before the next arb. */
+  const handleRecycle = useCallback(
+    async (fromWalletId: string, toWalletId: string, amount: number) => {
+      const next = await recycleCapital(enabled, fromWalletId, toWalletId, amount);
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+      startRecycleCooldown();
+      setToast(
+        `Recycled ${formatGhs(amount)}: ${next.recycle.from} → ${next.recycle.to}. ` +
+          "Wait 15 minutes before the next arb.",
+      );
+    },
+    [applyPayload, enabled],
+  );
+
   const handleCancelled = useCallback((cancelled: CancelBetResult) => {
     // Refunded stakes change balances, liquidity and the rebalancing split alike.
     setRefreshToken((current) => current + 1);
@@ -176,6 +193,7 @@ const WalletsDashboard = () => {
           loading={loading}
           simulation={enabled}
           onTransfer={handleTransfer}
+          onRecycle={handleRecycle}
         />
         <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
       </div>

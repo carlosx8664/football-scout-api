@@ -267,6 +267,17 @@ export interface CashOutResult extends WalletsPayload {
   };
 }
 
+/** Result of POST /api/wallets/recycle. */
+export interface RecycleResult extends WalletsPayload {
+  recycle: {
+    amount: number;
+    from: string;
+    to: string;
+    fromBalance: number;
+    toBalance: number;
+  };
+}
+
 /* ------------------------------------------------------------------ *
  * Ledger (POST /api/active-bets) — one two-leg arb in `active_bets`
  * ------------------------------------------------------------------ */

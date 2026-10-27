@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { computePlan, useBankroll } from "../lib/bankroll";
 import {
   createMugBet,
   fetchMugBets,
   settleMugBet,
   type MugBetInput,
 } from "../lib/mugBets";
-import { formatGhs } from "../lib/wallets";
+import { formatGhs, formatGhsWhole } from "../lib/wallets";
 import type { MugBetsPayload, Wallet, WalletsPayload } from "../types";
 import "./MugBetsPanel.css";
 
@@ -28,10 +29,13 @@ const MugBetsPanel = ({ simulation, refreshToken, wallets, onChanged }: MugBetsP
   const [result, setResult] = useState<{ key: string; payload: MugBetsPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Camouflage protocol: both suggested mug sizes are derived from the manual stake.
+  const { settings } = useBankroll();
+  const plan = computePlan(settings);
   const [form, setForm] = useState({
     bookie: "",
     eventName: "",
-    stake: "50",
+    stake: String(Math.max(1, Math.round(computePlan(settings).microMug))),
     odds: "1.30",
   });
 
@@ -61,45 +65,41 @@ const MugBetsPanel = ({ simulation, refreshToken, wallets, onChanged }: MugBetsP
   const bets = payload?.mugBets ?? [];
   const totals = payload?.totals ?? null;
 
-  const submit = useCallback(
-    async (event: React.FormEvent) => {
-      event.preventDefault();
-      setBusyId("new");
-      try {
-        const input: MugBetInput = {
-          bookie: selectedBookie,
-          eventName: form.eventName.trim(),
-          stake: Number(form.stake),
-          odds: Number(form.odds),
-        };
-        const next = await createMugBet(input, simulation);
-        onChanged(next);
-        setForm((current) => ({ ...current, eventName: "" }));
-        setProblem(null);
-      } catch (err) {
-        setProblem({ key, message: (err as Error).message });
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [form, key, onChanged, selectedBookie, simulation],
-  );
+  // Plain functions: they are handed to handlers, so memoising them buys nothing and the
+  // compiler cannot preserve the manual deps.
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusyId("new");
+    try {
+      const input: MugBetInput = {
+        bookie: selectedBookie,
+        eventName: form.eventName.trim(),
+        stake: Number(form.stake),
+        odds: Number(form.odds),
+      };
+      const next = await createMugBet(input, simulation);
+      onChanged(next);
+      setForm((current) => ({ ...current, eventName: "" }));
+      setProblem(null);
+    } catch (err) {
+      setProblem({ key, message: (err as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
 
-  const settle = useCallback(
-    async (id: string, won: boolean) => {
-      setBusyId(id);
-      try {
-        const next = await settleMugBet(id, won, simulation);
-        onChanged(next);
-        setProblem(null);
-      } catch (err) {
-        setProblem({ key, message: (err as Error).message });
-      } finally {
-        setBusyId(null);
-      }
-    },
-    [key, onChanged, simulation],
-  );
+  const settle = async (id: string, won: boolean) => {
+    setBusyId(id);
+    try {
+      const next = await settleMugBet(id, won, simulation);
+      onChanged(next);
+      setProblem(null);
+    } catch (err) {
+      setProblem({ key, message: (err as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   return (
     <section className="mugbets-panel">
@@ -116,8 +116,9 @@ const MugBetsPanel = ({ simulation, refreshToken, wallets, onChanged }: MugBetsP
       </header>
 
       <p className="mugbets-tip">
-        <strong>Protect your account:</strong> Place a 50 GHS single bet on Barcelona to win (Odds
-        &gt; 1.20) every weekend.
+        <strong>Protect your account:</strong> Place a {formatGhsWhole(plan.weekendAnchor)} single on
+        Barcelona to win (Odds &gt; 1.20) every weekend. Micro-mugs of{" "}
+        {formatGhsWhole(plan.microMug)} on quieter days keep the account ticking over.
       </p>
 
       {error && <p className="mugbets-error">{error}</p>}

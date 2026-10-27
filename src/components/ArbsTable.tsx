@@ -14,6 +14,7 @@ import type {
   ArbsPayload,
 } from "../types";
 import LogArbModal from "./LogArbModal";
+import RecycleCooldown from "./RecycleCooldown";
 import Toast from "./Toast";
 import "./ArbLedger.css";
 import "./ArbsTable.css";
@@ -364,6 +365,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   return (
     <section className="arbs-view">
       <h1 className="arbs-view-title">Arbitrage Scanner</h1>
+      {/* Shown only while the post-recycle cool-down is running. */}
+      <RecycleCooldown />
 
       {feed === null ? (
         <div className="arbs-state">Loading arbitrage opportunities…</div>

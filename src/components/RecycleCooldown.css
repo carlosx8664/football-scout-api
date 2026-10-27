@@ -1,0 +1,30 @@
+.recycle-cooldown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid #f0d78c;
+  background: #fffbe8;
+  color: #7a5c00;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.recycle-cooldown-text {
+  min-width: 0;
+}
+
+.recycle-cooldown-timer {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #7a5c00;
+  color: #fffbe8;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
