@@ -23,6 +23,30 @@ export const MAX_TRANSFER = 500;
 /** One movement per bookie per mode in this window, so bursts never look automated. */
 export const TRANSFER_COOLDOWN_MS = 10 * 60 * 1000;
 
+/** A bet placed inside this window keeps its bookies out of the rebalancing hints. */
+export const PENDING_SETTLEMENT_HOURS = 4;
+
+/**
+ * Bookies with an unsettled bet placed in the last few hours. Their cash looks low only because
+ * the stake is in play, so rebalancing advice for them would be wrong until it settles.
+ */
+export async function loadPendingSettlement(db, simulation) {
+  const mode = modeValue(simulation);
+
+  const { results } = await db
+    .prepare(
+      `SELECT bookie_a_name AS bookie FROM active_bets
+        WHERE is_simulation = ? AND datetime(created_at) >= datetime('now', ?)
+       UNION
+       SELECT bookie_b_name AS bookie FROM active_bets
+        WHERE is_simulation = ? AND datetime(created_at) >= datetime('now', ?)`,
+    )
+    .bind(mode, `-${PENDING_SETTLEMENT_HOURS} hours`, mode, `-${PENDING_SETTLEMENT_HOURS} hours`)
+    .all();
+
+  return (results ?? []).map((row) => row.bookie).filter(Boolean);
+}
+
 /** Snaps a raw requirement to a believable transfer size, or null when nothing sensible fits. */
 export function suggestTransfer(kind, needed) {
   const value = Number(needed);
@@ -180,7 +204,7 @@ export async function loadLiquidity(db, simulation) {
 export async function walletPayload(db, simulation) {
   const mode = modeValue(simulation);
 
-  const [wallets, liquidity, history, transfers] = await Promise.all([
+  const [wallets, liquidity, history, transfers, pending] = await Promise.all([
     loadWallets(db, simulation),
     loadLiquidity(db, simulation),
     db
@@ -204,6 +228,7 @@ export async function walletPayload(db, simulation) {
       )
       .bind(mode)
       .first(),
+    loadPendingSettlement(db, simulation),
   ]);
 
   return {
@@ -220,6 +245,11 @@ export async function walletPayload(db, simulation) {
       withdrawn: round2(Number(transfers?.withdrawn ?? 0)),
       net: round2(Number(transfers?.deposited ?? 0) - Number(transfers?.withdrawn ?? 0)),
       bookies: Number(transfers?.bookies ?? 0),
+    },
+    /** Bookies whose cash is in play right now — rebalancing ignores them until it settles. */
+    pendingSettlement: {
+      windowHours: PENDING_SETTLEMENT_HOURS,
+      bookies: pending,
     },
   };
 }

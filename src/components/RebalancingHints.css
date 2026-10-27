@@ -80,6 +80,23 @@
 .rebalance-bar-fill.danger { background: #dc2626; }
 .rebalance-bar-fill.caution { background: #e0b400; }
 .rebalance-bar-fill.healthy { background: #16a34a; }
+/* Pending settlement: gauge muted, since the low cash is only the stake being away. */
+.rebalance-bar-fill.pending { background: var(--color-neutral-5); }
+.rebalance-share.pending { color: var(--color-neutral-5); }
+.rebalance-row.pending .rebalance-bookie { color: var(--color-neutral-6); }
+
+.rebalance-pending {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
 .rebalance-balance {
   font-size: 0.78rem;
   font-weight: 700;

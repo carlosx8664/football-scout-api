@@ -176,7 +176,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `GET /api/analysis` | On-demand DeepSeek note with live search plus odds comparison, cached 6 h per fixture and price set |
 | `GET /api/standings` | League table window for a fixture, from football-data.org |
 | `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
-| `GET /api/wallets` | Wallets + available liquidity for one mode (`?simulation=1` or `0`), plus total and today's realised profit, from D1 |
+| `GET /api/wallets` | Wallets + available liquidity for one mode (`?simulation=1` or `0`), plus total and today's realised profit, cash-flow totals and the bookies with bets pending settlement, from D1 |
 | `PATCH /api/wallets/:id` | Set a wallet balance (`balance`) or apply a `delta`, scoped to that mode's `is_simulation` |
 | `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`): round 50 GHS steps, 50–500 per movement, one per bookie every 10 minutes |
 | `GET /api/transfers` | Deposit/withdrawal ledger for one mode with totals (count, deposited, withdrawn, net) |
@@ -523,8 +523,12 @@ bet's life (both debits at placement, payout at settlement) equals the recorded 
 (`oddtor:bankroll-plan`): total bankroll and the stake you place per arb. It derives the target
 per bookie (`bankroll ÷ wallet count`), the minimum float (`4 × stake`, because unsettled bets
 lock cash for a day or two), how many arbs can run at once, and a 2–5 arbs/day profit estimate.
-Rebalancing hints use that per-bookie target for the transfer amount, while the 15%/40% band on
-the live portfolio still decides *when* a hint appears.
+
+**Rebalancing is cash-only.** Shares are computed against `SUM(wallets.balance)` — money staked in
+pending bets is deliberately excluded, so placing a bet cannot by itself trigger a top-up hint.
+Bookies with an unsettled bet placed in the last 4 hours
+(`payload.pendingSettlement`, from `active_bets.created_at`) are skipped entirely and shown as
+*in play* until that stake settles.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
 inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` on mount,

@@ -136,7 +136,10 @@ const WalletsPanel = ({
             <li className="wallet-row" key={wallet.id}>
               <div className="wallet-identity">
                 <span className="wallet-name">{wallet.name}</span>
-                <span className="wallet-bookie">{wallet.bookmaker}</span>
+                {/* `bookmaker` mirrors `name` from the same column, so only show it when different. */}
+                {wallet.bookmaker !== wallet.name && (
+                  <span className="wallet-bookie">{wallet.bookmaker}</span>
+                )}
               </div>
 
               {edit?.id === wallet.id ? (

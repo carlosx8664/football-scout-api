@@ -49,27 +49,27 @@ const snap = (kind: "deposit" | "withdrawal", raw: number): number | null => {
 };
 
 /**
- * Stakes are debited at log time, so `balance` alone is cash on hand. The bankroll is cash plus
- * money still at risk — otherwise a large pending arb would shrink the portfolio and trigger
- * false withdrawal warnings.
+ * Cash-only split for rebalancing. Bookies holding a bet placed inside the pending-settlement
+ * window are marked so the gauge can show why they are excluded.
  */
 function buildHints(
   wallets: Wallet[],
-  staked: number,
   perWalletTarget: number,
-): { bankroll: number; hints: Hint[] } {
+  pendingBookies: string[],
+): { cash: number; hints: Hint[] } {
   const cash = wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
-  const bankroll = cash + staked;
+  const pending = new Set(pendingBookies.map((name) => name.toLowerCase()));
   const hints: Hint[] = [];
 
-  if (bankroll > 0) {
-    // Money targets come from the Bankroll Plan (bankroll ÷ number of wallets) so the advice
-    // matches the capital you say you are running, not just today's uneven split.
-    const target =
-      perWalletTarget > 0 ? perWalletTarget : (TARGET_PCT / 100) * bankroll;
+  if (cash > 0) {
+    // Money targets come from the Bankroll Plan (bankroll / number of wallets) so the advice
+    // matches the capital you say you are running, not just today uneven split.
+    const target = perWalletTarget > 0 ? perWalletTarget : (TARGET_PCT / 100) * cash;
 
     for (const wallet of wallets) {
-      const share = (wallet.balance / bankroll) * 100;
+      if (pending.has(wallet.name.toLowerCase())) continue;
+
+      const share = (wallet.balance / cash) * 100;
 
       if (share < LOW_PCT) {
         const needed = target - wallet.balance;
@@ -110,11 +110,12 @@ function buildHints(
     }
   }
 
-  // BetBoro pays out slowly once the balance builds up, so any positive balance is flagged.
+  // BetBoro pays out slowly once the balance builds up, so any positive balance is flagged,
+  // unless that cash is currently funding a bet.
   const betboro = wallets.find(
     (wallet) => wallet.name.toLowerCase() === SPECIAL_BOOKIE.toLowerCase(),
   );
-  if (betboro && betboro.balance > 0) {
+  if (betboro && betboro.balance > 0 && !pending.has(betboro.name.toLowerCase())) {
     const withdrawal = snap("withdrawal", betboro.balance);
     hints.push({
       tone: "bad",
@@ -131,9 +132,8 @@ function buildHints(
     });
   }
 
-  return { bankroll, hints };
+  return { cash, hints };
 }
-
 /** Capital rebalancing hints: per-bookie share of the portfolio plus top-up/withdraw advice. */
 const RebalancingHints = ({
   payload,
@@ -143,11 +143,11 @@ const RebalancingHints = ({
   onTransfer,
 }: RebalancingHintsProps) => {
   const wallets = payload?.wallets ?? [];
-  const staked = payload?.liquidity.staked ?? 0;
+  const pendingBookies = payload?.pendingSettlement?.bookies ?? [];
   const { settings } = useBankroll();
   const plan = computePlan(settings, wallets.length);
-  const { bankroll, hints } = buildHints(wallets, staked, plan.perWallet);
-  const shareOf = (balance: number) => (bankroll > 0 ? (balance / bankroll) * 100 : 0);
+  const { cash, hints } = buildHints(wallets, plan.perWallet, pendingBookies);
+  const shareOf = (balance: number) => (cash > 0 ? (balance / cash) * 100 : 0);
 
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -162,7 +162,11 @@ const RebalancingHints = ({
   const hour = new Date(now).getHours();
   const isMorning = hour >= MORNING_START_HOUR && hour < MORNING_END_HOUR;
   const lowBookies = wallets
-    .filter((wallet) => shareOf(wallet.balance) < LOW_PCT)
+    .filter(
+      (wallet) =>
+        !pendingBookies.some((name) => name.toLowerCase() === wallet.name.toLowerCase()) &&
+        shareOf(wallet.balance) < LOW_PCT,
+    )
     .map((wallet) => wallet.name);
   const lowLabel =
     lowBookies.length <= 1
@@ -192,9 +196,10 @@ const RebalancingHints = ({
           <h2>Rebalancing Hints</h2>
           <p className="rebalance-subtitle">
             Keep each bookie between {LOW_PCT}% and {HIGH_PCT}% of the{" "}
-            {simulation ? "simulation" : "real"} portfolio ({formatGhs(bankroll)} — cash plus
-            stakes in play). Targets follow the Bankroll Plan: {formatGhs(plan.perWallet)} per
-            bookie, in {TRANSFER_STEP} GHS steps of {MIN_TRANSFER}–{MAX_TRANSFER}.
+            {simulation ? "simulation" : "real"} cash across the wallets ({formatGhs(cash)}).
+            Stakes already in play are ignored, and bookies with a bet placed in the last{" "}
+            {payload?.pendingSettlement?.windowHours ?? 4} hours are skipped until it settles.
+            Targets follow the Bankroll Plan: {formatGhs(plan.perWallet)} per bookie.
           </p>
         </div>
       </header>
@@ -217,12 +222,31 @@ const RebalancingHints = ({
           <ul className="rebalance-split">
             {wallets.map((wallet) => {
               const share = shareOf(wallet.balance);
+              const isPending = pendingBookies.some(
+                (name) => name.toLowerCase() === wallet.name.toLowerCase(),
+              );
               // Gauge colours: red = underfunded, amber = over-concentrated, green = healthy.
-              const band =
-                share < LOW_PCT ? "danger" : share > HIGH_PCT ? "caution" : "healthy";
+              const band = isPending
+                ? "pending"
+                : share < LOW_PCT
+                  ? "danger"
+                  : share > HIGH_PCT
+                    ? "caution"
+                    : "healthy";
               return (
-                <li className="rebalance-row" key={wallet.id}>
-                  <span className="rebalance-bookie">{wallet.name}</span>
+                <li
+                  className={`rebalance-row${isPending ? " pending" : ""}`}
+                  key={wallet.id}
+                  title={
+                    isPending
+                      ? `${wallet.name} has a bet pending settlement — hints paused`
+                      : undefined
+                  }
+                >
+                  <span className="rebalance-bookie">
+                    {wallet.name}
+                    {isPending && <span className="rebalance-pending">in play</span>}
+                  </span>
                   <span className={`rebalance-share ${band}`}>{share.toFixed(1)}%</span>
                   <span className="rebalance-bar">
                     <span
@@ -263,7 +287,7 @@ const RebalancingHints = ({
             </ul>
           ) : (
             <p className="rebalance-empty">
-              {bankroll > 0
+              {cash > 0
                 ? `All bookies are inside the ${LOW_PCT}–${HIGH_PCT}% band. No action needed.`
                 : "No capital in the wallets yet — top one up to start rebalancing."}
             </p>
