@@ -36,7 +36,13 @@ function amountFrom(value) {
  * amount. `netProfit` is always credits − total outlay.
  */
 function planSettlement(bet, outcome, body) {
-  const totalStake = round2(Number(bet.bookie_a_stake) + Number(bet.bookie_b_stake));
+  // A free bet's leg A never left the wallet, so only real stakes count as outlay/refunds.
+  const freeA = Number(bet.is_free_bet) === 1 || bet.kind === "free";
+  const stakeOf = (side) => {
+    const leg = legOf(bet, side);
+    return freeA && side === "a" ? 0 : leg.stake;
+  };
+  const totalStake = round2(stakeOf("a") + stakeOf("b"));
   const credits = [];
 
   if (outcome === "win") {
@@ -82,9 +88,9 @@ function planSettlement(bet, outcome, body) {
       const b = legOf(bet, "b");
       return {
         credits: [
-          { bookie: a.bookie, amount: a.stake },
-          { bookie: b.bookie, amount: b.stake },
-        ],
+          { bookie: a.bookie, amount: stakeOf("a") },
+          { bookie: b.bookie, amount: stakeOf("b") },
+        ].filter((credit) => credit.amount > 0),
         winningBookie: null,
         netProfit: 0,
         settlementType: "void",
@@ -93,14 +99,15 @@ function planSettlement(bet, outcome, body) {
 
     const voidedLeg = legOf(bet, voided);
     const liveLeg = legOf(bet, voided === "a" ? "b" : "a");
-    const refund = [{ bookie: voidedLeg.bookie, amount: voidedLeg.stake }];
+    const refundAmount = stakeOf(voided);
+    const refund = refundAmount > 0 ? [{ bookie: voidedLeg.bookie, amount: refundAmount }] : [];
     const remaining = body?.remaining;
 
     if (remaining === "lost") {
       return {
         credits: refund,
         winningBookie: null,
-        netProfit: round2(voidedLeg.stake - totalStake),
+        netProfit: round2(refundAmount - totalStake),
         settlementType: "void",
       };
     }
@@ -110,7 +117,7 @@ function planSettlement(bet, outcome, body) {
       return {
         credits: [...refund, { bookie: liveLeg.bookie, amount: payout }],
         winningBookie: liveLeg.bookie,
-        netProfit: round2(voidedLeg.stake + payout - totalStake),
+        netProfit: round2(refundAmount + payout - totalStake),
         settlementType: "void",
       };
     }
@@ -122,7 +129,7 @@ function planSettlement(bet, outcome, body) {
       return {
         credits: [...refund, { bookie: liveLeg.bookie, amount }],
         winningBookie: liveLeg.bookie,
-        netProfit: round2(voidedLeg.stake + amount - totalStake),
+        netProfit: round2(refundAmount + amount - totalStake),
         settlementType: "void",
       };
     }
@@ -176,7 +183,10 @@ export async function onRequestPost({ request, env, params }) {
     const plan = planSettlement(bet, body?.outcome ?? "win", body);
     if (plan.error) return json({ error: plan.error }, 400);
 
-    const totalStake = round2(Number(bet.bookie_a_stake) + Number(bet.bookie_b_stake));
+    const totalStake = round2(
+      (Number(bet.is_free_bet) === 1 || bet.kind === "free" ? 0 : Number(bet.bookie_a_stake)) +
+        Number(bet.bookie_b_stake),
+    );
 
     // Every credited bookie needs a wallet in this mode, otherwise the move would silently no-op.
     const bookies = [...new Set(plan.credits.map((credit) => credit.bookie))];
@@ -211,8 +221,9 @@ export async function onRequestPost({ request, env, params }) {
         .prepare(
           `INSERT INTO history (
              id, event_name, winning_bookie, net_profit, is_simulation, settlement_type,
-             bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kind,
+             is_free_bet
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           historyId,
@@ -226,8 +237,9 @@ export async function onRequestPost({ request, env, params }) {
           bet.bookie_b_name,
           Number(bet.bookie_b_stake),
           totalStake,
-        ),
-      db
+          bet.kind ?? "arb",
+          Number(bet.is_free_bet) === 1 ? 1 : 0,
+        ),      db
         .prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?")
         .bind(id, mode),
     ]);

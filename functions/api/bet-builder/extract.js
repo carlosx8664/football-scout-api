@@ -193,6 +193,9 @@ async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
 }
 
 export async function onRequestPost(context) {
+  // AI features temporarily disabled (arbitrage-logic focus). Re-enable by removing this guard.
+  return json({ error: "AI bet-slip extraction is temporarily disabled.", disabled: true }, 503);
+
   const { request, env, waitUntil } = context;
 
   if (!(env?.DEEPSEEK_API_KEY ?? "").trim()) {

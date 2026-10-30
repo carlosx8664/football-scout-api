@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { cancelBet, fetchActiveBets, settleBet } from "../lib/bets";
-import { formatGhs } from "../lib/wallets";
+import { formatAmount } from "../lib/wallets";
 import type {
   ActiveBetRecord,
   ActiveBetsPayload,
@@ -74,10 +74,12 @@ const ActiveBetsLedger = ({
   };
 
   const cancel = async (bet: ActiveBetRecord) => {
-    const total = bet.legA.stake + bet.legB.stake;
+    // A free bet's leg A was never debited, so only the hedge stake comes back.
+    const total = bet.isFreeBet ? bet.legB.stake : bet.legA.stake + bet.legB.stake;
     const confirmed = window.confirm(
-      `Remove ${bet.eventName}?\n\nBoth stakes (${formatGhs(total)}) will be refunded to ` +
-        `${bet.legA.name} and ${bet.legB.name}, and the bet will leave the ledger. ` +
+      `Remove ${bet.eventName}?\n\n${formatAmount(total)} will be refunded to ` +
+        `${bet.isFreeBet ? bet.legB.name : `${bet.legA.name} and ${bet.legB.name}`}, and the bet ` +
+        "will leave the ledger. " +
         "A zero-profit “Cancelled” entry is kept in History for your records.",
     );
     if (!confirmed) return;
@@ -114,7 +116,8 @@ const ActiveBetsLedger = ({
         <p className="active-bets-empty">Loading active bets…</p>
       ) : !payload ? null : bets.length === 0 ? (
         <p className="active-bets-empty">
-          No active bets. Tick an arb on the <a href="/arbs">Arbs</a> page to log one.
+          No active bets. Tick an arb on the <a href="/arbs">Arbs</a> page, or log a mug bet, to
+          start the ledger.
         </p>
       ) : (
         <>
@@ -123,11 +126,17 @@ const ActiveBetsLedger = ({
               <li className="active-bet-card" key={bet.id}>
                 <div className="active-bet-top">
                   <span className="active-bet-event">{bet.eventName}</span>
-                  <span
-                    className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}
-                  >
-                    {bet.profitPercent.toFixed(2)}%
-                  </span>
+                  {bet.kind === "arb" ? (
+                    <span
+                      className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}
+                    >
+                      {bet.profitPercent.toFixed(2)}%
+                    </span>
+                  ) : (
+                    <span className={`active-bet-kind ${bet.kind}`}>
+                      {bet.kind === "free" ? "Free bet" : "Muggy"}
+                    </span>
+                  )}
                 </div>
 
                 {bet.kickoff != null ? (
@@ -149,19 +158,31 @@ const ActiveBetsLedger = ({
                 )}
 
                 <ul className="active-bet-legs">
-                  {[bet.legA, bet.legB].map((leg, index) => (
-                    <li key={`${leg.name}-${index}`}>
-                      <span className="active-bet-bookie">{leg.name}</span>
-                      <span className="active-bet-leg-meta">
-                        {leg.odds.toFixed(2)} · {formatGhs(leg.stake)}
-                      </span>
-                    </li>
-                  ))}
+                  {[bet.legA, bet.legB]
+                    // A muggy acca's second slot carries no stake, so it would just be noise.
+                    .filter((leg, index) => leg.stake > 0 || bet.kind === "free" || index === 0)
+                    .map((leg, index) => {
+                      const role = bet.kind === "free" ? (index === 0 ? "Free bet" : "Hedge") : null;
+                      return (
+                        <li key={`${leg.name}-${index}`}>
+                          <span className="active-bet-bookie">
+                            {leg.name}
+                            {role && <span className={`active-bet-role ${bet.kind}`}>{role}</span>}
+                          </span>
+                          <span className="active-bet-leg-meta">
+                            {leg.odds.toFixed(2)} · {formatAmount(leg.stake)}
+                          </span>
+                        </li>
+                      );
+                    })}
                 </ul>
 
                 <div className="active-bet-footer">
                   <span className="active-bet-stake">
-                    Outlay {formatGhs(bet.legA.stake + bet.legB.stake)}
+                    Outlay{" "}
+                    {formatAmount(
+                      bet.isFreeBet ? bet.legB.stake : bet.legA.stake + bet.legB.stake,
+                    )}
                   </span>
                   <span className="active-bet-actions">
                     <button

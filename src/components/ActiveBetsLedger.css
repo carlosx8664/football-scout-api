@@ -90,6 +90,33 @@
   white-space: nowrap;
 }
 .active-bet-profit.negative { color: #c20a0a; }
+.active-bet-role {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+}
+.active-bet-role.free { background: var(--color-teal-2); color: var(--color-teal-4); }
+.active-bet-kind {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+}
+.active-bet-kind.muggy { background: var(--color-yellow-weak); color: #7a5c00; }
+.active-bet-kind.free { background: var(--color-teal-2); color: var(--color-teal-4); }
 .active-bet-when { font-size: 0.66rem; color: var(--color-neutral-6); }
 
 .active-bet-legs {

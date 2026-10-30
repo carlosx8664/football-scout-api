@@ -1,26 +1,25 @@
 import {
   DB_UNAVAILABLE_MESSAGE,
-  MAX_TRANSFER,
-  MIN_TRANSFER,
-  TRANSFER_COOLDOWN_MS,
-  TRANSFER_STEP,
   dbError,
   getDb,
   json,
+  loadCashReserve,
   modeValue,
   parseSimulation,
   round2,
+  setCashReserve,
   walletPayload,
 } from "../../../../shared/wallets.js";
 
 /**
  * POST /api/wallets/:id/transfers
  *
- * Body: `{ kind: "deposit" | "withdrawal", amount: number, simulation?: boolean }`
+ * Body: `{ kind: "deposit" | "withdrawal", amount: number, momo?: number, simulation?: boolean }`
  *
- * Logs a human-looking cash movement: the amount must be a round multiple of 50 between 50 and
- * 500, and one movement per bookie is allowed every 10 minutes, so a burst can never look like
- * an automated bot. The balance update and the ledger row are written as one batch.
+ * Logs a cash movement with no amount cap and no rate limit: a top-up is limited only by the Momo
+ * reserve it draws from, and a withdrawal by the bookie balance it leaves. The balance update and
+ * the ledger row are written as one batch, and the Momo cash reserve moves the other way (a
+ * top-up subtracts from it, a withdrawal adds to it).
  */
 export async function onRequestPost({ request, env, params }) {
   const db = getDb(env);
@@ -40,26 +39,15 @@ export async function onRequestPost({ request, env, params }) {
     return json({ error: '`kind` must be "deposit" or "withdrawal".' }, 400);
   }
 
-  const amount = Number(body?.amount);
+  const amount = round2(Number(body?.amount));
   if (!Number.isFinite(amount) || amount <= 0) {
-    return json({ error: "`amount` must be a positive number." }, 400);
+    return json({ error: "Enter an amount greater than 0." }, 400);
   }
-  if (amount < MIN_TRANSFER || amount > MAX_TRANSFER) {
-    return json(
-      {
-        error:
-          `Keep transfers between GHS ${MIN_TRANSFER} and GHS ${MAX_TRANSFER} — ` +
-          "bigger or smaller amounts stand out.",
-      },
-      400,
-    );
-  }
-  if (amount % TRANSFER_STEP !== 0) {
-    return json(
-      { error: `Use a round figure in steps of GHS ${TRANSFER_STEP} (e.g. 50, 100, 150).` },
-      400,
-    );
-  }
+
+  // The Momo figure the client is showing: the plan leftover plus whatever has been withdrawn.
+  const requestedMomo = Number(body?.momo);
+  const momoBefore =
+    Number.isFinite(requestedMomo) && requestedMomo >= 0 ? round2(requestedMomo) : null;
 
   const simulation = parseSimulation(body?.simulation);
   const mode = modeValue(simulation);
@@ -79,35 +67,27 @@ export async function onRequestPost({ request, env, params }) {
     if (kind === "withdrawal" && balance < amount) {
       return json(
         {
-          error: `${wallet.bookie_name} only holds GHS ${balance}; cannot withdraw GHS ${amount}.`,
+          error: `${wallet.bookie_name} only holds ${balance}; cannot withdraw ${amount}.`,
         },
         409,
       );
     }
 
-    // Spacing guard: repeat movements in quick succession are the main bot signal.
-    const last = await db
-      .prepare(
-        `SELECT created_at FROM wallet_transfers
-          WHERE is_simulation = ? AND bookie_name = ?
-          ORDER BY created_at DESC LIMIT 1`,
-      )
-      .bind(mode, wallet.bookie_name)
-      .first();
-
-    if (last?.created_at) {
-      const elapsed = Date.now() - Date.parse(last.created_at);
-      if (Number.isFinite(elapsed) && elapsed < TRANSFER_COOLDOWN_MS) {
-        const minutes = Math.ceil((TRANSFER_COOLDOWN_MS - elapsed) / 60_000);
-        return json(
-          {
-            error:
-              `Space out transfers to ${wallet.bookie_name}: try again in about ${minutes} ` +
-              "minute(s) so the activity looks natural.",
-          },
-          429,
-        );
-      }
+    /**
+     * A top-up can only spend money that is sitting in Momo (plan leftover + withdrawn cash), so
+     * the client's displayed total gates the amount while the stored reserve is what moves.
+     */
+    const stored = await loadCashReserve(db, simulation);
+    const available = momoBefore ?? stored;
+    if (kind === "deposit" && amount > available) {
+      return json(
+        {
+          error:
+            `Not enough cash in the reserves: Momo holds ${round2(available)}, ` +
+            `so you cannot top up ${amount}.`,
+        },
+        409,
+      );
     }
 
     const delta = kind === "deposit" ? amount : -amount;
@@ -123,6 +103,11 @@ export async function onRequestPost({ request, env, params }) {
         )
         .bind(crypto.randomUUID(), id, wallet.bookie_name, kind, amount, mode),
     ]);
+
+    // The money comes out of the Momo pot on a top-up and lands back in it on a withdrawal, on
+    // top of whatever was already there.
+    const nextReserve = Math.max(0, round2(stored - delta));
+    await setCashReserve(db, simulation, nextReserve);
 
     const payload = await walletPayload(db, simulation);
     return json(

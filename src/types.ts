@@ -295,13 +295,22 @@ export interface LogArbInput {
   simulation: boolean;
   /** Epoch milliseconds, taken from the arb feed so the card shows the match start. */
   kickoff?: number;
+  /** Form that logged the row: a two-leg arb (default), a muggy acca or a free bet. */
+  kind?: BetKind;
 }
+
+/** Which form logged an `active_bets` row. */
+export type BetKind = "arb" | "muggy" | "free";
 
 export interface LogArbResult {
   id: string;
   eventName: string;
+  kind: BetKind;
+  /** True for a free bet: the stake on leg A is fictitious and was never debited. */
+  isFreeBet: boolean;
   /** Recomputed server-side from the saved stakes and prices. */
   profitPercent: number;
+  /** Real cash outlay: the hedge stake only for a free bet. */
   totalStake: number;
   kickoff: number | null;
   simulation: boolean;
@@ -318,6 +327,10 @@ export interface ActiveBetLegRecord {
 export interface ActiveBetRecord {
   id: string;
   eventName: string;
+  /** 'arb' from the Arbs page, 'muggy' for a muggy acca, 'free' for a free bet. */
+  kind: BetKind;
+  /** Free bet: leg A is the free stake (never debited) and leg B is the real hedge. */
+  isFreeBet: boolean;
   legA: ActiveBetLegRecord;
   legB: ActiveBetLegRecord;
   profitPercent: number;

@@ -9,6 +9,7 @@ import RightSidebar from "./components/RightSidebar";
 import Sidebar from "./components/Sidebar";
 import SimulationBanner from "./components/SimulationBanner";
 import WalletsDashboard from "./components/WalletsDashboard";
+import WalletsHistory from "./components/WalletsHistory";
 import { fetchSnapshot } from "./lib/api";
 import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
 import type { SnapshotData } from "./types";
@@ -16,6 +17,7 @@ import type { SnapshotData } from "./types";
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
 const ARBS_ROUTE = /^\/arbs\/?$/;
 const WALLETS_ROUTE = /^\/wallets\/?$/;
+const WALLETS_HISTORY_ROUTE = /^\/wallets\/history\/?$/;
 
 function currentMatchId(pathname: string): number | null {
   const result = MATCH_ROUTE.exec(pathname);
@@ -45,6 +47,7 @@ function App() {
   const matchId = currentMatchId(pathname);
   const isArbs = ARBS_ROUTE.test(pathname);
   const isWallets = WALLETS_ROUTE.test(pathname);
+  const isWalletsHistory = WALLETS_HISTORY_ROUTE.test(pathname);
 
   // On a match page (or the arbs page) there is no feed to filter, so picking a league
   // has to take the user back to the home feed first.
@@ -108,6 +111,17 @@ function App() {
         <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
           <ArbsTable now={now} />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (isWalletsHistory) {
+    return (
+      <Shell>
+        <div className="app-body app-body-wide">
+          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
+          <WalletsHistory />
         </div>
       </Shell>
     );

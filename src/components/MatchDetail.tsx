@@ -5,6 +5,9 @@ import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import BookBreakdown from "./BookBreakdown";
 import "./MatchDetail.css";
 
+// AI features temporarily disabled (arbitrage-logic focus). Flip to true to re-enable.
+const AI_FEATURES_ENABLED = false;
+
 interface MatchDetailProps {
   match: Match | null;
   date: string;
@@ -25,6 +28,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
   // Analyses baked into the feed win on first load; otherwise ask the Pages Function, which
   // calls DeepSeek server-side and caches the result in KV.
   useEffect(() => {
+    if (!AI_FEATURES_ENABLED) return;
     if (!match) return;
     if (match.ai_analysis && reloadKey === 0) return;
 
@@ -163,6 +167,7 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
           </div>
         </div>
 
+        {AI_FEATURES_ENABLED ? (
         <section className="ai-box">
           <div className="ai-box-header">
             <strong>🤖 Scout Analysis</strong>
@@ -193,6 +198,11 @@ const MatchDetail = ({ match, date }: MatchDetailProps) => {
             </p>
           )}
         </section>
+        ) : (
+          <section className="ai-box">
+            <p>🤖 Scout Analysis is temporarily disabled.</p>
+          </section>
+        )}
       </article>
     </main>
   );

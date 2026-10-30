@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MOMO_FEE_PCT, fetchTransfers, formatGhs } from "../lib/wallets";
+import { fetchTransfers, formatAmount } from "../lib/wallets";
 import type { TransfersPayload } from "../types";
 import "./CashFlowPanel.css";
 
@@ -9,8 +9,10 @@ interface CashFlowPanelProps {
   refreshToken: number;
   /** Lifetime totals already returned by GET /api/wallets, so the cards paint immediately. */
   summary: { count: number; deposited: number; withdrawn: number; net: number } | null;
-  /** Mobile-money balance: bankroll that is not sitting in a bookie account. */
-  cashReserve: number;
+  /** Opening deposits the current plan implies (per-bookie split × selected bookies). */
+  planDeposits: number;
+  /** Number of bookies the bankroll is split across, 0 when no split is possible yet. */
+  planCount: number;
   /** Per-bookie balance the weekly sweep leaves behind; 0 disables the button. */
   baseTarget: number;
   onCashOut: () => Promise<void>;
@@ -29,7 +31,8 @@ const CashFlowPanel = ({
   simulation,
   refreshToken,
   summary,
-  cashReserve,
+  planDeposits,
+  planCount,
   baseTarget,
   onCashOut,
 }: CashFlowPanelProps) => {
@@ -68,11 +71,7 @@ const CashFlowPanel = ({
           <h2>Cash Flow</h2>
           <p className="cashflow-subtitle">
             Deposits and withdrawals in the {simulation ? "simulation" : "real"} ledger, kept in{" "}
-            <code>wallet_transfers</code>.{" "}
-            <span className="cashflow-fees">
-              {MOMO_FEE_PCT}% MoMo fees (merchant line) — profits are not reduced by transaction
-              fees.
-            </span>
+            <code>wallet_transfers</code>.
           </p>
         </div>
         <span className="cashflow-count">
@@ -86,23 +85,22 @@ const CashFlowPanel = ({
         <div className="cashflow-stats">
           <div className="cashflow-stat">
             <span>Total deposited</span>
-            <strong>{formatGhs(totals.deposited)}</strong>
+            <strong>{formatAmount(totals.deposited)}</strong>
           </div>
           <div className="cashflow-stat">
             <span>Total withdrawn</span>
-            <strong>{formatGhs(totals.withdrawn)}</strong>
+            <strong>{formatAmount(totals.withdrawn)}</strong>
           </div>
-          <div className={`cashflow-stat net${totals.net < 0 ? " negative" : ""}`}>
-            <span>Net cash in</span>
-            <strong>{formatGhs(totals.net)}</strong>
-          </div>
-          <div
-            className="cashflow-stat reserve"
-            title="Bankroll that stayed in mobile money instead of going into a bookie"
-          >
-            <span>Unallocated cash</span>
-            <strong>{formatGhs(cashReserve)}</strong>
-          </div>
+          {planCount > 0 && (
+            <div className="cashflow-stat plan">
+              <span>Planned deposits</span>
+              <strong>{formatAmount(planDeposits)}</strong>
+              <span className="cashflow-stat-hint">
+                {planCount} bookie{planCount === 1 ? "" : "s"} ×{" "}
+                {formatAmount(planDeposits / planCount)}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -119,17 +117,9 @@ const CashFlowPanel = ({
             }
           }}
           disabled={cashingOut || baseTarget <= 0}
-          title={
-            baseTarget > 0
-              ? `Keep ${formatGhs(baseTarget)} in each bookie and withdraw the rest`
-              : "Set a bankroll first so there is a base target to keep"
-          }
         >
           {cashingOut ? "Withdrawing…" : "Withdraw Weekly Profits"}
         </button>
-        <span className="cashflow-actions-hint">
-          Keeps {formatGhs(baseTarget)} per bookie · sweeps the excess in 50s
-        </span>
       </div>
 
       {loading ? (
@@ -149,7 +139,7 @@ const CashFlowPanel = ({
               <span className="cashflow-bookie">{transfer.bookie}</span>
               <span className="cashflow-amount">
                 {transfer.kind === "deposit" ? "+" : "−"}
-                {formatGhs(transfer.amount)}
+                {formatAmount(transfer.amount)}
               </span>
               <span className="cashflow-when">{when(transfer.createdAt)}</span>
             </li>

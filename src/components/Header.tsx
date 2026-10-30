@@ -27,6 +27,7 @@ const Header = () => {
           <nav className="top-nav">
             <Link to="/arbs">Arbs</Link>
             <Link to="/wallets">Wallets</Link>
+            <Link to="/wallets/history">History</Link>
           </nav>
         </div>
         <div className="header-right">

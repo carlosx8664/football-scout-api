@@ -14,12 +14,6 @@
   margin-bottom: 16px;
 }
 .rebalance-header h2 { font-size: 1.15rem; font-weight: 700; }
-.rebalance-subtitle {
-  margin-top: 4px;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--color-neutral-6);
-}
 
 .rebalance-error {
   margin-bottom: 14px;
@@ -76,27 +70,11 @@
   background: var(--color-brand);
   transition: width 0.25s ease, background 0.25s ease;
 }
-/* Gauge semantics: red = danger (underfunded), amber = caution (over-concentrated), green = healthy. */
+/* Gauge colours follow progress against the per-bookie target: red well below, amber near, green at it. */
 .rebalance-bar-fill.danger { background: #dc2626; }
 .rebalance-bar-fill.caution { background: #e0b400; }
 .rebalance-bar-fill.healthy { background: #16a34a; }
-/* Pending settlement: gauge muted, since the low cash is only the stake being away. */
-.rebalance-bar-fill.pending { background: var(--color-neutral-5); }
-.rebalance-share.pending { color: var(--color-neutral-5); }
-.rebalance-row.pending .rebalance-bookie { color: var(--color-neutral-6); }
 
-.rebalance-pending {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: var(--color-neutral-3);
-  color: var(--color-neutral-6);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
 .rebalance-balance {
   font-size: 0.78rem;
   font-weight: 700;
@@ -104,112 +82,7 @@
   white-space: nowrap;
 }
 
-.rebalance-hints {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 18px;
-}
-.rebalance-hint {
-  padding: 10px 12px;
-  border-radius: 9px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-.rebalance-hint.good { background: #e8f7ee; color: #15803d; border: 1px solid #b7e4c7; }
-.rebalance-hint.bad { background: #fdecec; color: #b91c1c; border: 1px solid #f5c2c2; }
-.rebalance-hint-detail {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  opacity: 0.85;
-}
-
-.rebalance-morning {
-  margin-bottom: 16px;
-  padding: 12px 14px;
-  border-radius: 9px;
-  border: 1px solid #f0d78c;
-  background: #fffbe8;
-  color: #7a5c00;
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.rebalance-action {
-  margin-top: 8px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-}
-.rebalance-action.deposit {
-  background: #15803d;
-  border-color: #15803d;
-  color: #fff;
-}
-.rebalance-action.deposit:hover:not(:disabled) { background: #116b33; }
-.rebalance-action.withdraw {
-  background: #fff;
-  border-color: #b91c1c;
-  color: #b91c1c;
-}
-.rebalance-action.withdraw:hover:not(:disabled) { background: #fdecec; }
-.rebalance-action:disabled { opacity: 0.6; cursor: default; }
-
 @media (max-width: 720px) {
   .rebalance-row { grid-template-columns: 84px 48px minmax(0, 1fr); }
   .rebalance-balance { grid-column: 1 / -1; text-align: left; }
 }
-
-/* Merchant-MoMo capital move: one withdrawal, one deposit, no change to the total. */
-.rebalance-recycle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 12px 0;
-  padding: 12px 14px;
-  border: 1px solid var(--color-brand-weak-elevated);
-  border-radius: 10px;
-  background: var(--color-brand-weak);
-}
-
-.rebalance-recycle-copy { min-width: 0; }
-
-.rebalance-recycle-copy strong {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 800;
-  color: var(--color-brand-4);
-}
-
-.rebalance-recycle-copy p {
-  margin: 3px 0 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--color-neutral-6);
-}
-
-.rebalance-recycle-btn {
-  flex: none;
-  padding: 8px 12px;
-  border: 1px solid var(--color-brand);
-  border-radius: 8px;
-  background: var(--color-brand);
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.rebalance-recycle-btn:hover:not(:disabled) { filter: brightness(1.05); }
-.rebalance-recycle-btn:disabled { opacity: 0.6; cursor: default; }

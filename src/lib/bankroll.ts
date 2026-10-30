@@ -2,27 +2,30 @@ import { createContext, useContext } from "react";
 
 export const BANKROLL_STORAGE_KEY = "oddtor:bankroll-plan";
 
-export const DEFAULT_BANKROLL = 5_000;
+export const DEFAULT_BANKROLL = 10_000;
 /** Stake per arb is entered by hand; this is only what a fresh install starts at. */
-export const DEFAULT_STAKE = 1_000;
+export const DEFAULT_STAKE = 2_000;
 
 /** Above this share of the bankroll, one arb is too big to recover from. */
 export const HIGH_RISK_PCT = 20;
-/** Camouflage protocol: a small daily single and a bigger weekend anchor, both sized off stake. */
-export const MICRO_MUG_PCT = 5;
-export const WEEKEND_ANCHOR_PCT = 20;
+/** Camouflage protocol: 1.5% of stake ensures a 30 GHS mug bet on a 2,000 GHS arb. */
+export const MICRO_MUG_PCT = 1.5;
+export const WEEKEND_ANCHOR_PCT = 5;
 
 /** Both legs of one arb must be covered, so the float is 2× the stake. */
 export const FLOAT_MULTIPLE = 2;
 /** Deposits in round steps look human; precise amounts look automated. */
 export const BLEND_STEP = 50;
 /**
- * Opening deposits are also round: the per-bookie share is rounded DOWN to this step so the
- * deposits never add up to more than the bankroll. The leftover becomes unallocated cash.
+ * Opening deposits are also round: each selected bookie's share of the bankroll is rounded to the
+ * nearest 100, stepping back one step when rounding up would push the split past the bankroll.
+ * The leftover becomes unallocated cash.
  */
-export const OPENING_STEP = 50;
+export const OPENING_STEP = 100;
 /** Share of the bankroll each bookie should hold when everything is balanced. */
 export const BOOKIE_SHARE_PCT = 25;
+/** One bookie per leg: a split only exists once at least two bookies are selected. */
+export const MIN_BOOKIES = 2;
 
 /**
  * Nearest round step to `amount`, for telling the user what to actually key into a bookie app.
@@ -35,8 +38,20 @@ export function blendInAmount(amount: number): number {
 }
 
 /**
- * Per-bookie opening deposit: the exact share rounded DOWN to a round step, so N deposits can
- * never exceed the bankroll. 10,000 across 6 bookies -> 1,650 each.
+ * Each selected bookie's share of the bankroll, always rounded DOWN to a whole 100 so the split
+ * is decimal-free and can never exceed the bankroll: 10,000 across 6 bookies gives 1,600 each
+ * (9,600 funded) and leaves 400 for Momo.
+ */
+export function splitPerWallet(bankroll: number, bookies: number): number {
+  const count = Math.max(1, Math.floor(bookies) || 1);
+  const share = Math.max(0, Number(bankroll) || 0) / count;
+  if (!Number.isFinite(share) || share <= 0) return 0;
+  return Math.max(0, Math.floor(share / OPENING_STEP) * OPENING_STEP);
+}
+
+/**
+ * Per-bookie opening deposit: the rounded share, floored to a whole step so N deposits can never
+ * exceed the bankroll. 10,000 across 6 bookies -> 1,600 each.
  */
 export function openingBalanceFor(perWallet: number): number {
   if (!Number.isFinite(perWallet) || perWallet <= 0) return 0;
@@ -55,6 +70,18 @@ export interface BankrollSettings {
   bankroll: number;
   /** Total laid across both legs of one arb — entered by hand. */
   stake: number;
+  /** Bookies picked in wallet management (by name); the bankroll splits across these only. */
+  bookies: string[];
+}
+
+/** Bookies picked in wallet management. A fresh plan starts with none selected. */
+export function selectedBookies(settings: BankrollSettings): string[] {
+  return Array.isArray(settings.bookies) ? settings.bookies : [];
+}
+
+/** True once enough bookies are picked to split the bankroll across them. */
+export function hasSplit(settings: BankrollSettings): boolean {
+  return selectedBookies(settings).length >= MIN_BOOKIES;
 }
 
 export interface BankrollPlan {
@@ -73,7 +100,7 @@ export interface BankrollPlan {
   concurrency: number;
   /** Float needed to place both legs of one arb without running dry. */
   minFloat: number;
-  /** Target balance per bookie wallet. */
+  /** Target balance per bookie wallet, rounded to the nearest 100. */
   perWallet: number;
   /** Arbs per day the plan is designed for. */
   arbsPerDay: [number, number];
@@ -104,7 +131,7 @@ export function computePlan(settings: BankrollSettings, walletCount = 1): Bankro
     weekendAnchor: round2((stake * WEEKEND_ANCHOR_PCT) / 100),
     concurrency: stake > 0 ? Math.floor(bankroll / stake) : 0,
     minFloat: round2(stake * FLOAT_MULTIPLE),
-    perWallet: bankroll / wallets,
+    perWallet: splitPerWallet(bankroll, wallets),
     arbsPerDay: [2, 5],
     dailyProfit: [
       Math.round(stake * 0.015 * 2),
@@ -135,7 +162,11 @@ const LEGACY_PROFILE_PCT: Record<string, number> = {
 };
 
 export function readStoredBankroll(): BankrollSettings {
-  const fallback: BankrollSettings = { bankroll: DEFAULT_BANKROLL, stake: DEFAULT_STAKE };
+  const fallback: BankrollSettings = {
+    bankroll: DEFAULT_BANKROLL,
+    stake: DEFAULT_STAKE,
+    bookies: [],
+  };
 
   if (typeof window === "undefined") return fallback;
 
@@ -147,23 +178,28 @@ export function readStoredBankroll(): BankrollSettings {
       bankroll?: number;
       stake?: number;
       riskProfile?: string;
+      bookies?: unknown;
     };
+
+    const bookies = Array.isArray(parsed.bookies)
+      ? parsed.bookies.filter((bookie): bookie is string => typeof bookie === "string")
+      : [];
 
     const bankroll = Number(parsed.bankroll);
     const safeBankroll = Number.isFinite(bankroll) && bankroll > 0 ? bankroll : DEFAULT_BANKROLL;
 
     const storedStake = Number(parsed.stake);
     if (Number.isFinite(storedStake) && storedStake > 0) {
-      return { bankroll: safeBankroll, stake: storedStake };
+      return { bankroll: safeBankroll, stake: storedStake, bookies };
     }
 
     // A plan saved while risk profiles existed: turn its percentage back into a stake.
     const pct = LEGACY_PROFILE_PCT[parsed.riskProfile ?? ""];
     if (pct) {
-      return { bankroll: safeBankroll, stake: Math.round((safeBankroll * pct) / 100) };
+      return { bankroll: safeBankroll, stake: Math.round((safeBankroll * pct) / 100), bookies };
     }
 
-    return { bankroll: safeBankroll, stake: DEFAULT_STAKE };
+    return { bankroll: safeBankroll, stake: DEFAULT_STAKE, bookies };
   } catch {
     return fallback;
   }

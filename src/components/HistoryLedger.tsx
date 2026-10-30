@@ -6,7 +6,7 @@ import {
   type HistoryPreset,
   type HistoryRange,
 } from "../lib/history";
-import { formatGhs } from "../lib/wallets";
+import { formatAmount } from "../lib/wallets";
 import type { HistoryEntry, HistoryPayload } from "../types";
 import "./HistoryLedger.css";
 
@@ -150,10 +150,10 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
         <div className="history-metrics">
           <div className="history-metric outlay" title="Stakes tied up now plus stakes settled this week">
             <span>Total Outlay This Week</span>
-            <strong>{formatGhs(payload.totals.outlayThisWeek)}</strong>
+            <strong>{formatAmount(payload.totals.outlayThisWeek)}</strong>
             <span className="history-metric-hint">
-              {formatGhs(payload.totals.activeOutlay)} active ·{" "}
-              {formatGhs(payload.totals.historyOutlay)} settled
+              {formatAmount(payload.totals.activeOutlay)} active ·{" "}
+              {formatAmount(payload.totals.historyOutlay)} settled
             </span>
           </div>
         </div>
@@ -188,7 +188,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                         className={`history-day-total${group.netProfit < 0 ? " negative" : ""}`}
                       >
                         {group.netProfit >= 0 ? "+" : "−"}
-                        {formatGhs(Math.abs(group.netProfit))}
+                        {formatAmount(Math.abs(group.netProfit))}
                       </span>
                     </th>
                   </tr>
@@ -224,7 +224,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                             <span className="history-won">won</span>
                           )}
                       </td>
-                      <td>{formatGhs(entry.totalStake)}</td>
+                      <td>{formatAmount(entry.totalStake)}</td>
                       <td
                         className={`history-profit${
                           entry.settlementType === "cancelled"
@@ -235,7 +235,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                         }${entry.netProfit < 0 ? " negative" : ""}`}
                       >
                         {entry.netProfit >= 0 ? "+" : "−"}
-                        {formatGhs(Math.abs(entry.netProfit))}
+                        {formatAmount(Math.abs(entry.netProfit))}
                       </td>
                     </tr>
                   ))}
@@ -257,21 +257,21 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
             <div className="history-mug-metric">
               <span>Arb profit</span>
               <strong className={arbProfit < 0 ? "negative" : "positive"}>
-                {formatGhs(arbProfit)}
+                {formatAmount(arbProfit)}
               </strong>
             </div>
             <div className="history-mug-metric">
               <span>Mug staked</span>
-              <strong>{formatGhs(payload.mugTotals.staked)}</strong>
+              <strong>{formatAmount(payload.mugTotals.staked)}</strong>
             </div>
             <div className="history-mug-metric">
               <span>Mug returned</span>
-              <strong>{formatGhs(payload.mugTotals.returned)}</strong>
+              <strong>{formatAmount(payload.mugTotals.returned)}</strong>
             </div>
             <div className="history-mug-metric">
               <span>Net mug cost</span>
               <strong className={payload.mugTotals.net > 0 ? "negative" : "positive"}>
-                {formatGhs(payload.mugTotals.net)}
+                {formatAmount(payload.mugTotals.net)}
               </strong>
             </div>
           </div>
@@ -285,8 +285,8 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                   {bet.status === "open"
                     ? "open"
                     : bet.status === "won"
-                      ? `won ${formatGhs(bet.payout)}`
-                      : `lost ${formatGhs(bet.stake)}`}
+                      ? `won ${formatAmount(bet.payout)}`
+                      : `lost ${formatAmount(bet.stake)}`}
                 </span>
               </li>
             ))}

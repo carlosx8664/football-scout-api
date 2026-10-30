@@ -55,8 +55,118 @@
   font-weight: 800;
 }
 
+.mugbets-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.mugbets-tab {
+  padding: 6px 12px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  background: none;
+  cursor: pointer;
+}
+.mugbets-tab:hover { color: var(--color-neutral-7); border-color: var(--color-brand); }
+.mugbets-tab.active {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+}
+
+.mugbets-hedge {
+  grid-column: 1 / -1;
+  margin: 12px 0 0;
+  padding: 12px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.mugbets-hedge legend {
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.mugbets-hedge label { min-width: 0; }
+.mugbets-hedge input,
+.mugbets-hedge select { width: 100%; box-sizing: border-box; }
+
+.mugbets-field-wide { grid-column: 1 / -1; }
+
+.mugbets-win {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--color-neutral-4);
+  border-radius: 8px;
+  background: var(--color-neutral-2);
+}
+.mugbets-win strong { font-size: 0.85rem; font-weight: 800; color: var(--color-brand-4); }
+
+.mugbets-auto {
+  margin-left: 6px;
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-brand-4);
+}
+.mugbets-auto-btn {
+  border: none;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.mugbets-profit {
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--color-brand-weak-elevated);
+  background: var(--color-brand-weak);
+}
+.mugbets-profit-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.mugbets-profit-head span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+}
+.mugbets-profit-head strong { font-size: 1rem; font-weight: 800; color: var(--color-brand-4); }
+.mugbets-profit small { display: block; margin-top: 4px; font-size: 0.68rem; color: var(--color-neutral-6); }
+
+.mugbets-notice {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e8f7ee;
+  color: #15803d;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
 .mugbets-error {
-  margin: 0;
+  margin: 0 0 12px;
   padding: 8px 10px;
   border-radius: 8px;
   background: #fdecec;
@@ -71,17 +181,15 @@
   gap: 8px;
 }
 
-.mugbets-form label {
+.mugbets-form > label {
   display: flex;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
 }
 
-.mugbets-form label.grow {
-  grid-column: 1 / -1;
-}
-
+/* Every field is the same width, whether it is a text box, a number or a dropdown. */
+.mugbets-form > button { grid-column: 1 / -1; }
 .mugbets-form span {
   font-size: 0.62rem;
   font-weight: 700;
@@ -93,6 +201,7 @@
 .mugbets-form input,
 .mugbets-form select {
   width: 100%;
+  box-sizing: border-box;
   padding: 7px 9px;
   border: 1px solid var(--color-neutral-4);
   border-radius: 8px;
@@ -129,135 +238,4 @@
 .mugbets-add:disabled {
   opacity: 0.6;
   cursor: default;
-}
-
-.mugbets-totals {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.72rem;
-  color: var(--color-neutral-6);
-}
-
-.mugbets-totals strong {
-  color: var(--color-neutral-7);
-  font-weight: 800;
-}
-
-.mugbets-totals .cost strong {
-  color: #b91c1c;
-}
-
-.mugbets-empty {
-  margin: 0;
-  font-size: 0.76rem;
-  line-height: 1.45;
-  color: var(--color-neutral-6);
-}
-
-.mugbets-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.mugbets-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 4px 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--color-neutral-4);
-  border-radius: 8px;
-  background: var(--color-neutral-2);
-  font-size: 0.76rem;
-}
-
-.mugbets-row.lost {
-  opacity: 0.72;
-}
-
-.mugbets-bookie {
-  font-weight: 800;
-  color: var(--color-neutral-7);
-  white-space: nowrap;
-}
-
-.mugbets-event {
-  color: var(--color-neutral-6);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mugbets-stake {
-  color: var(--color-neutral-6);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.mugbets-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 6px;
-}
-
-.mugbets-actions button {
-  flex: 1;
-  padding: 5px 8px;
-  border-radius: 7px;
-  border: 1px solid var(--color-neutral-4);
-  background: var(--color-neutral-1);
-  font-family: inherit;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.mugbets-won {
-  color: #15803d;
-  border-color: #86efac;
-}
-
-.mugbets-won:hover:not(:disabled) {
-  background: #f0fdf4;
-}
-
-.mugbets-lost {
-  color: #b91c1c;
-  border-color: #fecaca;
-}
-
-.mugbets-lost:hover:not(:disabled) {
-  background: #fef2f2;
-}
-
-.mugbets-actions button:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-
-.mugbets-status {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-}
-
-.mugbets-status.won {
-  color: #15803d;
-}
-
-.mugbets-status.lost {
-  color: #b91c1c;
-}
-
-.mugbets-when {
-  color: var(--color-neutral-6);
-  font-weight: 600;
 }

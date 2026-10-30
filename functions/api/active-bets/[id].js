@@ -34,12 +34,15 @@ export async function onRequestDelete({ request, env, params }) {
       return json({ error: `No ${label} active bet with id "${id}".` }, 404);
     }
 
-    // Both legs can sit on the same bookie, so refunds are grouped per wallet.
+    // Both legs can sit on the same bookie, so refunds are grouped per wallet. Leg A of a free
+    // bet was never debited, so it is excluded from the refund.
+    const freeA = Number(bet.is_free_bet) === 1 || bet.kind === "free";
     const refunds = new Map();
     for (const leg of [
-      { bookie: bet.bookie_a_name, stake: Number(bet.bookie_a_stake) },
+      ...(freeA ? [] : [{ bookie: bet.bookie_a_name, stake: Number(bet.bookie_a_stake) }]),
       { bookie: bet.bookie_b_name, stake: Number(bet.bookie_b_stake) },
     ]) {
+      if (leg.stake <= 0) continue;
       refunds.set(leg.bookie, round2((refunds.get(leg.bookie) ?? 0) + leg.stake));
     }
 
@@ -61,7 +64,10 @@ export async function onRequestDelete({ request, env, params }) {
       );
     }
 
-    const totalStake = round2(Number(bet.bookie_a_stake) + Number(bet.bookie_b_stake));
+    const totalStake = round2(
+      (Number(bet.is_free_bet) === 1 || bet.kind === "free" ? 0 : Number(bet.bookie_a_stake)) +
+        Number(bet.bookie_b_stake),
+    );
     const historyId = crypto.randomUUID();
 
     await db.batch([
@@ -76,8 +82,9 @@ export async function onRequestDelete({ request, env, params }) {
         .prepare(
           `INSERT INTO history (
              id, event_name, winning_bookie, net_profit, is_simulation, settlement_type,
-             bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
-           ) VALUES (?, ?, NULL, 0, ?, 'cancelled', ?, ?, ?, ?, ?)`,
+             bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kind,
+             is_free_bet
+           ) VALUES (?, ?, NULL, 0, ?, 'cancelled', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           historyId,
@@ -88,6 +95,8 @@ export async function onRequestDelete({ request, env, params }) {
           bet.bookie_b_name,
           Number(bet.bookie_b_stake),
           totalStake,
+          bet.kind ?? "arb",
+          Number(bet.is_free_bet) === 1 ? 1 : 0,
         ),
       db.prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?").bind(id, mode),
     ]);

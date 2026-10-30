@@ -51,7 +51,7 @@
 
 .cashflow-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -72,10 +72,14 @@
   color: var(--color-neutral-6);
 }
 .cashflow-stat strong { font-size: 1rem; font-weight: 800; }
-.cashflow-stat.net { background: var(--color-teal-2); border-color: var(--color-teal-4); }
-.cashflow-stat.net strong { color: var(--color-teal-4); }
-.cashflow-stat.net.negative { background: #fdecec; border-color: #c20a0a; }
-.cashflow-stat.net.negative strong { color: #c20a0a; }
+.cashflow-stat-hint {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-neutral-6);
+}
+.cashflow-stat.plan strong { color: var(--color-brand-4); }
 
 .cashflow-empty {
   padding: 8px 0;
@@ -159,17 +163,3 @@
 .cashflow-cashout:hover:not(:disabled) { filter: brightness(1.05); }
 .cashflow-cashout:disabled { opacity: 0.55; cursor: default; }
 
-.cashflow-actions-hint {
-  font-size: 0.68rem;
-  color: var(--color-neutral-6);
-}
-
-.cashflow-stat.reserve strong { color: var(--color-brand-4); }
-
-/* Stated assumption, not a computed value: merchant-line MoMo transfers are fee-free. */
-.cashflow-fees {
-  display: inline-block;
-  margin-top: 2px;
-  font-weight: 700;
-  color: var(--color-brand-4);
-}

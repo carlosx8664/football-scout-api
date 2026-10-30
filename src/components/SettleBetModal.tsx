@@ -64,8 +64,18 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const totalStake = bet.legA.stake + bet.legB.stake;
+  // A free bet's leg A is fictitious: only the hedge stake is real outlay.
+  const stakeOf = (side: "a" | "b") => {
+    const leg = side === "a" ? bet.legA : bet.legB;
+    return bet.isFreeBet && side === "a" ? 0 : leg.stake;
+  };
+  const totalStake = stakeOf("a") + stakeOf("b");
   const legOf = (side: "a" | "b") => (side === "a" ? bet.legA : bet.legB);
+  /** Free bets name each side so settling the right leg is unambiguous. */
+  const roleLabel = (side: "a" | "b", bookie: string) => {
+    if (!bet.isFreeBet) return bet.kind === "arb" ? bookie : `Leg ${side.toUpperCase()} · ${bookie}`;
+    return side === "a" ? `Free bet · ${bookie}` : `Hedge · ${bookie}`;
+  };
   const amountValue = Number(cashOutAmount);
   const amountValid =
     cashOutAmount.trim() !== "" && Number.isFinite(amountValue) && amountValue >= 0;
@@ -99,22 +109,23 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
       return {
         request: { simulation, outcome: "void", voided: "both" },
         credits: [
-          { bookie: bet.legA.name, amount: bet.legA.stake, kind: "Refund" },
-          { bookie: bet.legB.name, amount: bet.legB.stake, kind: "Refund" },
-        ],
+          { bookie: bet.legA.name, amount: stakeOf("a"), kind: "Refund" },
+          { bookie: bet.legB.name, amount: stakeOf("b"), kind: "Refund" },
+        ].filter((credit) => credit.amount > 0),
         net: 0,
       };
     }
 
     if (outcome === "void" && (voided === "a" || voided === "b")) {
       const voidedLeg = legOf(voided);
-      const refund = { bookie: voidedLeg.name, amount: voidedLeg.stake, kind: "Refund" };
+      const refundAmount = stakeOf(voided);
+      const refund = { bookie: voidedLeg.name, amount: refundAmount, kind: "Refund" };
 
       if (remaining === "lost") {
         return {
           request: { simulation, outcome: "void", voided, remaining: "lost" },
-          credits: [refund],
-          net: voidedLeg.stake - totalStake,
+          credits: refundAmount > 0 ? [refund] : [],
+          net: refundAmount - totalStake,
         };
       }
 
@@ -122,8 +133,11 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
         const payout = liveLeg.stake * liveLeg.odds;
         return {
           request: { simulation, outcome: "void", voided, remaining: "won" },
-          credits: [refund, { bookie: liveLeg.name, amount: payout, kind: "Payout" }],
-          net: voidedLeg.stake + payout - totalStake,
+          credits: [
+            ...(refundAmount > 0 ? [refund] : []),
+            { bookie: liveLeg.name, amount: payout, kind: "Payout" },
+          ],
+          net: refundAmount + payout - totalStake,
         };
       }
 
@@ -136,8 +150,11 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
             remaining: "cashed",
             cashOutAmount: amountValue,
           },
-          credits: [refund, { bookie: liveLeg.name, amount: amountValue, kind: "Cash out" }],
-          net: voidedLeg.stake + amountValue - totalStake,
+          credits: [
+            ...(refundAmount > 0 ? [refund] : []),
+            { bookie: liveLeg.name, amount: amountValue, kind: "Cash out" },
+          ],
+          net: refundAmount + amountValue - totalStake,
         };
       }
     }
@@ -244,7 +261,7 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
                 return (
                   <Choice
                     key={side}
-                    label={leg.name}
+                    label={roleLabel(side, leg.name)}
                     hint={`Stake ${formatGhs(leg.stake)} @ ${leg.odds.toFixed(2)}`}
                     onClick={() => setWinner(side)}
                   />
@@ -261,13 +278,13 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
                 <p className="settle-question">Which leg was voided?</p>
                 <div className="settle-choices">
                   <Choice
-                    label={`Leg A · ${bet.legA.name}`}
-                    hint={`Refund ${formatGhs(bet.legA.stake)}`}
+                    label={roleLabel("a", bet.legA.name)}
+                    hint={`Refund ${formatGhs(stakeOf("a"))}`}
                     onClick={() => setVoided("a")}
                   />
                   <Choice
-                    label={`Leg B · ${bet.legB.name}`}
-                    hint={`Refund ${formatGhs(bet.legB.stake)}`}
+                    label={roleLabel("b", bet.legB.name)}
+                    hint={`Refund ${formatGhs(stakeOf("b"))}`}
                     onClick={() => setVoided("b")}
                   />
                   <Choice

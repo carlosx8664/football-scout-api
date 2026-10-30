@@ -20,8 +20,6 @@ export const SIMULATION_RESET_PER_WALLET = 250;
 export const TRANSFER_STEP = 50;
 export const MIN_TRANSFER = 50;
 export const MAX_TRANSFER = 500;
-/** One movement per bookie per mode in this window, so bursts never look automated. */
-export const TRANSFER_COOLDOWN_MS = 10 * 60 * 1000;
 
 /** A bet placed inside this window keeps its bookies out of the rebalancing hints. */
 export const PENDING_SETTLEMENT_HOURS = 4;

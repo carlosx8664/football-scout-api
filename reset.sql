@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS wallets;
+DROP TABLE IF EXISTS active_bets;
+DROP TABLE IF EXISTS history;
+DROP TABLE IF EXISTS wallet_transfers;
+DROP TABLE IF EXISTS mug_bets;
+DROP TABLE IF EXISTS d1_migrations;

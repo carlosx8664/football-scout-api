@@ -177,7 +177,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `POST /api/bet-builder/extract` | Betslip screenshot → extracted legs matched to the feed, with SportyBet/MSport/BetBoro deep links (cached 24 h per image hash) |
 | `GET /api/wallets` | Wallets + available liquidity for one mode (`?simulation=1` or `0`), plus total and today's realised profit, cash-flow totals and the bookies with bets pending settlement, from D1 |
 | `PATCH /api/wallets/:id` | Set a wallet balance (`balance`) or apply a `delta`, scoped to that mode's `is_simulation` |
-| `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`): round 50 GHS steps, 50–500 per movement, one per bookie every 10 minutes |
+| `POST /api/wallets/:id/transfers` | Logs a deposit or withdrawal (`kind`, `amount`, `momo`): no amount cap, repeatable any time; a top-up is limited by the Momo reserve and a withdrawal by the bookie balance |
 | `GET /api/transfers` | Deposit/withdrawal ledger for one mode with totals (count, deposited, withdrawn, net) |
 | `POST /api/wallets/refresh` | Start afresh: deletes active bets, history and cash-flow rows for the mode (`scope: "all"` for both) and re-opens every wallet at one balance |
 | `POST /api/active-bets` | Log a two-leg arb: debits both stakes from the bookie wallets and inserts the bet (with the match kickoff), as one batch. `profit_percent` is recomputed server-side and `is_simulation` follows the UI toggle |
@@ -492,19 +492,15 @@ cd ../.. && npm run worker:deploy
   you cashed out) or **Cash Out** (pick the bookie and enter the amount), plus a **Remove** action
   that refunds both stakes, deletes the bet and leaves a zero-profit *Cancelled* row in History as
   an audit trail. Each path shows the
-  wallet credits and net result before confirming. Under the ledger sits the **How to move money
-  without looking like a bot** guide (withdrawal cadence, 50 GHS steps, BetBoro rule, per-wallet
-  float from the Bankroll Plan), followed by **Cash Flow** — the deposit/withdrawal ledger with
-  lifetime totals. A **Rebalancing Hints** panel between the two
-  shows each bookie's share of the portfolio (cash + stakes in play) with a red/amber/green gauge
-  (red = under 15%, amber = over 40%, green = healthy) and flags top-ups (< 15%,
-  sized to reach 25%, rounded up to the next 50 GHS and only when > 20 GHS), withdrawals (> 40%)
-  and any BetBoro balance, each with a one-click **Top up** / **Withdraw** button sized to a
-  believable 50 GHS step (50–500 per movement, one per bookie every 10 minutes). Between 08:00
-  and 10:00 local time it also shows the **Morning Check** funding summary. The main
-  column ends with **History**, listing settled arbs grouped by day
+  wallet credits and net result before confirming. Under the ledger sits **Cash Flow** — the
+  deposit/withdrawal ledger with lifetime totals. A **Rebalancing Hints** panel between the two
+  shows each selected bookie's progress against its plan target — name, percentage, progress bar
+  and live balance — with the bar in red when the wallet is well below target, amber when it is
+  close, and green at or above it. Settled history has its own page, **History**
+  (`/wallets/history`, linked from the header), which lists settled arbs grouped by day
   with a date filter, per-day totals, a yellow *Void* / *Cash Out* badge (with amber net figures)
-  and the week's total outlay (active stakes + stakes settled since Monday).
+  and the week's total outlay (active stakes + stakes settled since Monday) — full width, with no
+  right sidebar.
 
 **Simulation mode** is the switch in the header (on by default, remembered in `localStorage`).
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet

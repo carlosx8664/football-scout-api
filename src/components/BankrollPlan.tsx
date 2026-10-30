@@ -2,20 +2,24 @@ import { useEffect, useState } from "react";
 import {
   HIGH_RISK_PCT,
   MICRO_MUG_PCT,
+  MIN_BOOKIES,
   WEEKEND_ANCHOR_PCT,
-  blendInAmount,
   computePlan,
+  hasSplit,
   openingBalanceFor,
+  selectedBookies,
   unallocatedFor,
   useBankroll,
 } from "../lib/bankroll";
-import { formatGhs, formatGhsWhole } from "../lib/wallets";
+import { formatAmount } from "../lib/wallets";
 import type { WalletsPayload } from "../types";
 import "./BankrollPlan.css";
 
 interface BankrollPlanProps {
   payload: WalletsPayload | null;
   simulation: boolean;
+  /** Momo cash reserve: the plan leftover seeded by Start afresh, plus withdrawals, minus top-ups. */
+  momo: number;
   /** Wipes the ledger and re-opens every wallet at `openingBalance`. */
   onStartAfresh: (openingBalance: number) => Promise<void>;
 }
@@ -27,10 +31,10 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
 );
 
 /**
- * Bankroll planner: how much capital to keep across the bookies and how to move money without
- * looking automated. The bankroll/stake values are shared page-wide and persisted locally.
+ * Bankroll planner: how much capital to keep across the bookies and how to split it across the
+ * bookies selected in My Wallets. The values are shared page-wide and persisted locally.
  */
-const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps) => {
+const BankrollPlan = ({ payload, simulation, momo, onStartAfresh }: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();
   const [draft, setDraft] = useState({
     bankroll: String(settings.bankroll),
@@ -45,22 +49,35 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
   }, [settings.bankroll, settings.stake]);
 
   const wallets = payload?.wallets ?? [];
-  const plan = computePlan(settings, wallets.length);
-  const cash = payload?.liquidity.totalBalance ?? 0;
+  // Only the bookies picked in My Wallets share the bankroll; fewer than two cannot fund an arb.
+  const bookies = selectedBookies(settings);
+  const splitReady = hasSplit(settings);
+  const plan = computePlan(settings, Math.max(bookies.length, 1));
+  const perWallet = splitReady ? plan.perWallet : 0;
+  // Cash across the wallets follows the plan, so it repaints as the bankroll or selection changes.
+  const cash = splitReady ? perWallet * bookies.length : (payload?.liquidity.totalBalance ?? 0);
 
   const commitField = (field: "bankroll" | "stake", raw: string) => {
     setDraft((current) => ({ ...current, [field]: raw }));
     const value = Number(raw);
     if (!Number.isFinite(value) || value <= 0) return;
-    setSettings({ ...settings, [field]: value });
+
+    // NEW LOGIC: If the user changes the stake, automatically scale the bankroll.
+    // We use a 5x multiplier so that the stake is always exactly 20% of the bankroll.
+    if (field === "stake") {
+      const calculatedBankroll = value * 5;
+      setDraft((current) => ({ ...current, bankroll: String(calculatedBankroll) }));
+      setSettings({ ...settings, bankroll: calculatedBankroll, stake: value });
+    } else {
+      // If they change the bankroll directly, just update the bankroll.
+      setSettings({ ...settings, [field]: value });
+    }
   };
 
   // Opening balance: the plan's per-bookie target rounded DOWN to a round 50, so the deposits
   // never exceed the bankroll. Whatever is left over stays as unallocated (mobile-money) cash.
-  const openingBalance = openingBalanceFor(plan.perWallet);
-  const unallocated = unallocatedFor(plan.bankroll, plan.perWallet, wallets.length);
-  // What to actually key into a bookie app: exact maths above, round number here.
-  const blendIn = blendInAmount(plan.perWallet);
+  const openingBalance = openingBalanceFor(perWallet);
+  const unallocated = unallocatedFor(plan.bankroll, perWallet, splitReady ? bookies.length : 0);
 
   const startAfresh = async () => {
     const confirmed = window.confirm(
@@ -70,9 +87,11 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         "• the whole settled history\n" +
         "• every deposit/withdrawal record\n" +
         "• every mug bet\n\n" +
-        `Each of the ${wallets.length} wallets is then set to ${formatGhs(openingBalance)}` +
-        (unallocated > 0 ? `, leaving ${formatGhs(unallocated)} as unallocated cash` : "") +
-        " and the page reloads from a clean slate. This cannot be undone.",
+        `Then the ${bookies.length} selected bookie${bookies.length === 1 ? "" : "s"} ` +
+        `${bookies.length === 1 ? "is" : "are"} set to ${formatAmount(openingBalance)} each` +
+        (unallocated > 0 ? `, leaving ${formatAmount(unallocated)} as unallocated cash` : "") +
+        ", every unselected bookie is set to 0, and the page reloads from a clean slate. " +
+        "This cannot be undone.",
     );
     if (!confirmed) return;
 
@@ -105,10 +124,10 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
       <div className="bankroll-inputs">
         <label className="bankroll-field">
           <span>
-            Bankroll (GHS)
+            Bankroll
             <Tip label="Bankroll">
-              Total capital you keep across the bookie wallets. Withdraw only profits — dipping
-              into this is what triggers the low-balance top-ups.
+              Total capital you keep across the bookie wallets, split across the bookies selected
+              in My Wallets.
             </Tip>
           </span>
           <input
@@ -123,7 +142,7 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
 
         <label className="bankroll-field">
           <span>
-            Stake per arb (GHS)
+            Stake per arb
             <Tip label="Stake per arb">
               {`What you are willing to lay across both legs of one arb. Everything below is sized from this: float, camouflage mug bets and the profit estimate. Flagged above ${HIGH_RISK_PCT}% of your bankroll.`}
             </Tip>
@@ -146,37 +165,35 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
         </p>
       )}
 
+      {!splitReady && (
+        <p className="bankroll-risk" role="alert">
+          Select at least {MIN_BOOKIES} bookies in My Wallets so the bankroll can be split across
+          them.
+        </p>
+      )}
+
       <div className="bankroll-stats">
         <div className="bankroll-stat">
           <span>
             Stake per arb
             <Tip label="Stake per arb">
-              {`${plan.riskPct.toFixed(1)}% of your bankroll, split across both legs of one arb. A ${formatGhs(plan.stake)} arb returns 15–30 GHS at the 1.5–3% margins we look for.`}
+              {`${plan.riskPct.toFixed(1)}% of your bankroll, split across both legs of one arb. A ${formatAmount(plan.stake)} arb returns 15–30 at the 1.5–3% margins we look for.`}
             </Tip>
           </span>
-          <strong>{formatGhs(plan.stake)}</strong>
+          <strong>{formatAmount(plan.stake)}</strong>
           <span className="bankroll-stat-hint">
-            {plan.riskPct.toFixed(1)}% of {formatGhs(plan.bankroll)}
+            {plan.riskPct.toFixed(1)}% of {formatAmount(plan.bankroll)}
           </span>
         </div>
 
         <div className="bankroll-stat">
           <span>
             Target per bookie
-            <Tip label="Target per bookie">
-              Recommended balance in each wallet so any single leg can always be covered. Grows
-              and shrinks as the wallet list changes.
-            </Tip>
           </span>
-          <strong>{formatGhs(plan.perWallet)}</strong>
+          <strong>{formatAmount(perWallet)}</strong>
           <span className="bankroll-stat-hint">
-            {wallets.length || 0} wallet{wallets.length === 1 ? "" : "s"} in rotation
+            {bookies.length || 0} bookie{bookies.length === 1 ? "" : "s"} selected
           </span>
-          {plan.perWallet > 0 && (
-            <span className="bankroll-stat-action">
-              Action: Deposit ~{formatGhsWhole(blendIn)} to blend in.
-            </span>
-          )}
         </div>
 
         <div className="bankroll-stat">
@@ -187,18 +204,18 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
               place the next fill.
             </Tip>
           </span>
-          <strong>{formatGhs(plan.minFloat)}</strong>
+          <strong>{formatAmount(plan.minFloat)}</strong>
           <span className="bankroll-stat-hint">2 × stake per arb</span>
         </div>
 
         <div className="bankroll-stat">
           <span>
-            Daily micro-mug
-            <Tip label="Daily micro-mug">
+            Daily
+            <Tip label="Daily">
               {`Camouflage protocol: a small single most days keeps the account looking like a normal punter. ${MICRO_MUG_PCT}% of your stake.`}
             </Tip>
           </span>
-          <strong>{formatGhs(plan.microMug)}</strong>
+          <strong>{formatAmount(plan.microMug)}</strong>
           <span className="bankroll-stat-hint">{MICRO_MUG_PCT}% of stake</span>
         </div>
 
@@ -209,7 +226,7 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
               {`Camouflage protocol: the bigger Saturday bet on a televised match. ${WEEKEND_ANCHOR_PCT}% of your stake.`}
             </Tip>
           </span>
-          <strong>{formatGhs(plan.weekendAnchor)}</strong>
+          <strong>{formatAmount(plan.weekendAnchor)}</strong>
           <span className="bankroll-stat-hint">{WEEKEND_ANCHOR_PCT}% of stake</span>
         </div>
 
@@ -222,7 +239,7 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
             </Tip>
           </span>
           <strong>
-            {formatGhs(plan.dailyProfit[0])} – {formatGhs(plan.dailyProfit[1])}
+            {formatAmount(plan.dailyProfit[0])} – {formatAmount(plan.dailyProfit[1])}
           </strong>
           <span className="bankroll-stat-hint">
             {plan.arbsPerDay[0]}–{plan.arbsPerDay[1]} arbs a day
@@ -233,21 +250,29 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
           <span>
             Cash in wallets
             <Tip label="Cash in wallets">
-              Live from the wallets table. Pending stakes are already debited, so this is money
-              you can deploy right now.
+              Planned cash across the selected bookies (target × bookies). Pending stakes are
+              already debited, so this is money you can deploy right now.
             </Tip>
           </span>
-          <strong>{formatGhs(cash)}</strong>
+          <strong>{formatAmount(cash)}</strong>
           <span className="bankroll-stat-hint">
             {plan.bankroll > 0 ? `${Math.round((cash / plan.bankroll) * 100)}% of plan` : "—"}
           </span>
+        </div>
+
+        <div className="bankroll-stat">
+          <span>
+            Momo
+          </span>
+          <strong>{formatAmount(momo)}</strong>
+          <span className="bankroll-stat-hint">cash reserve</span>
         </div>
       </div>
 
       {wallets.length > 0 && plan.minFloat > 0 && cash < plan.minFloat && (
         <p className="bankroll-warning" role="alert">
-          ⚠️ The wallets hold {formatGhs(cash)}, below the {formatGhs(plan.minFloat)} minimum
-          float. A {formatGhs(plan.stake)} arb needs both legs covered, so deposit before the next
+          ⚠️ The wallets hold {formatAmount(cash)}, below the {formatAmount(plan.minFloat)} minimum
+          float. A {formatAmount(plan.stake)} arb needs both legs covered, so deposit before the next
           fill.
         </p>
       )}
@@ -257,16 +282,17 @@ const BankrollPlan = ({ payload, simulation, onStartAfresh }: BankrollPlanProps)
           <strong>Start afresh</strong>
           <p>
             Clears active bets, settled history, cash-flow rows and mug bets for the{" "}
-            {simulation ? "simulation" : "real"} ledger, then sets all {wallets.length} wallets to{" "}
-            {formatGhs(openingBalance)}
-            {unallocated > 0 && ` and leaves ${formatGhs(unallocated)} unallocated`}.
+            {simulation ? "simulation" : "real"} ledger, then sets the {bookies.length} selected{" "}
+            bookie{bookies.length === 1 ? "" : "s"} to {formatAmount(openingBalance)} each
+            {unallocated > 0 && ` and leaves ${formatAmount(unallocated)} unallocated`}. Unselected
+            bookies are set to 0.
           </p>
         </div>
         <button
           type="button"
           className="bankroll-refresh"
           onClick={() => void startAfresh()}
-          disabled={refreshing}
+          disabled={refreshing || !splitReady}
         >
           {refreshing ? "Refreshing…" : "Start afresh"}
         </button>

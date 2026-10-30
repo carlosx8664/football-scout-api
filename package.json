@@ -13,7 +13,9 @@
     "lint": "oxlint",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate": "wrangler d1 migrations apply DB --remote",
-    "preview": "npm run build && wrangler pages dev",
+    "sync:live": "wrangler d1 export DB --remote --output=live.sql --skip-confirmation && npx rimraf .wrangler/state/v3/d1 && wrangler d1 execute DB --local --file=live.sql --yes && wrangler kv key get feed-matches --binding=FOOTBALL_DATA --remote > matches.json && wrangler kv key put feed-matches --binding=FOOTBALL_DATA --local --path=matches.json && wrangler kv key get feed-arbs --binding=FOOTBALL_DATA --remote > arbs.json && wrangler kv key put feed-arbs --binding=FOOTBALL_DATA --local --path=arbs.json",
+    "dev:live": "npm run sync:live && npm run build && wrangler pages dev dist --d1=DB=020ff25b-1e9e-4f5b-9981-c9a86e5f7b32 --kv=FOOTBALL_DATA=dbf948e365cd4d95ba73cebf4bb35a0a",
+    "preview": "npm run build && wrangler pages dev dist --d1=DB=020ff25b-1e9e-4f5b-9981-c9a86e5f7b32 --kv=FOOTBALL_DATA=dbf948e365cd4d95ba73cebf4bb35a0a",
     "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types"
   },
@@ -33,6 +35,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "rimraf": "^6.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "wrangler": "^4.151.2"

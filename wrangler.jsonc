@@ -16,7 +16,8 @@
 	"kv_namespaces": [
 		{
 			"binding": "FOOTBALL_DATA",
-			"id": "dbf948e365cd4d95ba73cebf4bb35a0a"
+			"id": "dbf948e365cd4d95ba73cebf4bb35a0a",
+			"remote": true
 		}
 	],
 	/**
@@ -30,7 +31,8 @@
 		{
 			"binding": "DB",
 			"database_name": "football-scout-db",
-			"database_id": "020ff25b-1e9e-4f5b-9981-c9a86e5f7b32"
+			"database_id": "020ff25b-1e9e-4f5b-9981-c9a86e5f7b32",
+			"remote": true
 		}
 	],
 	"observability": {

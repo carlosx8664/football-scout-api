@@ -325,6 +325,9 @@ async function generate({ env, request, params }) {
  * Results are cached in KV so repeat views cost nothing.
  */
 export async function onRequestGet({ request, env }) {
+  // AI features temporarily disabled (arbitrage-logic focus). Re-enable by removing this guard.
+  return json({ error: "AI analysis is temporarily disabled.", disabled: true }, 503);
+
   const url = new URL(request.url);
   const params = {
     id: clip(url.searchParams.get("id"), 40),

@@ -1,0 +1,4517 @@
+{
+  "status": "success",
+  "date": "2026-10-30",
+  "window": {
+    "from": "2026-10-30",
+    "to": "2026-10-31"
+  },
+  "generated_at": "2026-10-30T13:52:10.353Z",
+  "match_count": 59,
+  "analysed_count": 0,
+  "matches": [
+    {
+      "fixture": {
+        "id": 682879136,
+        "date": "2026-10-30T17:00:00.000Z"
+      },
+      "sr_id": "sr:match:72723296",
+      "book_ids": {
+        "betboro": {
+          "regionId": "31",
+          "competitionId": "306",
+          "betBoroId": "90496846"
+        },
+        "boltbet": {
+          "boltbetSlug": "konyaspor-galatasaray-21617"
+        }
+      },
+      "league": {
+        "id": 203,
+        "name": "Süper Lig",
+        "logo": "https://media.api-sports.io/football/leagues/203.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Konyaspor",
+          "logo": "https://static.msport.com/public/up/64f5ae7a-0a0d-4469-b099-72d954907703.png"
+        },
+        "away": {
+          "name": "Galatasaray Istanbul",
+          "logo": "https://static.msport.com/public/up/8a9c6dfa-b493-4d6b-89d8-5c4f087c3d31.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "5.21"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.49"
+        },
+        {
+          "value": "Away",
+          "odd": "1.63"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 5.21,
+            "MSport": 4.99,
+            "BetBoro": 4.61,
+            "BoltBet": 4.8
+          },
+          "best": 5.21,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.49,
+            "MSport": 4.31,
+            "BetBoro": 3.94,
+            "BoltBet": 4.33
+          },
+          "best": 4.49,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.62,
+            "MSport": 1.59,
+            "BetBoro": 1.56,
+            "BoltBet": 1.63
+          },
+          "best": 1.63,
+          "bookmaker": "BoltBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2123696331,
+        "date": "2026-10-30T18:00:00.000Z"
+      },
+      "sr_id": "sr:match:72036256",
+      "book_ids": {
+        "betboro": {
+          "regionId": "9",
+          "competitionId": "328",
+          "betBoroId": "94333444"
+        },
+        "boltbet": {
+          "boltbetSlug": "le-havre-paris-saintgermain-24964"
+        }
+      },
+      "league": {
+        "id": 61,
+        "name": "Ligue 1",
+        "logo": "https://media.api-sports.io/football/leagues/61.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Le Havre AC",
+          "logo": "https://static.msport.com/public/up/be9dee1d-1de6-46e6-84cc-64e97771b450.png"
+        },
+        "away": {
+          "name": "Paris Saint-Germain",
+          "logo": "https://static.msport.com/ng/up/4e69673b-1efc-467d-bbd6-b44cb2088d9d.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "8.60"
+        },
+        {
+          "value": "Draw",
+          "odd": "6.23"
+        },
+        {
+          "value": "Away",
+          "odd": "1.35"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 8.55,
+            "MSport": 8.38,
+            "BetBoro": 8.16,
+            "BoltBet": 8.6
+          },
+          "best": 8.6,
+          "bookmaker": "BoltBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 6.23,
+            "MSport": 6.11,
+            "BetBoro": 5.09,
+            "BoltBet": 6
+          },
+          "best": 6.23,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.35,
+            "MSport": 1.34,
+            "BetBoro": 1.29,
+            "BoltBet": 1.33
+          },
+          "best": 1.35,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2271025001,
+        "date": "2026-10-30T18:00:00.000Z"
+      },
+      "sr_id": "sr:match:72036266",
+      "book_ids": {
+        "betboro": {
+          "regionId": "9",
+          "competitionId": "328",
+          "betBoroId": "94333518"
+        },
+        "boltbet": {
+          "boltbetSlug": "ogc-nice-stade-rennais-25068"
+        }
+      },
+      "league": {
+        "id": 61,
+        "name": "Ligue 1",
+        "logo": "https://media.api-sports.io/football/leagues/61.png"
+      },
+      "teams": {
+        "home": {
+          "name": "OGC Nice",
+          "logo": "https://static.msport.com/public/up/cad3a9a8-98be-4fe8-bcaf-61dfffeeaf75.png"
+        },
+        "away": {
+          "name": "Stade Rennais FC",
+          "logo": "https://static.msport.com/public/up/d6f5a7bd-dc3d-4909-9e8a-77b4f5765251.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.65"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.71"
+        },
+        {
+          "value": "Away",
+          "odd": "2.71"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.65,
+            "MSport": 2.63,
+            "BetBoro": 2.52,
+            "BoltBet": 2.59
+          },
+          "best": 2.65,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.71,
+            "MSport": 3.67,
+            "BetBoro": 3.41,
+            "BoltBet": 3.58
+          },
+          "best": 3.71,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.68,
+            "MSport": 2.65,
+            "BetBoro": 2.47,
+            "BoltBet": 2.71
+          },
+          "best": 2.71,
+          "bookmaker": "BoltBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3500232018,
+        "date": "2026-10-30T18:00:00.000Z"
+      },
+      "sr_id": "sr:match:71925076",
+      "book_ids": {
+        "betboro": {
+          "regionId": "51",
+          "competitionId": "4204",
+          "betBoroId": "93543098"
+        },
+        "boltbet": {
+          "boltbetSlug": "lyngby-bk-randers-fc-31786"
+        }
+      },
+      "league": {
+        "id": 119,
+        "name": "Danish Superliga",
+        "logo": "https://media.api-sports.io/football/leagues/119.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Lyngby BK",
+          "logo": "https://static.msport.com/public/up/dea7634b-626c-4ad9-a401-a10c27f22075.png"
+        },
+        "away": {
+          "name": "Randers FC",
+          "logo": "https://static.msport.com/public/up/ac3d1b5f-2e2c-45a3-8224-ee66b040816e.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.20"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.70"
+        },
+        {
+          "value": "Away",
+          "odd": "3.21"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.2,
+            "MSport": 2.19,
+            "BetBoro": 2.06,
+            "BoltBet": 2.1
+          },
+          "best": 2.2,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.7,
+            "MSport": 3.68,
+            "BetBoro": 3.65,
+            "BoltBet": 3.69
+          },
+          "best": 3.7,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.1,
+            "MSport": 3.11,
+            "BetBoro": 3.02,
+            "BoltBet": 3.21
+          },
+          "best": 3.21,
+          "bookmaker": "BoltBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2777053933,
+        "date": "2026-10-30T19:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513290",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659120"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "SV 07 Elversberg",
+          "logo": "https://static.msport.com/public/up/9f5ec43d-77d1-4a53-8258-473d6a6261da.png"
+        },
+        "away": {
+          "name": "FSV Mainz 05",
+          "logo": "https://static.msport.com/public/up/515ff489-eb8b-484b-9348-9df33b791214.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.41"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.99"
+        },
+        {
+          "value": "Away",
+          "odd": "2.10"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.41,
+            "MSport": 3.38,
+            "BetBoro": 3.12
+          },
+          "best": 3.41,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.99,
+            "MSport": 3.95,
+            "BetBoro": 3.74
+          },
+          "best": 3.99,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.1,
+            "MSport": 2.08,
+            "BetBoro": 1.97
+          },
+          "best": 2.1,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1920267033,
+        "date": "2026-10-30T19:45:00.000Z"
+      },
+      "sr_id": "sr:match:72366414",
+      "book_ids": {
+        "betboro": {
+          "regionId": "95",
+          "competitionId": "4160",
+          "betBoroId": "92769728"
+        }
+      },
+      "league": {
+        "id": 144,
+        "name": "Belgian Pro League",
+        "logo": "https://media.api-sports.io/football/leagues/144.png"
+      },
+      "teams": {
+        "home": {
+          "name": "SV Zulte Waregem",
+          "logo": "https://static.msport.com/public/up/30f47925-d769-4db1-8d91-31524ee21b19.png"
+        },
+        "away": {
+          "name": "Club Brugge KV",
+          "logo": "https://static.msport.com/ng/up/71ad1f5f-e8e1-43d6-9778-37bf9b461653.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "7.03"
+        },
+        {
+          "value": "Draw",
+          "odd": "5.50"
+        },
+        {
+          "value": "Away",
+          "odd": "1.40"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 7.03,
+            "MSport": 6.91,
+            "BetBoro": 6.62
+          },
+          "best": 7.03,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 5.5,
+            "MSport": 5.41,
+            "BetBoro": 4.99
+          },
+          "best": 5.5,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.4,
+            "MSport": 1.39,
+            "BetBoro": 1.34
+          },
+          "best": 1.4,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1500594254,
+        "date": "2026-10-30T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72478684",
+      "book_ids": {
+        "betboro": {
+          "regionId": "16",
+          "competitionId": "92",
+          "betBoroId": "91668619"
+        }
+      },
+      "league": {
+        "id": 140,
+        "name": "La Liga",
+        "logo": "https://media.api-sports.io/football/leagues/140.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Villarreal CF",
+          "logo": "https://static.msport.com/public/up/7ebfd4ec-3750-490b-9764-a79e3e42b6ce.png"
+        },
+        "away": {
+          "name": "RCD Espanyol",
+          "logo": "https://static.msport.com/public/up/497d0562-d56f-4070-bcd8-7409142104a9.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.42"
+        },
+        {
+          "value": "Draw",
+          "odd": "5.63"
+        },
+        {
+          "value": "Away",
+          "odd": "7.14"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.42,
+            "MSport": 1.42,
+            "BetBoro": 1.38
+          },
+          "best": 1.42,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 5.63,
+            "MSport": 5.53,
+            "BetBoro": 4.8
+          },
+          "best": 5.63,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 7.14,
+            "MSport": 7.01,
+            "BetBoro": 6.34
+          },
+          "best": 7.14,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 4219964599,
+        "date": "2026-10-30T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339972",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564025"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Sheffield United",
+          "logo": "https://static.msport.com/ng/up/efa40bb9-79e6-4e73-ae15-ace81f982805.png"
+        },
+        "away": {
+          "name": "Wrexham AFC",
+          "logo": "https://static.msport.com/public/up/16145f97-649e-4e72-b96c-fce6aa33b663.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.37"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.46"
+        },
+        {
+          "value": "Away",
+          "odd": "3.13"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.37,
+            "MSport": 2.37,
+            "BetBoro": 2.23
+          },
+          "best": 2.37,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.46,
+            "MSport": 3.46,
+            "BetBoro": 3.22
+          },
+          "best": 3.46,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.13,
+            "MSport": 3.13,
+            "BetBoro": 3.02
+          },
+          "best": 3.13,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3789315866,
+        "date": "2026-10-30T20:05:00.000Z"
+      },
+      "sr_id": "sr:match:72036258",
+      "book_ids": {
+        "betboro": {
+          "regionId": "9",
+          "competitionId": "328",
+          "betBoroId": "94333520"
+        }
+      },
+      "league": {
+        "id": 61,
+        "name": "Ligue 1",
+        "logo": "https://media.api-sports.io/football/leagues/61.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Lille OSC",
+          "logo": "https://static.msport.com/ng/up/e472a785-333d-4b19-80e0-c669f51c12ec.png"
+        },
+        "away": {
+          "name": "RC Lens",
+          "logo": "https://static.msport.com/public/up/2171e319-b5b0-47c5-b6cc-183ad9051b7e.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.75"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.42"
+        },
+        {
+          "value": "Away",
+          "odd": "2.75"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.75,
+            "MSport": 2.72,
+            "BetBoro": 2.56
+          },
+          "best": 2.75,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.42,
+            "MSport": 3.39,
+            "BetBoro": 3.17
+          },
+          "best": 3.42,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.75,
+            "MSport": 2.72,
+            "BetBoro": 2.56
+          },
+          "best": 2.75,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3513512861,
+        "date": "2026-10-30T20:15:00.000Z"
+      },
+      "sr_id": "sr:match:72530988",
+      "book_ids": {
+        "betboro": {
+          "regionId": "35",
+          "competitionId": "203",
+          "betBoroId": "94706041"
+        }
+      },
+      "league": {
+        "id": 94,
+        "name": "Primeira Liga",
+        "logo": "https://media.api-sports.io/football/leagues/94.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Casa Pia Lisbon",
+          "logo": "https://static.msport.com/public/up/71b7aff6-09ac-496d-a969-de0ea2cff795.png"
+        },
+        "away": {
+          "name": "Sporting CP",
+          "logo": "https://static.msport.com/public/up/2d7e3f0c-a20a-48dd-947e-ff03b2cb3efe.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "10.86"
+        },
+        {
+          "value": "Draw",
+          "odd": "6.43"
+        },
+        {
+          "value": "Away",
+          "odd": "1.28"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 10.86,
+            "MSport": 10.12,
+            "BetBoro": 10.8
+          },
+          "best": 10.86,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 6.43,
+            "MSport": 6.02,
+            "BetBoro": 5.28
+          },
+          "best": 6.43,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.28,
+            "MSport": 1.26,
+            "BetBoro": 1.23
+          },
+          "best": 1.28,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2663030415,
+        "date": "2026-10-30T23:00:00.000Z"
+      },
+      "sr_id": "sr:match:66887124",
+      "book_ids": {
+        "betboro": {
+          "regionId": "7",
+          "competitionId": "200",
+          "betBoroId": "94390367"
+        }
+      },
+      "league": {
+        "id": 71,
+        "name": "Brasileirão",
+        "logo": "https://media.api-sports.io/football/leagues/71.png"
+      },
+      "teams": {
+        "home": {
+          "name": "SC Corinthians SP",
+          "logo": "https://static.msport.com/public/up/0f1d8086-a6f5-4903-829a-d99a38d63925.png"
+        },
+        "away": {
+          "name": "Mirassol FC SP",
+          "logo": "https://static.msport.com/public/up/e78b6ae2-7e89-405f-8c3a-4ea10fd6bef4.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.88"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.60"
+        },
+        {
+          "value": "Away",
+          "odd": "4.20"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.88,
+            "MSport": 1.88,
+            "BetBoro": 1.82
+          },
+          "best": 1.88,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.6,
+            "MSport": 3.59,
+            "BetBoro": 3.31
+          },
+          "best": 3.6,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.2,
+            "MSport": 4.19,
+            "BetBoro": 3.94
+          },
+          "best": 4.2,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3039144841,
+        "date": "2026-10-31T10:30:00.000Z"
+      },
+      "sr_id": "sr:match:72723302",
+      "book_ids": {
+        "betboro": {
+          "regionId": "31",
+          "competitionId": "306",
+          "betBoroId": "90496868"
+        }
+      },
+      "league": {
+        "id": 203,
+        "name": "Süper Lig",
+        "logo": "https://media.api-sports.io/football/leagues/203.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Erzurum Buyuksehir Belediyesi Spor",
+          "logo": "https://cdn.feedthebet.com/logos/participants/5749.png"
+        },
+        "away": {
+          "name": "Corum Belediyespor",
+          "logo": "https://cdn.feedthebet.com/logos/participants/35608.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.68"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.44"
+        },
+        {
+          "value": "Away",
+          "odd": "2.73"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.68,
+            "MSport": 2.61,
+            "BetBoro": 2.5
+          },
+          "best": 2.68,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.44,
+            "MSport": 3.34,
+            "BetBoro": 3.12
+          },
+          "best": 3.44,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.73,
+            "MSport": 2.66,
+            "BetBoro": 2.54
+          },
+          "best": 2.73,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1419250304,
+        "date": "2026-10-31T12:30:00.000Z"
+      },
+      "sr_id": "sr:match:72221358",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273884"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Chelsea FC",
+          "logo": "https://static.msport.com/public/up/274737e9-df82-44f7-b195-96ff480f4876.png"
+        },
+        "away": {
+          "name": "Manchester United",
+          "logo": "https://static.msport.com/public/up/57874960-9a67-4b35-907d-b77d01df30f7.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.88"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.11"
+        },
+        {
+          "value": "Away",
+          "odd": "4.27"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.86,
+            "MSport": 1.88,
+            "BetBoro": 1.75
+          },
+          "best": 1.88,
+          "bookmaker": "MSport"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.06,
+            "MSport": 4.11,
+            "BetBoro": 3.84
+          },
+          "best": 4.11,
+          "bookmaker": "MSport"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.22,
+            "MSport": 4.27,
+            "BetBoro": 3.89
+          },
+          "best": 4.27,
+          "bookmaker": "MSport"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3954993505,
+        "date": "2026-10-31T12:30:00.000Z"
+      },
+      "sr_id": "sr:match:72339964",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564107"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Lincoln City",
+          "logo": "https://static.msport.com/public/up/7f675699-3c89-4741-9e7d-eba43e61f550.png"
+        },
+        "away": {
+          "name": "Birmingham City",
+          "logo": "https://static.msport.com/public/up/a98df309-3134-421a-bd0f-b1a5da47c189.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.37"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.54"
+        },
+        {
+          "value": "Away",
+          "odd": "2.22"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.37,
+            "MSport": 3.37,
+            "BetBoro": 3.22
+          },
+          "best": 3.37,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.54,
+            "MSport": 3.54,
+            "BetBoro": 3.26
+          },
+          "best": 3.54,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.22,
+            "MSport": 2.22,
+            "BetBoro": 2.09
+          },
+          "best": 2.22,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3409415762,
+        "date": "2026-10-31T12:30:00.000Z"
+      },
+      "sr_id": "sr:match:72339970",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564099"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Norwich City",
+          "logo": "https://static.msport.com/public/up/231d167e-2832-4b63-9450-d8dd3a9da95b.png"
+        },
+        "away": {
+          "name": "Watford FC",
+          "logo": "https://static.msport.com/ng/up/4ed47b02-b4a9-4c46-ad37-77d811b6c6b1.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.56"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.66"
+        },
+        {
+          "value": "Away",
+          "odd": "5.72"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.56,
+            "MSport": 1.56,
+            "BetBoro": 1.49
+          },
+          "best": 1.56,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.66,
+            "MSport": 4.66,
+            "BetBoro": 4.22
+          },
+          "best": 4.66,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 5.72,
+            "MSport": 5.72,
+            "BetBoro": 5.38
+          },
+          "best": 5.72,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1219211171,
+        "date": "2026-10-31T12:30:00.000Z"
+      },
+      "sr_id": "sr:match:72339976",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94563968"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Stoke City",
+          "logo": "https://static.msport.com/public/up/b51adee0-3f56-4135-9aa7-bb12011abcee.png"
+        },
+        "away": {
+          "name": "Preston North End",
+          "logo": "https://static.msport.com/public/up/1ef64b36-05d3-43c2-83cd-fe4f826b4b2b.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.79"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.88"
+        },
+        {
+          "value": "Away",
+          "odd": "4.69"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.79,
+            "MSport": 1.79,
+            "BetBoro": 1.68
+          },
+          "best": 1.79,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.88,
+            "MSport": 3.88,
+            "BetBoro": 3.6
+          },
+          "best": 3.88,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.69,
+            "MSport": 4.69,
+            "BetBoro": 4.46
+          },
+          "best": 4.69,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 188123217,
+        "date": "2026-10-31T13:00:00.000Z"
+      },
+      "sr_id": "sr:match:72478678",
+      "book_ids": {
+        "betboro": {
+          "regionId": "16",
+          "competitionId": "92",
+          "betBoroId": "91668601"
+        }
+      },
+      "league": {
+        "id": 140,
+        "name": "La Liga",
+        "logo": "https://media.api-sports.io/football/leagues/140.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Levante UD",
+          "logo": "https://static.msport.com/public/up/1409054e-d272-48c5-b463-426b73237d9c.png"
+        },
+        "away": {
+          "name": "Atletico Madrid",
+          "logo": "https://static.msport.com/public/up/ca306ba4-1a32-4657-8ee6-6e00bc28e9ee.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "5.76"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.85"
+        },
+        {
+          "value": "Away",
+          "odd": "1.56"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 5.76,
+            "MSport": 5.67,
+            "BetBoro": 5.28
+          },
+          "best": 5.76,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.85,
+            "MSport": 4.77,
+            "BetBoro": 4.42
+          },
+          "best": 4.85,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.56,
+            "MSport": 1.55,
+            "BetBoro": 1.47
+          },
+          "best": 1.56,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 796969654,
+        "date": "2026-10-31T13:00:00.000Z"
+      },
+      "sr_id": "sr:match:72723300",
+      "book_ids": {
+        "betboro": {
+          "regionId": "31",
+          "competitionId": "306",
+          "betBoroId": "90496867"
+        }
+      },
+      "league": {
+        "id": 203,
+        "name": "Süper Lig",
+        "logo": "https://media.api-sports.io/football/leagues/203.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Kocaelispor",
+          "logo": "https://static.msport.com/public/up/7b00c185-9547-4f7d-8d90-da63248bf8a9.png"
+        },
+        "away": {
+          "name": "Caykur Rizespor",
+          "logo": "https://static.msport.com/ng/up/7edc55cf-b18e-4448-8e32-456e48f3d1b2.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.64"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.55"
+        },
+        {
+          "value": "Away",
+          "odd": "2.70"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.64,
+            "MSport": 2.57,
+            "BetBoro": 2.47
+          },
+          "best": 2.64,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.55,
+            "MSport": 3.44,
+            "BetBoro": 3.26
+          },
+          "best": 3.55,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.7,
+            "MSport": 2.63,
+            "BetBoro": 2.5
+          },
+          "best": 2.7,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1251814941,
+        "date": "2026-10-31T14:00:00.000Z"
+      },
+      "sr_id": "sr:match:71945368",
+      "book_ids": {
+        "betboro": {
+          "regionId": "10",
+          "competitionId": "263",
+          "betBoroId": "92997314"
+        },
+        "boltbet": {
+          "boltbetSlug": "bologna-ac-monza-31616"
+        }
+      },
+      "league": {
+        "id": 135,
+        "name": "Serie A",
+        "logo": "https://media.api-sports.io/football/leagues/135.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Bologna FC",
+          "logo": "https://static.msport.com/public/up/eade2f7c-872f-4d13-af24-2c5fa167cfdb.png"
+        },
+        "away": {
+          "name": "AC Monza",
+          "logo": "https://static.msport.com/public/up/ecb77b18-7154-4e61-8419-ec54ac765552.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.74"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.06"
+        },
+        {
+          "value": "Away",
+          "odd": "5.02"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.74,
+            "MSport": 1.73,
+            "BetBoro": 1.65,
+            "BoltBet": 1.66
+          },
+          "best": 1.74,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.06,
+            "MSport": 4.01,
+            "BetBoro": 3.65,
+            "BoltBet": 3.83
+          },
+          "best": 4.06,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 5.02,
+            "MSport": 4.96,
+            "BetBoro": 4.61,
+            "BoltBet": 4.7
+          },
+          "best": 5.02,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2764401615,
+        "date": "2026-10-31T14:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513280",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659347"
+        },
+        "boltbet": {
+          "boltbetSlug": "augsburg-freiburg-31698"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "FC Augsburg",
+          "logo": "https://static.msport.com/public/up/8ab6c3ed-5178-477a-838e-9a69ee52e9fe.png"
+        },
+        "away": {
+          "name": "SC Freiburg",
+          "logo": "https://static.msport.com/public/up/7b00c773-ba39-428e-b216-9596b1b87ff2.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.08"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.95"
+        },
+        {
+          "value": "Away",
+          "odd": "2.26"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.08,
+            "MSport": 3.05,
+            "BetBoro": 2.88,
+            "BoltBet": 2.96
+          },
+          "best": 3.08,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.95,
+            "MSport": 3.91,
+            "BetBoro": 3.7,
+            "BoltBet": 3.67
+          },
+          "best": 3.95,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.26,
+            "MSport": 2.24,
+            "BetBoro": 2.11,
+            "BoltBet": 2.13
+          },
+          "best": 2.26,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3378664122,
+        "date": "2026-10-31T14:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513276",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659346"
+        },
+        "boltbet": {
+          "boltbetSlug": "bayer-04-leverkusen-vfb-stuttgart-31706"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Bayer 04 Leverkusen",
+          "logo": "https://static.msport.com/public/up/56360a72-295e-4a05-a16d-3bcc3b6288ff.png"
+        },
+        "away": {
+          "name": "VfB Stuttgart",
+          "logo": "https://static.msport.com/public/up/fc0457da-99bc-42ae-82b4-ddc533928938.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.85"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.51"
+        },
+        {
+          "value": "Away",
+          "odd": "3.88"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.85,
+            "MSport": 1.84,
+            "BetBoro": 1.76,
+            "BoltBet": 1.76
+          },
+          "best": 1.85,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.51,
+            "MSport": 4.45,
+            "BetBoro": 4.08,
+            "BoltBet": 4.2
+          },
+          "best": 4.51,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.88,
+            "MSport": 3.84,
+            "BetBoro": 3.55,
+            "BoltBet": 3.61
+          },
+          "best": 3.88,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 424371217,
+        "date": "2026-10-31T14:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513284",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659123"
+        },
+        "boltbet": {
+          "boltbetSlug": "borussia-monchengladbach-paderborn-07-30135"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Borussia Monchengladbach",
+          "logo": "https://static.msport.com/public/up/67da0246-54e9-4cd8-8e2a-adf20f24b4cb.png"
+        },
+        "away": {
+          "name": "SC Paderborn 07",
+          "logo": "https://static.msport.com/public/up/64648888-eefc-47a8-aa1a-6d9e6131f4cd.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.03"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.06"
+        },
+        {
+          "value": "Away",
+          "odd": "3.55"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.03,
+            "MSport": 2.02,
+            "BetBoro": 1.9,
+            "BoltBet": 1.94
+          },
+          "best": 2.03,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.06,
+            "MSport": 4.02,
+            "BetBoro": 3.79,
+            "BoltBet": 3.8
+          },
+          "best": 4.06,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.55,
+            "MSport": 3.51,
+            "BetBoro": 3.26,
+            "BoltBet": 3.32
+          },
+          "best": 3.55,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 377441269,
+        "date": "2026-10-31T14:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513288",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659121"
+        },
+        "boltbet": {
+          "boltbetSlug": "schalke-04-rb-leipzig-22665"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "FC Schalke 04",
+          "logo": "https://static.msport.com/public/up/ccf933ee-4ed2-4285-8b2f-a68bdb17a5ba.png"
+        },
+        "away": {
+          "name": "RB Leipzig",
+          "logo": "https://static.msport.com/ng/up/e82df294-10df-4bc2-b431-1cba55e861d4.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "4.10"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.08"
+        },
+        {
+          "value": "Away",
+          "odd": "1.90"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 4.03,
+            "MSport": 3.98,
+            "BetBoro": 3.65,
+            "BoltBet": 4.1
+          },
+          "best": 4.1,
+          "bookmaker": "BoltBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.08,
+            "MSport": 4.06,
+            "BetBoro": 3.84,
+            "BoltBet": 3.66
+          },
+          "best": 4.08,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.9,
+            "MSport": 1.88,
+            "BetBoro": 1.8,
+            "BoltBet": 1.77
+          },
+          "best": 1.9,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 210034723,
+        "date": "2026-10-31T14:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513286",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659122"
+        },
+        "boltbet": {
+          "boltbetSlug": "werder-bremen-tsg-1899-hoffenheim-31696"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Werder Bremen",
+          "logo": "https://static.msport.com/public/up/88e23eb9-8eb4-4ff9-a6bf-d58f597149bd.png"
+        },
+        "away": {
+          "name": "TSG 1899 Hoffenheim",
+          "logo": "https://static.msport.com/public/up/fbeef0ed-85bd-413f-9b04-6dff8532d010.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.85"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.02"
+        },
+        {
+          "value": "Away",
+          "odd": "2.38"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.85,
+            "MSport": 2.82,
+            "BetBoro": 2.66,
+            "BoltBet": 2.71
+          },
+          "best": 2.85,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.02,
+            "MSport": 3.98,
+            "BetBoro": 3.74,
+            "BoltBet": 3.8
+          },
+          "best": 4.02,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.38,
+            "MSport": 2.36,
+            "BetBoro": 2.23,
+            "BoltBet": 2.23
+          },
+          "best": 2.38,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3988676144,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221354",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273880"
+        },
+        "boltbet": {
+          "boltbetSlug": "bournemouth-leeds-united-31542"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "AFC Bournemouth",
+          "logo": "https://static.msport.com/ng/up/fc7dd06a-f740-4285-9e9c-f7ed1e372537.png"
+        },
+        "away": {
+          "name": "Leeds United",
+          "logo": "https://static.msport.com/public/up/a5742707-31d8-4a98-b82a-b0c287bc95b8.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.22"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.54"
+        },
+        {
+          "value": "Away",
+          "odd": "3.48"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.22,
+            "MSport": 2.21,
+            "BetBoro": 2.04,
+            "BoltBet": 2.09
+          },
+          "best": 2.22,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.54,
+            "MSport": 3.5,
+            "BetBoro": 3.26,
+            "BoltBet": 3.28
+          },
+          "best": 3.54,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.48,
+            "MSport": 3.44,
+            "BetBoro": 3.41,
+            "BoltBet": 3.37
+          },
+          "best": 3.48,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1388355480,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221356",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273885"
+        },
+        "boltbet": {
+          "boltbetSlug": "brentford-nottingham-forest-31554"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Brentford FC",
+          "logo": "https://static.msport.com/public/up/ebd8d0a8-b57a-4738-84d1-c87214a23fe4.png"
+        },
+        "away": {
+          "name": "Nottingham Forest",
+          "logo": "https://static.msport.com/public/up/b6bd440e-4780-4331-bb5d-0560f059811c.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.16"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.72"
+        },
+        {
+          "value": "Away",
+          "odd": "3.47"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.16,
+            "MSport": 2.14,
+            "BetBoro": 1.99,
+            "BoltBet": 2.02
+          },
+          "best": 2.16,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.72,
+            "MSport": 3.68,
+            "BetBoro": 3.55,
+            "BoltBet": 3.56
+          },
+          "best": 3.72,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.47,
+            "MSport": 3.44,
+            "BetBoro": 3.22,
+            "BoltBet": 3.29
+          },
+          "best": 3.47,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2837872852,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221360",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273883"
+        },
+        "boltbet": {
+          "boltbetSlug": "coventry-city-sunderland-31541"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Coventry City",
+          "logo": "https://static.msport.com/public/up/8c827132-8ed5-4a57-bc09-c0dbd96f6e34.png"
+        },
+        "away": {
+          "name": "Sunderland AFC",
+          "logo": "https://static.msport.com/public/up/a0f96c8f-a49c-45fc-b3ea-35494aac366a.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.16"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.48"
+        },
+        {
+          "value": "Away",
+          "odd": "2.40"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.16,
+            "MSport": 3.13,
+            "BetBoro": 2.98,
+            "BoltBet": 3.01
+          },
+          "best": 3.16,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.48,
+            "MSport": 3.44,
+            "BetBoro": 3.22,
+            "BoltBet": 3.23
+          },
+          "best": 3.48,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.4,
+            "MSport": 2.38,
+            "BetBoro": 2.23,
+            "BoltBet": 2.28
+          },
+          "best": 2.4,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 381300573,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221362",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273886"
+        },
+        "boltbet": {
+          "boltbetSlug": "hull-city-ipswich-town-31545"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Hull City",
+          "logo": "https://static.msport.com/public/up/9aa0c569-4b8d-437a-8495-24a50f851c53.png"
+        },
+        "away": {
+          "name": "Ipswich Town",
+          "logo": "https://static.msport.com/public/up/61e70054-9255-4e84-ae23-e047cdf7f27c.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.71"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.53"
+        },
+        {
+          "value": "Away",
+          "odd": "2.72"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.71,
+            "MSport": 2.68,
+            "BetBoro": 2.47,
+            "BoltBet": 2.58
+          },
+          "best": 2.71,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.53,
+            "MSport": 3.49,
+            "BetBoro": 3.31,
+            "BoltBet": 3.25
+          },
+          "best": 3.53,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.72,
+            "MSport": 2.7,
+            "BetBoro": 2.59,
+            "BoltBet": 2.6
+          },
+          "best": 2.72,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1284902854,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221366",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273882"
+        },
+        "boltbet": {
+          "boltbetSlug": "manchester-city-brighton-and-hove-albion-31557"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Manchester City",
+          "logo": "https://static.msport.com/ng/up/2ed819b8-10d6-438b-b76c-c4249d543924.png"
+        },
+        "away": {
+          "name": "Brighton & Hove Albion",
+          "logo": "https://static.msport.com/public/up/70efc223-2282-4fdc-9c37-b9815b07ba41.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.67"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.70"
+        },
+        {
+          "value": "Away",
+          "odd": "4.82"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.67,
+            "MSport": 1.66,
+            "BetBoro": 1.58,
+            "BoltBet": 1.61
+          },
+          "best": 1.67,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.7,
+            "MSport": 4.64,
+            "BetBoro": 4.22,
+            "BoltBet": 4.3
+          },
+          "best": 4.7,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.82,
+            "MSport": 4.75,
+            "BetBoro": 4.51,
+            "BoltBet": 4.5
+          },
+          "best": 4.82,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1806417453,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339960",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564098"
+        },
+        "boltbet": {
+          "boltbetSlug": "bolton-wanderers-bristol-city-32327"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Bolton Wanderers",
+          "logo": "https://static.msport.com/public/up/11966bed-a01f-4cc2-bc2e-70104f008236.png"
+        },
+        "away": {
+          "name": "Bristol City",
+          "logo": "https://static.msport.com/public/up/d147eee9-a28e-4d26-891a-bb3c084ab4ee.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.96"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.54"
+        },
+        {
+          "value": "Away",
+          "odd": "2.44"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.96,
+            "MSport": 2.96,
+            "BetBoro": 2.78,
+            "BoltBet": 2.81
+          },
+          "best": 2.96,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.54,
+            "MSport": 3.54,
+            "BetBoro": 3.36,
+            "BoltBet": 3.45
+          },
+          "best": 3.54,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.44,
+            "MSport": 2.44,
+            "BetBoro": 2.28,
+            "BoltBet": 2.3
+          },
+          "best": 2.44,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1736010205,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339962",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564105"
+        },
+        "boltbet": {
+          "boltbetSlug": "burnley-portsmouth-32337"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Burnley FC",
+          "logo": "https://static.msport.com/public/up/8444a505-dcbf-475e-88de-d46a905c0a2e.png"
+        },
+        "away": {
+          "name": "Portsmouth FC",
+          "logo": "https://static.msport.com/public/up/9748aabb-d34f-4b25-a36c-274d0a7773fd.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.20"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.51"
+        },
+        {
+          "value": "Away",
+          "odd": "3.43"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.2,
+            "MSport": 2.2,
+            "BetBoro": 2.09,
+            "BoltBet": 2.07
+          },
+          "best": 2.2,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.51,
+            "MSport": 3.51,
+            "BetBoro": 3.26,
+            "BoltBet": 3.33
+          },
+          "best": 3.51,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.43,
+            "MSport": 3.43,
+            "BetBoro": 3.22,
+            "BoltBet": 3.37
+          },
+          "best": 3.43,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 382131852,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339966",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94563966"
+        },
+        "boltbet": {
+          "boltbetSlug": "middlesbrough-charlton-athletic-32334"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Middlesbrough FC",
+          "logo": "https://static.msport.com/public/up/48db0d5d-275e-4e30-aa49-d23de6a6bd35.png"
+        },
+        "away": {
+          "name": "Charlton Athletic",
+          "logo": "https://static.msport.com/public/up/a1050f43-2a7e-4491-bb64-2018bd738780.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.27"
+        },
+        {
+          "value": "Draw",
+          "odd": "6.71"
+        },
+        {
+          "value": "Away",
+          "odd": "10.38"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.27,
+            "MSport": 1.27,
+            "BetBoro": 1.22,
+            "BoltBet": 1.25
+          },
+          "best": 1.27,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 6.71,
+            "MSport": 6.71,
+            "BetBoro": 5.86,
+            "BoltBet": 5.9
+          },
+          "best": 6.71,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 10.38,
+            "MSport": 10.38,
+            "BetBoro": 9.36,
+            "BoltBet": 9.1
+          },
+          "best": 10.38,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 553017811,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339968",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94563967"
+        },
+        "boltbet": {
+          "boltbetSlug": "millwall-derby-county-32331"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Millwall FC",
+          "logo": "https://static.msport.com/public/up/a1fdf74a-1774-4236-b78b-0910695ea2a1.png"
+        },
+        "away": {
+          "name": "Derby County",
+          "logo": "https://static.msport.com/public/up/b46a4c49-08b0-4b5e-a14d-fdca132db3b1.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.75"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.95"
+        },
+        {
+          "value": "Away",
+          "odd": "4.88"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.75,
+            "MSport": 1.75,
+            "BetBoro": 1.68,
+            "BoltBet": 1.7
+          },
+          "best": 1.75,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.95,
+            "MSport": 3.95,
+            "BetBoro": 3.65,
+            "BoltBet": 3.71
+          },
+          "best": 3.95,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.88,
+            "MSport": 4.88,
+            "BetBoro": 4.56,
+            "BoltBet": 4.5
+          },
+          "best": 4.88,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 231604061,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339974",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564104"
+        },
+        "boltbet": {
+          "boltbetSlug": "southampton-queens-park-rangers-32330"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Southampton FC",
+          "logo": "https://static.msport.com/ng/up/95e18aeb-02da-4bea-96b6-690bf4c3a652.png"
+        },
+        "away": {
+          "name": "Queens Park Rangers",
+          "logo": "https://static.msport.com/public/up/2fed6de2-75d1-42aa-b6b0-995af52870a3.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.85"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.04"
+        },
+        {
+          "value": "Away",
+          "odd": "4.14"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.85,
+            "MSport": 1.85,
+            "BetBoro": 1.78,
+            "BoltBet": 1.8
+          },
+          "best": 1.85,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.04,
+            "MSport": 4.04,
+            "BetBoro": 3.74,
+            "BoltBet": 3.76
+          },
+          "best": 4.04,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.14,
+            "MSport": 4.14,
+            "BetBoro": 3.84,
+            "BoltBet": 3.87
+          },
+          "best": 4.14,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1935567013,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339978",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564119"
+        },
+        "boltbet": {
+          "boltbetSlug": "swansea-city-blackburn-rovers-32332"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Swansea City",
+          "logo": "https://static.msport.com/public/up/c1e08361-99ca-4e32-a13e-84393f583813.png"
+        },
+        "away": {
+          "name": "Blackburn Rovers",
+          "logo": "https://static.msport.com/public/up/9d3b85c5-390b-4676-9553-e97896b368ed.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.87"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.72"
+        },
+        {
+          "value": "Away",
+          "odd": "4.44"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.87,
+            "MSport": 1.87,
+            "BetBoro": 1.73,
+            "BoltBet": 1.77
+          },
+          "best": 1.87,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.72,
+            "MSport": 3.72,
+            "BetBoro": 3.55,
+            "BoltBet": 3.6
+          },
+          "best": 3.72,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.44,
+            "MSport": 4.44,
+            "BetBoro": 4.27,
+            "BoltBet": 4.2
+          },
+          "best": 4.44,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2822814706,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339980",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564108"
+        },
+        "boltbet": {
+          "boltbetSlug": "west-ham-united-west-bromwich-albion-32335"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "West Ham United",
+          "logo": "https://static.msport.com/ng/up/512d9f9a-a3e6-4c34-b8d6-979bef8242c9.png"
+        },
+        "away": {
+          "name": "West Bromwich Albion",
+          "logo": "https://static.msport.com/public/up/b88c4288-0bdb-4bbc-a1cd-76f9f9e53195.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.66"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.34"
+        },
+        {
+          "value": "Away",
+          "odd": "5.04"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.66,
+            "MSport": 1.66,
+            "BetBoro": 1.58,
+            "BoltBet": 1.59
+          },
+          "best": 1.66,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.34,
+            "MSport": 4.34,
+            "BetBoro": 3.98,
+            "BoltBet": 4.1
+          },
+          "best": 4.34,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 5.04,
+            "MSport": 5.04,
+            "BetBoro": 4.66,
+            "BoltBet": 4.9
+          },
+          "best": 5.04,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1706470295,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72339982",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "403",
+          "betBoroId": "94564100"
+        },
+        "boltbet": {
+          "boltbetSlug": "wolverhampton-wanderers-cardiff-city-32336"
+        }
+      },
+      "league": {
+        "id": 40,
+        "name": "EFL Championship",
+        "logo": "https://media.api-sports.io/football/leagues/40.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Wolverhampton Wanderers",
+          "logo": "https://static.msport.com/ng/up/bdf3c2f2-b9df-484c-8538-00d6d1e7056d.png"
+        },
+        "away": {
+          "name": "Cardiff City",
+          "logo": "https://static.msport.com/public/up/729b6861-b8cc-49e3-8976-20dcf1ac5fb2.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.72"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.31"
+        },
+        {
+          "value": "Away",
+          "odd": "4.64"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.72,
+            "MSport": 1.72,
+            "BetBoro": 1.65,
+            "BoltBet": 1.64
+          },
+          "best": 1.72,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.31,
+            "MSport": 4.31,
+            "BetBoro": 3.98,
+            "BoltBet": 4.1
+          },
+          "best": 4.31,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.64,
+            "MSport": 4.64,
+            "BetBoro": 4.27,
+            "BoltBet": 4.4
+          },
+          "best": 4.64,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 701174012,
+        "date": "2026-10-31T15:00:00.000Z"
+      },
+      "sr_id": "sr:match:72366424",
+      "book_ids": {
+        "betboro": {
+          "regionId": "95",
+          "competitionId": "4160",
+          "betBoroId": "92826869"
+        }
+      },
+      "league": {
+        "id": 144,
+        "name": "Belgian Pro League",
+        "logo": "https://media.api-sports.io/football/leagues/144.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Yellow-Red KV Mechelen",
+          "logo": "https://static.msport.com/public/up/c293af19-7171-4fc4-8a69-161dc806e1e6.png"
+        },
+        "away": {
+          "name": "KRC Genk",
+          "logo": "https://static.msport.com/public/up/0ecceecc-8baf-440d-a2a8-acac9b5315e7.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.70"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.77"
+        },
+        {
+          "value": "Away",
+          "odd": "1.98"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.7,
+            "MSport": 3.66,
+            "BetBoro": 3.65
+          },
+          "best": 3.7,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.77,
+            "MSport": 3.72,
+            "BetBoro": 3.55
+          },
+          "best": 3.77,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.98,
+            "MSport": 1.97,
+            "BetBoro": 1.85
+          },
+          "best": 1.98,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1933602387,
+        "date": "2026-10-31T15:15:00.000Z"
+      },
+      "sr_id": "sr:match:72478682",
+      "book_ids": {
+        "betboro": {
+          "regionId": "16",
+          "competitionId": "92",
+          "betBoroId": "91668621"
+        }
+      },
+      "league": {
+        "id": 140,
+        "name": "La Liga",
+        "logo": "https://media.api-sports.io/football/leagues/140.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Rayo Vallecano",
+          "logo": "https://static.msport.com/public/up/f3bc56f4-bb54-4c32-b277-b1af7e389304.png"
+        },
+        "away": {
+          "name": "RC Celta de Vigo",
+          "logo": "https://static.msport.com/ng/up/f989626b-2245-4dcc-8183-0c9bc2f9d8c5.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.51"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.35"
+        },
+        {
+          "value": "Away",
+          "odd": "3.10"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.51,
+            "MSport": 2.49,
+            "BetBoro": 2.37
+          },
+          "best": 2.51,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.35,
+            "MSport": 3.31,
+            "BetBoro": 3.07
+          },
+          "best": 3.35,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.1,
+            "MSport": 3.06,
+            "BetBoro": 2.88
+          },
+          "best": 3.1,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1765127463,
+        "date": "2026-10-31T15:30:00.000Z"
+      },
+      "sr_id": "sr:match:72041212",
+      "book_ids": {
+        "betboro": {
+          "regionId": "62",
+          "competitionId": "261",
+          "betBoroId": "92826901"
+        }
+      },
+      "league": {
+        "id": 88,
+        "name": "Eredivisie",
+        "logo": "https://media.api-sports.io/football/leagues/88.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Feyenoord Rotterdam",
+          "logo": "https://static.msport.com/ng/up/8b69fd82-9180-49fc-b29b-1d21fe945d91.png"
+        },
+        "away": {
+          "name": "Fortuna Sittard",
+          "logo": "https://static.msport.com/public/up/e9e37db8-8b7d-4cb9-a0ea-08afe0639e93.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.18"
+        },
+        {
+          "value": "Draw",
+          "odd": "8.66"
+        },
+        {
+          "value": "Away",
+          "odd": "15.36"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.18,
+            "MSport": 1.17,
+            "BetBoro": 1.12
+          },
+          "best": 1.18,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 8.66,
+            "MSport": 7.93,
+            "BetBoro": 7.1
+          },
+          "best": 8.66,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 14.26,
+            "MSport": 13,
+            "BetBoro": 15.36
+          },
+          "best": 15.36,
+          "bookmaker": "BetBoro"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2846938692,
+        "date": "2026-10-31T15:30:00.000Z"
+      },
+      "sr_id": "sr:match:72530994",
+      "book_ids": {
+        "betboro": {
+          "regionId": "35",
+          "competitionId": "203",
+          "betBoroId": "94628721"
+        }
+      },
+      "league": {
+        "id": 94,
+        "name": "Primeira Liga",
+        "logo": "https://media.api-sports.io/football/leagues/94.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Moreirense FC",
+          "logo": "https://static.msport.com/public/up/dab22d91-b194-4c79-95d5-3bf997342dd7.png"
+        },
+        "away": {
+          "name": "Estrela Amadora",
+          "logo": "https://static.msport.com/public/up/3e2cc09e-3623-48b3-9dfd-74713df0e321.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.89"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.42"
+        },
+        {
+          "value": "Away",
+          "odd": "2.56"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.89,
+            "MSport": 2.81,
+            "BetBoro": 2.71
+          },
+          "best": 2.89,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.42,
+            "MSport": 3.31,
+            "BetBoro": 3.17
+          },
+          "best": 3.42,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.56,
+            "MSport": 2.49,
+            "BetBoro": 2.45
+          },
+          "best": 2.56,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1843651913,
+        "date": "2026-10-31T16:00:00.000Z"
+      },
+      "sr_id": "sr:match:72723298",
+      "book_ids": {
+        "betboro": {
+          "regionId": "31",
+          "competitionId": "306",
+          "betBoroId": "90497190"
+        }
+      },
+      "league": {
+        "id": 203,
+        "name": "Süper Lig",
+        "logo": "https://media.api-sports.io/football/leagues/203.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Fenerbahce Istanbul",
+          "logo": "https://static.msport.com/ng/up/ddc9a483-b267-4665-9a04-c4af9a6414c7.png"
+        },
+        "away": {
+          "name": "Goztepe Izmir",
+          "logo": "https://static.msport.com/ng/up/ed63af55-e2f2-4c4d-beab-27076f72ddc2.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.39"
+        },
+        {
+          "value": "Draw",
+          "odd": "5.64"
+        },
+        {
+          "value": "Away",
+          "odd": "7.51"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.39,
+            "MSport": 1.37,
+            "BetBoro": 1.32
+          },
+          "best": 1.39,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 5.64,
+            "MSport": 5.35,
+            "BetBoro": 4.8
+          },
+          "best": 5.64,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 7.51,
+            "MSport": 7.1,
+            "BetBoro": 6.43
+          },
+          "best": 7.51,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3472437879,
+        "date": "2026-10-31T17:00:00.000Z"
+      },
+      "sr_id": "sr:match:71945384",
+      "book_ids": {
+        "betboro": {
+          "regionId": "10",
+          "competitionId": "263",
+          "betBoroId": "92997315"
+        }
+      },
+      "league": {
+        "id": 135,
+        "name": "Serie A",
+        "logo": "https://media.api-sports.io/football/leagues/135.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Udinese Calcio",
+          "logo": "https://static.msport.com/public/up/8ea62e37-56d2-4580-9601-fdb2ad632f71.png"
+        },
+        "away": {
+          "name": "AS Roma",
+          "logo": "https://static.msport.com/public/up/4404209a-9925-47c5-a4e4-7658b8118f78.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "5.83"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.58"
+        },
+        {
+          "value": "Away",
+          "odd": "1.59"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 5.83,
+            "MSport": 5.74,
+            "BetBoro": 5.38
+          },
+          "best": 5.83,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.58,
+            "MSport": 4.52,
+            "BetBoro": 4.18
+          },
+          "best": 4.58,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.59,
+            "MSport": 1.58,
+            "BetBoro": 1.51
+          },
+          "best": 1.59,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3396613135,
+        "date": "2026-10-31T17:15:00.000Z"
+      },
+      "sr_id": "sr:match:72366426",
+      "book_ids": {
+        "betboro": {
+          "regionId": "95",
+          "competitionId": "4160",
+          "betBoroId": "92826868"
+        }
+      },
+      "league": {
+        "id": 144,
+        "name": "Belgian Pro League",
+        "logo": "https://media.api-sports.io/football/leagues/144.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Standard Liege",
+          "logo": "https://static.msport.com/ng/up/b47d5d5f-c072-4ba6-92bd-59154684bb4b.png"
+        },
+        "away": {
+          "name": "KV Kortrijk",
+          "logo": "https://static.msport.com/public/up/fe03fb88-f16d-4f5b-8303-e3f4f1402595.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.75"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.95"
+        },
+        {
+          "value": "Away",
+          "odd": "4.66"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.75,
+            "MSport": 1.74,
+            "BetBoro": 1.68
+          },
+          "best": 1.75,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.95,
+            "MSport": 3.9,
+            "BetBoro": 3.74
+          },
+          "best": 3.95,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.66,
+            "MSport": 4.6,
+            "BetBoro": 4.32
+          },
+          "best": 4.66,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 689570319,
+        "date": "2026-10-31T17:30:00.000Z"
+      },
+      "sr_id": "sr:match:72221370",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273881"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Tottenham Hotspur",
+          "logo": "https://static.msport.com/public/up/714a3e49-4191-4555-a1b4-697af8663314.png"
+        },
+        "away": {
+          "name": "Crystal Palace FC",
+          "logo": "https://static.msport.com/ng/up/99e0a7d8-2e9b-4381-9cd0-1a090bf55e44.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.63"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.53"
+        },
+        {
+          "value": "Away",
+          "odd": "5.42"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.63,
+            "MSport": 1.62,
+            "BetBoro": 1.54
+          },
+          "best": 1.63,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.53,
+            "MSport": 4.47,
+            "BetBoro": 4.08
+          },
+          "best": 4.53,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 5.42,
+            "MSport": 5.34,
+            "BetBoro": 4.99
+          },
+          "best": 5.42,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2772655202,
+        "date": "2026-10-31T17:30:00.000Z"
+      },
+      "sr_id": "sr:match:72478668",
+      "book_ids": {
+        "betboro": {
+          "regionId": "16",
+          "competitionId": "92",
+          "betBoroId": "91668600"
+        }
+      },
+      "league": {
+        "id": 140,
+        "name": "La Liga",
+        "logo": "https://media.api-sports.io/football/leagues/140.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Real Betis Balompie",
+          "logo": "https://static.msport.com/ng/up/d3ca1b50-1d4c-4396-8459-4cf88684efc4.png"
+        },
+        "away": {
+          "name": "Malaga CF",
+          "logo": "https://static.msport.com/public/up/ea66f1a5-ee4f-4166-b9ed-4d839ab93e78.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.33"
+        },
+        {
+          "value": "Draw",
+          "odd": "6.20"
+        },
+        {
+          "value": "Away",
+          "odd": "9.38"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.33,
+            "MSport": 1.32,
+            "BetBoro": 1.29
+          },
+          "best": 1.33,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 6.2,
+            "MSport": 6.08,
+            "BetBoro": 5.09
+          },
+          "best": 6.2,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 9.38,
+            "MSport": 9.18,
+            "BetBoro": 8.16
+          },
+          "best": 9.38,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1351122392,
+        "date": "2026-10-31T17:30:00.000Z"
+      },
+      "sr_id": "sr:match:72513274",
+      "book_ids": {
+        "betboro": {
+          "regionId": "15",
+          "competitionId": "214",
+          "betBoroId": "91659475"
+        }
+      },
+      "league": {
+        "id": 78,
+        "name": "Bundesliga",
+        "logo": "https://media.api-sports.io/football/leagues/78.png"
+      },
+      "teams": {
+        "home": {
+          "name": "FC Bayern Munchen",
+          "logo": "https://static.msport.com/public/up/48a5acc0-9208-483c-9d7e-0a61fba14dab.png"
+        },
+        "away": {
+          "name": "Borussia Dortmund",
+          "logo": "https://static.msport.com/public/up/0607ac3a-682a-4a5c-a153-4eb681ec0039.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.36"
+        },
+        {
+          "value": "Draw",
+          "odd": "6.53"
+        },
+        {
+          "value": "Away",
+          "odd": "7.75"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.36,
+            "MSport": 1.35,
+            "BetBoro": 1.29
+          },
+          "best": 1.36,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 6.53,
+            "MSport": 6.4,
+            "BetBoro": 5.57
+          },
+          "best": 6.53,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 7.75,
+            "MSport": 7.6,
+            "BetBoro": 7.3
+          },
+          "best": 7.75,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 151823762,
+        "date": "2026-10-31T17:45:00.000Z"
+      },
+      "sr_id": "sr:match:72041214",
+      "book_ids": {
+        "betboro": {
+          "regionId": "62",
+          "competitionId": "261",
+          "betBoroId": "92826912"
+        }
+      },
+      "league": {
+        "id": 88,
+        "name": "Eredivisie",
+        "logo": "https://media.api-sports.io/football/leagues/88.png"
+      },
+      "teams": {
+        "home": {
+          "name": "PSV Eindhoven",
+          "logo": "https://static.msport.com/public/up/5794d10c-ce81-43d5-882f-d19f85e9679c.png"
+        },
+        "away": {
+          "name": "Willem II Tilburg",
+          "logo": "https://static.msport.com/public/up/ba149b8e-a502-42ca-9c13-fa8bb578efbf.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.10"
+        },
+        {
+          "value": "Draw",
+          "odd": "13.45"
+        },
+        {
+          "value": "Away",
+          "odd": "23.04"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.1,
+            "MSport": 1.09,
+            "BetBoro": 1.05
+          },
+          "best": 1.1,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 13.45,
+            "MSport": 11.7,
+            "BetBoro": 10.32
+          },
+          "best": 13.45,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 21.63,
+            "MSport": 18.73,
+            "BetBoro": 23.04
+          },
+          "best": 23.04,
+          "bookmaker": "BetBoro"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3011473007,
+        "date": "2026-10-31T17:45:00.000Z"
+      },
+      "sr_id": "sr:match:72041216",
+      "book_ids": {
+        "betboro": {
+          "regionId": "62",
+          "competitionId": "261",
+          "betBoroId": "92826810"
+        }
+      },
+      "league": {
+        "id": 88,
+        "name": "Eredivisie",
+        "logo": "https://media.api-sports.io/football/leagues/88.png"
+      },
+      "teams": {
+        "home": {
+          "name": "SC Heerenveen",
+          "logo": "https://static.msport.com/public/up/1d2152c7-e057-4da9-9b25-1a3e1222dd71.png"
+        },
+        "away": {
+          "name": "NEC Nijmegen",
+          "logo": "https://static.msport.com/public/up/07a824d4-6bb4-49e1-8668-91a596f8ade4.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.15"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.05"
+        },
+        {
+          "value": "Away",
+          "odd": "3.14"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.15,
+            "MSport": 2.1,
+            "BetBoro": 2.02
+          },
+          "best": 2.15,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.05,
+            "MSport": 3.91,
+            "BetBoro": 3.79
+          },
+          "best": 4.05,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.14,
+            "MSport": 3.04,
+            "BetBoro": 2.98
+          },
+          "best": 3.14,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1626058383,
+        "date": "2026-10-31T19:00:00.000Z"
+      },
+      "sr_id": "sr:match:66887132",
+      "book_ids": {
+        "betboro": {
+          "regionId": "7",
+          "competitionId": "200",
+          "betBoroId": "94390368"
+        }
+      },
+      "league": {
+        "id": 71,
+        "name": "Brasileirão",
+        "logo": "https://media.api-sports.io/football/leagues/71.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Coritiba FC PR",
+          "logo": "https://static.msport.com/public/up/72cff0ec-6933-4cdb-87ce-7d0810ae0c1f.png"
+        },
+        "away": {
+          "name": "EC Vitoria BA",
+          "logo": "https://static.msport.com/public/up/9640c9f2-2633-4401-b652-b821e1092408.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.35"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.43"
+        },
+        {
+          "value": "Away",
+          "odd": "3.04"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.35,
+            "MSport": 2.33,
+            "BetBoro": 2.26
+          },
+          "best": 2.35,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.4,
+            "MSport": 3.43,
+            "BetBoro": 3.17
+          },
+          "best": 3.43,
+          "bookmaker": "MSport"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3,
+            "MSport": 3.04,
+            "BetBoro": 2.88
+          },
+          "best": 3.04,
+          "bookmaker": "MSport"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 3864258093,
+        "date": "2026-10-31T19:45:00.000Z"
+      },
+      "sr_id": "sr:match:71945380",
+      "book_ids": {
+        "betboro": {
+          "regionId": "10",
+          "competitionId": "263",
+          "betBoroId": "92997316"
+        }
+      },
+      "league": {
+        "id": 135,
+        "name": "Serie A",
+        "logo": "https://media.api-sports.io/football/leagues/135.png"
+      },
+      "teams": {
+        "home": {
+          "name": "AC Milan",
+          "logo": "https://static.msport.com/ng/up/94aa468a-b4b8-4167-84c6-e4185d47c53a.png"
+        },
+        "away": {
+          "name": "Inter Milano",
+          "logo": "https://static.msport.com/public/up/a529fb3b-867e-4395-9833-2ddf27e592e9.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "3.67"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.92"
+        },
+        {
+          "value": "Away",
+          "odd": "2.07"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 3.63,
+            "MSport": 3.67,
+            "BetBoro": 3.41
+          },
+          "best": 3.67,
+          "bookmaker": "MSport"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.87,
+            "MSport": 3.92,
+            "BetBoro": 3.6
+          },
+          "best": 3.92,
+          "bookmaker": "MSport"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.06,
+            "MSport": 2.07,
+            "BetBoro": 1.92
+          },
+          "best": 2.07,
+          "bookmaker": "MSport"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2719602696,
+        "date": "2026-10-31T19:45:00.000Z"
+      },
+      "sr_id": "sr:match:72036272",
+      "book_ids": {
+        "betboro": {
+          "regionId": "9",
+          "competitionId": "328",
+          "betBoroId": "94333522"
+        }
+      },
+      "league": {
+        "id": 61,
+        "name": "Ligue 1",
+        "logo": "https://media.api-sports.io/football/leagues/61.png"
+      },
+      "teams": {
+        "home": {
+          "name": "ES Troyes AC",
+          "logo": "https://static.msport.com/public/up/553bf8cb-5f4a-4310-82cf-2795a1141f25.png"
+        },
+        "away": {
+          "name": "Le Mans UC 72",
+          "logo": "https://static.msport.com/public/up/5b1e539b-6a34-4e0c-b2c4-b67d809c9e37.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.44"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.58"
+        },
+        {
+          "value": "Away",
+          "odd": "3.03"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.44,
+            "MSport": 2.42,
+            "BetBoro": 2.3
+          },
+          "best": 2.44,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.58,
+            "MSport": 3.54,
+            "BetBoro": 3.31
+          },
+          "best": 3.58,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.03,
+            "MSport": 3,
+            "BetBoro": 2.8
+          },
+          "best": 3.03,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1261156402,
+        "date": "2026-10-31T19:45:00.000Z"
+      },
+      "sr_id": "sr:match:72366430",
+      "book_ids": {
+        "betboro": {
+          "regionId": "95",
+          "competitionId": "4160",
+          "betBoroId": "92826867"
+        }
+      },
+      "league": {
+        "id": 144,
+        "name": "Belgian Pro League",
+        "logo": "https://media.api-sports.io/football/leagues/144.png"
+      },
+      "teams": {
+        "home": {
+          "name": "KV RS Waasland Beveren",
+          "logo": "https://cdn.feedthebet.com/logos/participants/489.png"
+        },
+        "away": {
+          "name": "Union Saint-Gilloise",
+          "logo": "https://static.msport.com/public/up/4e1f8363-443f-4ffe-a830-318eb5aa8a4a.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "6.03"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.76"
+        },
+        {
+          "value": "Away",
+          "odd": "1.51"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 6.03,
+            "MSport": 5.94,
+            "BetBoro": 5.47
+          },
+          "best": 6.03,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.76,
+            "MSport": 4.69,
+            "BetBoro": 4.32
+          },
+          "best": 4.76,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 1.51,
+            "MSport": 1.5,
+            "BetBoro": 1.47
+          },
+          "best": 1.51,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 2519024107,
+        "date": "2026-10-31T19:45:00.000Z"
+      },
+      "sr_id": "sr:match:72366416",
+      "book_ids": {
+        "betboro": {
+          "regionId": "95",
+          "competitionId": "4160",
+          "betBoroId": "92826866"
+        }
+      },
+      "league": {
+        "id": 144,
+        "name": "Belgian Pro League",
+        "logo": "https://media.api-sports.io/football/leagues/144.png"
+      },
+      "teams": {
+        "home": {
+          "name": "RSC Anderlecht",
+          "logo": "https://static.msport.com/public/up/548c893e-2ee2-4f73-bd66-a710d1103536.png"
+        },
+        "away": {
+          "name": "KVC Westerlo",
+          "logo": "https://cdn.feedthebet.com/logos/participants/502.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.61"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.55"
+        },
+        {
+          "value": "Away",
+          "odd": "5.02"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.61,
+            "MSport": 1.6,
+            "BetBoro": 1.51
+          },
+          "best": 1.61,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.55,
+            "MSport": 4.49,
+            "BetBoro": 4.32
+          },
+          "best": 4.55,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 5.02,
+            "MSport": 4.95,
+            "BetBoro": 4.99
+          },
+          "best": 5.02,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1114793380,
+        "date": "2026-10-31T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72221352",
+      "book_ids": {
+        "betboro": {
+          "regionId": "45",
+          "competitionId": "228",
+          "betBoroId": "94273887"
+        }
+      },
+      "league": {
+        "id": 39,
+        "name": "Premier League",
+        "logo": "https://media.api-sports.io/football/leagues/39.png"
+      },
+      "teams": {
+        "home": {
+          "name": "Aston Villa",
+          "logo": "https://static.msport.com/public/up/8f594fc3-d775-4306-b17f-29befc4569aa.png"
+        },
+        "away": {
+          "name": "Fulham FC",
+          "logo": "https://static.msport.com/public/up/88363f79-3273-4756-ac8d-aee2778457a2.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.99"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.86"
+        },
+        {
+          "value": "Away",
+          "odd": "3.86"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.99,
+            "MSport": 1.98,
+            "BetBoro": 1.85
+          },
+          "best": 1.99,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.86,
+            "MSport": 3.82,
+            "BetBoro": 3.6
+          },
+          "best": 3.86,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 3.86,
+            "MSport": 3.82,
+            "BetBoro": 3.65
+          },
+          "best": 3.86,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1948466640,
+        "date": "2026-10-31T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72478674",
+      "book_ids": {
+        "betboro": {
+          "regionId": "16",
+          "competitionId": "92",
+          "betBoroId": "91668586"
+        }
+      },
+      "league": {
+        "id": 140,
+        "name": "La Liga",
+        "logo": "https://media.api-sports.io/football/leagues/140.png"
+      },
+      "teams": {
+        "home": {
+          "name": "FC Barcelona",
+          "logo": "https://static.msport.com/ng/up/974edd3a-6f20-4b30-b555-f1eaa48664d1.png"
+        },
+        "away": {
+          "name": "Deportivo Alaves",
+          "logo": "https://static.msport.com/public/up/9052c4a0-c5fe-44c3-91b5-32311e922857.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.13"
+        },
+        {
+          "value": "Draw",
+          "odd": "11.56"
+        },
+        {
+          "value": "Away",
+          "odd": "21.88"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.13,
+            "MSport": 1.12,
+            "BetBoro": 1.08
+          },
+          "best": 1.13,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 11.56,
+            "MSport": 11.1,
+            "BetBoro": 8.88
+          },
+          "best": 11.56,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 21.88,
+            "MSport": 20.96,
+            "BetBoro": 20.16
+          },
+          "best": 21.88,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1143740905,
+        "date": "2026-10-31T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72041218",
+      "book_ids": {
+        "betboro": {
+          "regionId": "62",
+          "competitionId": "261",
+          "betBoroId": "92826791"
+        }
+      },
+      "league": {
+        "id": 88,
+        "name": "Eredivisie",
+        "logo": "https://media.api-sports.io/football/leagues/88.png"
+      },
+      "teams": {
+        "home": {
+          "name": "AFC Ajax",
+          "logo": "https://static.msport.com/public/up/dbc7f59d-cac3-4a78-935a-7f41f5a4df79.png"
+        },
+        "away": {
+          "name": "AZ Alkmaar",
+          "logo": "https://static.msport.com/ng/up/dce5f31d-d2cc-4fc9-af4f-96d47c4b6ad6.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.67"
+        },
+        {
+          "value": "Draw",
+          "odd": "4.66"
+        },
+        {
+          "value": "Away",
+          "odd": "4.59"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.67,
+            "MSport": 1.64,
+            "BetBoro": 1.6
+          },
+          "best": 1.67,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 4.66,
+            "MSport": 4.47,
+            "BetBoro": 4.32
+          },
+          "best": 4.66,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 4.59,
+            "MSport": 4.41,
+            "BetBoro": 4.18
+          },
+          "best": 4.59,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 1884105374,
+        "date": "2026-10-31T20:00:00.000Z"
+      },
+      "sr_id": "sr:match:72041220",
+      "book_ids": {
+        "betboro": {
+          "regionId": "62",
+          "competitionId": "261",
+          "betBoroId": "92826766"
+        }
+      },
+      "league": {
+        "id": 88,
+        "name": "Eredivisie",
+        "logo": "https://media.api-sports.io/football/leagues/88.png"
+      },
+      "teams": {
+        "home": {
+          "name": "SC Cambuur",
+          "logo": "https://static.msport.com/public/up/89af202b-a725-4fd0-a7f1-7188e66fab71.png"
+        },
+        "away": {
+          "name": "Go Ahead Eagles",
+          "logo": "https://static.msport.com/public/up/1b5d7caf-a676-449e-9c2b-6f95cd27fbfa.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "2.95"
+        },
+        {
+          "value": "Draw",
+          "odd": "3.94"
+        },
+        {
+          "value": "Away",
+          "odd": "2.29"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 2.95,
+            "MSport": 2.86,
+            "BetBoro": 2.71
+          },
+          "best": 2.95,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 3.94,
+            "MSport": 3.81,
+            "BetBoro": 3.79
+          },
+          "best": 3.94,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 2.29,
+            "MSport": 2.23,
+            "BetBoro": 2.18
+          },
+          "best": 2.29,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    },
+    {
+      "fixture": {
+        "id": 55641534,
+        "date": "2026-10-31T20:30:00.000Z"
+      },
+      "sr_id": "sr:match:72530996",
+      "book_ids": {
+        "betboro": {
+          "regionId": "35",
+          "competitionId": "203",
+          "betBoroId": "94640448"
+        }
+      },
+      "league": {
+        "id": 94,
+        "name": "Primeira Liga",
+        "logo": "https://media.api-sports.io/football/leagues/94.png"
+      },
+      "teams": {
+        "home": {
+          "name": "FC Porto",
+          "logo": "https://static.msport.com/ng/up/5272b891-1753-4b4d-8e84-8302527042b6.png"
+        },
+        "away": {
+          "name": "GD Estoril Praia",
+          "logo": "https://static.msport.com/public/up/3ec3a21f-a420-4c03-a3b6-cb8c081fa17c.png"
+        }
+      },
+      "goals": null,
+      "odds": [
+        {
+          "value": "Home",
+          "odd": "1.20"
+        },
+        {
+          "value": "Draw",
+          "odd": "7.27"
+        },
+        {
+          "value": "Away",
+          "odd": "16.17"
+        }
+      ],
+      "book_odds": {
+        "home": {
+          "books": {
+            "SportyBet": 1.2,
+            "MSport": 1.19,
+            "BetBoro": 1.16
+          },
+          "best": 1.2,
+          "bookmaker": "SportyBet"
+        },
+        "draw": {
+          "books": {
+            "SportyBet": 7.27,
+            "MSport": 6.71,
+            "BetBoro": 6.24
+          },
+          "best": 7.27,
+          "bookmaker": "SportyBet"
+        },
+        "away": {
+          "books": {
+            "SportyBet": 16.17,
+            "MSport": 14.81,
+            "BetBoro": 14.4
+          },
+          "best": 16.17,
+          "bookmaker": "SportyBet"
+        }
+      },
+      "ai_analysis": null
+    }
+  ]
+}

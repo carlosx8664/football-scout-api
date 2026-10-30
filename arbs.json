@@ -1,0 +1,853 @@
+{
+  "generatedAt": "2026-10-30T13:52:08.316Z",
+  "boostApplied": 1,
+  "boostTarget": null,
+  "stats": {
+    "matched": 1460,
+    "pairsChecked": 63714,
+    "bookEvents": {
+      "SportyBet": 1469,
+      "MSport": 1483,
+      "BetBoro": 1328,
+      "BoltBet": 400,
+      "BetPawa": 44,
+      "Soccabet": 10
+    }
+  },
+  "arbs": [
+    {
+      "eventId": "sr:match:72339962",
+      "home": "Burnley",
+      "away": "Portsmouth FC",
+      "tournament": "Championship",
+      "kickoff": 1793458800000,
+      "market": "Over/Under 5.5 Bookings",
+      "profitPct": 0.465,
+      "totalStake": 100,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5 Bookings",
+          "odds": 2.7,
+          "stake": 37.21,
+          "url": "https://www.sportybet.com/gh/sport/football/Championship/Burnley_vs_Portsmouth_FC/sr:match:72339962",
+          "sportybet": {
+            "eventId": "sr:match:72339962",
+            "marketId": "139",
+            "outcomeId": "12",
+            "specifier": "total=5.5"
+          }
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 5.5 Bookings",
+          "odds": 1.6,
+          "stake": 62.79,
+          "url": "https://betboro.com.gh/pre-sports/1/region/45/competition/403/fixture/94564105"
+        }
+      ],
+      "needsRuleReview": true,
+      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting."
+    }
+  ],
+  "history": [
+    {
+      "key": "sr:match:72339962|Over/Under 5.5 Bookings",
+      "eventId": "sr:match:72339962",
+      "home": "Burnley",
+      "away": "Portsmouth FC",
+      "tournament": "Championship",
+      "kickoff": 1793458800000,
+      "market": "Over/Under 5.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-30T03:05:57.531Z",
+      "lastSeenAt": "2026-10-30T13:52:08.313Z",
+      "openProfitPct": 1.149,
+      "peakProfitPct": 1.149,
+      "profitPct": 0.465,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5 Bookings",
+          "stake": 37.21,
+          "url": "https://www.sportybet.com/gh/sport/football/Championship/Burnley_vs_Portsmouth_FC/sr:match:72339962",
+          "openOdds": 2.75,
+          "lastOdds": 2.7,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 5.5 Bookings",
+          "stake": 62.79,
+          "url": "https://betboro.com.gh/pre-sports/1/region/45/competition/403/fixture/94564105",
+          "openOdds": 1.6,
+          "lastOdds": 1.6,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72339964|Over/Under 4.5 Bookings",
+      "eventId": "sr:match:72339964",
+      "home": "Lincoln City",
+      "away": "Birmingham City",
+      "tournament": "Championship",
+      "kickoff": 1793449800000,
+      "market": "Over/Under 4.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-30T02:21:00.006Z",
+      "lastSeenAt": "2026-10-30T11:51:24.765Z",
+      "openProfitPct": 2.818,
+      "peakProfitPct": 2.818,
+      "profitPct": 1.277,
+      "finalProfitPct": null,
+      "alertedAt": "2026-10-30T09:06:40.320Z",
+      "alertedProfitPct": 2.818,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5 Bookings",
+          "stake": 39.72,
+          "url": "https://www.sportybet.com/gh/sport/football/Championship/Lincoln_City_vs_Birmingham_City/sr:match:72339964",
+          "openOdds": 2.65,
+          "lastOdds": 2.55,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 4.5 Bookings",
+          "stake": 60.28,
+          "url": "https://betboro.com.gh/pre-sports/1/region/45/competition/403/fixture/94564107",
+          "openOdds": 1.68,
+          "lastOdds": 1.68,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:68311938|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:68311938",
+      "home": "Angelholms FF",
+      "away": "Tvaakers IF",
+      "tournament": "Ettan",
+      "kickoff": 1793448000000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:05:44.274Z",
+      "lastSeenAt": "2026-10-29T17:05:44.274Z",
+      "openProfitPct": 0.177,
+      "peakProfitPct": 0.177,
+      "profitPct": 0.177,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Away Win",
+          "stake": 28.95,
+          "url": "https://betboro.com.gh/pre-sports/1/region/3/competition/185/fixture/94659184",
+          "openOdds": 3.46,
+          "lastOdds": 3.46,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 71.05,
+          "url": "https://boltbet.com.gh/sports/match/football/angelholms-ff-tvaakers-if-24659",
+          "openOdds": 1.41,
+          "lastOdds": 1.41,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73929110|Draw No Bet: Home vs Away",
+      "eventId": "sr:match:73929110",
+      "home": "PSGC Ciamis",
+      "away": "PSMS Medan",
+      "tournament": "Championship",
+      "kickoff": 1793435400000,
+      "market": "Draw No Bet: Home vs Away",
+      "note": "Draw = both stakes refunded",
+      "firstSeenAt": "2026-10-30T03:20:59.168Z",
+      "lastSeenAt": "2026-10-30T03:20:59.168Z",
+      "openProfitPct": 1.044,
+      "peakProfitPct": 1.044,
+      "profitPct": 1.044,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Home (DNB)",
+          "stake": 26.25,
+          "url": "https://www.sportybet.com/gh/sport/football/Championship/PSGC_Ciamis_vs_PSMS_Medan/sr:match:73929110",
+          "openOdds": 3.85,
+          "lastOdds": 3.85,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "MSport",
+          "outcome": "Away (DNB)",
+          "stake": 73.75,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/Championship/PSGC_Ciamis_vs_PSMS_Medan/sr:match:73929110",
+          "openOdds": 1.37,
+          "lastOdds": 1.37,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:69456816|Home Win vs Draw/Away (X2)",
+      "eventId": "sr:match:69456816",
+      "home": "Changchun Yatai",
+      "away": "Nantong Zhiyun",
+      "tournament": "China League 1",
+      "kickoff": 1793428200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T07:19:55.624Z",
+      "lastSeenAt": "2026-10-29T07:19:55.624Z",
+      "openProfitPct": 3.125,
+      "peakProfitPct": 3.125,
+      "profitPct": 0.266,
+      "finalProfitPct": null,
+      "alertedAt": "2026-10-29T07:19:55.624Z",
+      "alertedProfitPct": 2.632,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home Win",
+          "stake": 30.85,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/China_League_1/Changchun_Yatai_vs_Nantong_Zhiyun/sr:match:69456816",
+          "openOdds": 3.25,
+          "lastOdds": 3.25,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Draw or Away (X2)",
+          "stake": 69.15,
+          "url": "https://boltbet.com.gh/sports/match/football/changchun-yatai-nantong-zhiyun-fc-26469",
+          "openOdds": 1.45,
+          "lastOdds": 1.45,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72897408|Over/Under 3.5 Bookings",
+      "eventId": "sr:match:72897408",
+      "home": "Newcastle United Jets",
+      "away": "Wellington Phoenix FC",
+      "tournament": "A-League",
+      "kickoff": 1793419200000,
+      "market": "Over/Under 3.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-30T09:06:40.320Z",
+      "lastSeenAt": "2026-10-30T11:06:23.633Z",
+      "openProfitPct": 1.041,
+      "peakProfitPct": 1.041,
+      "profitPct": 0.66,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Over 3.5 Bookings",
+          "stake": 43.77,
+          "url": "https://betboro.com.gh/pre-sports/1/region/6/competition/380/fixture/92874238",
+          "openOdds": 2.32,
+          "lastOdds": 2.3,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 3.5 Bookings",
+          "stake": 56.23,
+          "url": "https://www.sportybet.com/gh/sport/football/A-League/Newcastle_United_Jets_vs_Wellington_Phoenix_FC/sr:match:72897408",
+          "openOdds": 1.79,
+          "lastOdds": 1.79,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73068154|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:73068154",
+      "home": "Atletico Madrid B",
+      "away": "AD Alcorcon",
+      "tournament": "Primera Federacion",
+      "kickoff": 1793390400000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T01:49:56.940Z",
+      "lastSeenAt": "2026-10-29T02:49:41.649Z",
+      "openProfitPct": 0.566,
+      "peakProfitPct": 0.566,
+      "profitPct": 0.566,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Away Win",
+          "stake": 38.68,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/Primera_Federacion/Atletico_Madrid_B_vs_AD_Alcorcon/sr:match:73068154",
+          "openOdds": 2.6,
+          "lastOdds": 2.6,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 61.32,
+          "url": "https://boltbet.com.gh/sports/match/football/atletico-madrid-b-ad-alcorcon-20473",
+          "openOdds": 1.64,
+          "lastOdds": 1.64,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72478684|Over/Under 5.5 Bookings",
+      "eventId": "sr:match:72478684",
+      "home": "Villarreal",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1793390400000,
+      "market": "Over/Under 5.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-29T16:21:03.502Z",
+      "lastSeenAt": "2026-10-29T17:05:44.274Z",
+      "openProfitPct": 1.277,
+      "peakProfitPct": 2.818,
+      "profitPct": 2.818,
+      "finalProfitPct": null,
+      "alertedAt": "2026-10-29T17:05:44.274Z",
+      "alertedProfitPct": 2.818,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5 Bookings",
+          "stake": 38.8,
+          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Villarreal_vs_Espanyol/sr:match:72478684",
+          "openOdds": 2.55,
+          "lastOdds": 2.65,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 5.5 Bookings",
+          "stake": 61.2,
+          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/91668619",
+          "openOdds": 1.68,
+          "lastOdds": 1.68,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72478684|Over/Under 6.5 Bookings",
+      "eventId": "sr:match:72478684",
+      "home": "Villarreal",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1793390400000,
+      "market": "Over/Under 6.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-29T16:21:03.502Z",
+      "lastSeenAt": "2026-10-29T17:05:44.274Z",
+      "openProfitPct": 0.837,
+      "peakProfitPct": 1.493,
+      "profitPct": 1.493,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 6.5 Bookings",
+          "stake": 25.37,
+          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Villarreal_vs_Espanyol/sr:match:72478684",
+          "openOdds": 3.9,
+          "lastOdds": 4,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 6.5 Bookings",
+          "stake": 74.63,
+          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/91668619",
+          "openOdds": 1.36,
+          "lastOdds": 1.36,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72478684|Over/Under 4.5 Bookings",
+      "eventId": "sr:match:72478684",
+      "home": "Villarreal",
+      "away": "Espanyol",
+      "tournament": "LaLiga",
+      "kickoff": 1793390400000,
+      "market": "Over/Under 4.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-10-29T16:21:03.502Z",
+      "lastSeenAt": "2026-10-29T17:05:44.274Z",
+      "openProfitPct": 0.343,
+      "peakProfitPct": 1.913,
+      "profitPct": 1.913,
+      "finalProfitPct": null,
+      "alertedAt": "2026-10-29T17:05:44.274Z",
+      "alertedProfitPct": 1.913,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5 Bookings",
+          "stake": 55.69,
+          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Villarreal_vs_Espanyol/sr:match:72478684",
+          "openOdds": 1.78,
+          "lastOdds": 1.83,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 4.5 Bookings",
+          "stake": 44.31,
+          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/91668619",
+          "openOdds": 2.3,
+          "lastOdds": 2.3,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73684974|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:73684974",
+      "home": "Newcastle United U21",
+      "away": "Peterborough United U21",
+      "tournament": "Premier League Cup",
+      "kickoff": 1793386800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:05:44.274Z",
+      "lastSeenAt": "2026-10-29T18:06:15.503Z",
+      "openProfitPct": 3.441,
+      "peakProfitPct": 3.441,
+      "profitPct": 0.849,
+      "finalProfitPct": null,
+      "alertedAt": "2026-10-29T17:20:57.094Z",
+      "alertedProfitPct": 2.075,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Away Win",
+          "stake": 18.01,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/Premier_League_Cup/Newcastle_United_U21_vs_Peterborough_United_U21/sr:match:73684974",
+          "openOdds": 5.6,
+          "lastOdds": 5.6,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 81.99,
+          "url": "https://boltbet.com.gh/sports/match/football/newcastle-united-u21-peterborough-united-u21-21194",
+          "openOdds": 1.22,
+          "lastOdds": 1.23,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73684974|Asian Handicap 0.5",
+      "eventId": "sr:match:73684974",
+      "home": "Newcastle United U21",
+      "away": "Peterborough United U21",
+      "tournament": "Premier League Cup",
+      "kickoff": 1793386800000,
+      "market": "Asian Handicap 0.5",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:05:44.274Z",
+      "lastSeenAt": "2026-10-29T17:05:44.274Z",
+      "openProfitPct": 0.175,
+      "peakProfitPct": 0.175,
+      "profitPct": 0.175,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home (0.5)",
+          "stake": 67.69,
+          "url": "https://boltbet.com.gh/sports/match/football/newcastle-united-u21-peterborough-united-u21-21194",
+          "openOdds": 1.48,
+          "lastOdds": 1.48,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away (-0.5)",
+          "stake": 32.31,
+          "url": "https://www.sportybet.com/gh/sport/football/Premier_League_Cup/Newcastle_United_U21_vs_Peterborough_United_U21/sr:match:73684974",
+          "openOdds": 3.1,
+          "lastOdds": 3.1,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73684654|Home Win vs Draw/Away (X2)",
+      "eventId": "sr:match:73684654",
+      "home": "Blackburn Rovers U21",
+      "away": "Southampton U21",
+      "tournament": "Premier League Cup",
+      "kickoff": 1793386800000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:51:06.145Z",
+      "lastSeenAt": "2026-10-29T17:51:06.145Z",
+      "openProfitPct": 1.493,
+      "peakProfitPct": 1.493,
+      "profitPct": 0.935,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home Win",
+          "stake": 25.23,
+          "url": "https://boltbet.com.gh/sports/match/football/blackburn-rovers-u21-southampton-u21-21017",
+          "openOdds": 4,
+          "lastOdds": 4,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Draw or Away (X2)",
+          "stake": 74.77,
+          "url": "https://www.sportybet.com/gh/sport/football/Premier_League_Cup/Blackburn_Rovers_U21_vs_Southampton_U21/sr:match:73684654",
+          "openOdds": 1.35,
+          "lastOdds": 1.35,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73684654|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:73684654",
+      "home": "Blackburn Rovers U21",
+      "away": "Southampton U21",
+      "tournament": "Premier League Cup",
+      "kickoff": 1793386800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:51:06.145Z",
+      "lastSeenAt": "2026-10-29T17:51:06.145Z",
+      "openProfitPct": 0.8,
+      "peakProfitPct": 0.8,
+      "profitPct": 0.8,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Away Win",
+          "stake": 52.23,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/Premier_League_Cup/Blackburn_Rovers_U21_vs_Southampton_U21/sr:match:73684654",
+          "openOdds": 1.93,
+          "lastOdds": 1.93,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 47.77,
+          "url": "https://boltbet.com.gh/sports/match/football/blackburn-rovers-u21-southampton-u21-21017",
+          "openOdds": 2.11,
+          "lastOdds": 2.11,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:73684654|Asian Handicap -0.5",
+      "eventId": "sr:match:73684654",
+      "home": "Blackburn Rovers U21",
+      "away": "Southampton U21",
+      "tournament": "Premier League Cup",
+      "kickoff": 1793386800000,
+      "market": "Asian Handicap -0.5",
+      "note": null,
+      "firstSeenAt": "2026-10-29T17:51:06.145Z",
+      "lastSeenAt": "2026-10-29T17:51:06.145Z",
+      "openProfitPct": 0.526,
+      "peakProfitPct": 0.526,
+      "profitPct": 0.526,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home (-0.5)",
+          "stake": 47.64,
+          "url": "https://boltbet.com.gh/sports/match/football/blackburn-rovers-u21-southampton-u21-21017",
+          "openOdds": 2.11,
+          "lastOdds": 2.11,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away (0.5)",
+          "stake": 52.36,
+          "url": "https://www.sportybet.com/gh/sport/football/Premier_League_Cup/Blackburn_Rovers_U21_vs_Southampton_U21/sr:match:73684654",
+          "openOdds": 1.92,
+          "lastOdds": 1.92,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72284170|Home Win vs Draw/Away (X2)",
+      "eventId": "sr:match:72284170",
+      "home": "Hapoel Afula FC",
+      "away": "Maccabi Ironi Kiryat Gat",
+      "tournament": "National League",
+      "kickoff": 1793365200000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T03:20:02.174Z",
+      "lastSeenAt": "2026-10-29T03:20:02.174Z",
+      "openProfitPct": 0.189,
+      "peakProfitPct": 0.189,
+      "profitPct": 0.189,
+      "finalProfitPct": 0.189,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home Win",
+          "stake": 38.53,
+          "url": "https://boltbet.com.gh/sports/match/football/hapoel-afula-fc-maccabi-kiryat-gat-fc-25504",
+          "openOdds": 2.6,
+          "lastOdds": 2.6,
+          "finalOdds": 2.6
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Draw or Away (X2)",
+          "stake": 61.47,
+          "url": "https://betboro.com.gh/pre-sports/1/region/84/competition/4776/fixture/94605635",
+          "openOdds": 1.63,
+          "lastOdds": 1.63,
+          "finalOdds": 1.63
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72284170|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:72284170",
+      "home": "Hapoel Afula FC",
+      "away": "Maccabi Ironi Kiryat Gat",
+      "tournament": "National League",
+      "kickoff": 1793365200000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T03:20:02.174Z",
+      "lastSeenAt": "2026-10-29T03:20:02.174Z",
+      "openProfitPct": 0.081,
+      "peakProfitPct": 0.081,
+      "profitPct": 0.081,
+      "finalProfitPct": 0.081,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Away Win",
+          "stake": 34.16,
+          "url": "https://betboro.com.gh/pre-sports/1/region/84/competition/4776/fixture/94605635",
+          "openOdds": 2.93,
+          "lastOdds": 2.93,
+          "finalOdds": 2.93
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 65.84,
+          "url": "https://boltbet.com.gh/sports/match/football/hapoel-afula-fc-maccabi-kiryat-gat-fc-25504",
+          "openOdds": 1.52,
+          "lastOdds": 1.52,
+          "finalOdds": 1.52
+        }
+      ]
+    },
+    {
+      "key": "sr:match:74167616|Asian Handicap 1.5",
+      "eventId": "sr:match:74167616",
+      "home": "Kmc FC",
+      "away": "Stand United FC",
+      "tournament": "Championship League",
+      "kickoff": 1793365200000,
+      "market": "Asian Handicap 1.5",
+      "note": null,
+      "firstSeenAt": "2026-10-30T12:06:42.354Z",
+      "lastSeenAt": "2026-10-30T12:06:42.354Z",
+      "openProfitPct": 0.494,
+      "peakProfitPct": 0.494,
+      "profitPct": 0.494,
+      "finalProfitPct": 0.494,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home (1.5)",
+          "stake": 54.32,
+          "url": "https://boltbet.com.gh/sports/match/football/kmc-fc-stand-united-fc-26671",
+          "openOdds": 1.85,
+          "lastOdds": 1.85,
+          "finalOdds": 1.85
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away (-1.5)",
+          "stake": 45.68,
+          "url": "https://www.sportybet.com/gh/sport/football/Championship_League/Kmc_FC_vs_Stand_United_FC/sr:match:74167616",
+          "openOdds": 2.2,
+          "lastOdds": 2.2,
+          "finalOdds": 2.2
+        }
+      ]
+    },
+    {
+      "key": "sr:match:75019694|Home Win vs Draw/Away (X2)",
+      "eventId": "sr:match:75019694",
+      "home": "Shabab AL Sahel",
+      "away": "Al Ahed FC",
+      "tournament": "Premier League",
+      "kickoff": 1793362500000,
+      "market": "Home Win vs Draw/Away (X2)",
+      "note": null,
+      "firstSeenAt": "2026-10-30T00:35:41.575Z",
+      "lastSeenAt": "2026-10-30T00:35:41.575Z",
+      "openProfitPct": 0.114,
+      "peakProfitPct": 0.114,
+      "profitPct": 0.114,
+      "finalProfitPct": 0.114,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "MSport",
+          "outcome": "Home Win",
+          "stake": 17.26,
+          "url": "https://www.msport.com/gh/web/sports/Soccer/Premier_League/Shabab_AL_Sahel_vs_Al_Ahed_FC/sr:match:75019694",
+          "openOdds": 5.8,
+          "lastOdds": 5.8,
+          "finalOdds": 5.8
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Draw or Away (X2)",
+          "stake": 82.74,
+          "url": "https://boltbet.com.gh/sports/match/football/shabab-al-sahel-al-ahed-sc-22249",
+          "openOdds": 1.21,
+          "lastOdds": 1.21,
+          "finalOdds": 1.21
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72575872|Away Win vs Home/Draw (1X)",
+      "eventId": "sr:match:72575872",
+      "home": "FC Banik Ostrava",
+      "away": "Karvina",
+      "tournament": "U19 1. Liga",
+      "kickoff": 1793350800000,
+      "market": "Away Win vs Home/Draw (1X)",
+      "note": null,
+      "firstSeenAt": "2026-10-29T23:36:24.662Z",
+      "lastSeenAt": "2026-10-29T23:51:13.292Z",
+      "openProfitPct": 2.716,
+      "peakProfitPct": 2.716,
+      "profitPct": 1.053,
+      "finalProfitPct": 1.053,
+      "alertedAt": "2026-10-29T23:36:24.662Z",
+      "alertedProfitPct": 2.716,
+      "legs": [
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Away Win",
+          "stake": 21.05,
+          "url": "https://betboro.com.gh/pre-sports/1/region/2536/competition/25409/fixture/94606102",
+          "openOdds": 4.8,
+          "lastOdds": 4.8,
+          "finalOdds": 4.8
+        },
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home or Draw (1X)",
+          "stake": 78.95,
+          "url": "https://boltbet.com.gh/sports/match/football/fc-banik-ostrava-u19-mfk-karvina-u19-22454",
+          "openOdds": 1.28,
+          "lastOdds": 1.28,
+          "finalOdds": 1.28
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72575872|Asian Handicap 1.5",
+      "eventId": "sr:match:72575872",
+      "home": "FC Banik Ostrava",
+      "away": "Karvina",
+      "tournament": "U19 1. Liga",
+      "kickoff": 1793350800000,
+      "market": "Asian Handicap 1.5",
+      "note": null,
+      "firstSeenAt": "2026-10-29T23:36:24.662Z",
+      "lastSeenAt": "2026-10-29T23:36:24.662Z",
+      "openProfitPct": 0.194,
+      "peakProfitPct": 0.194,
+      "profitPct": 0.194,
+      "finalProfitPct": 0.194,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BoltBet",
+          "outcome": "Home (1.5)",
+          "stake": 41.75,
+          "url": "https://boltbet.com.gh/sports/match/football/fc-banik-ostrava-u19-mfk-karvina-u19-22454",
+          "openOdds": 2.4,
+          "lastOdds": 2.4,
+          "finalOdds": 2.4
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Away (-1.5)",
+          "stake": 58.25,
+          "url": "https://www.sportybet.com/gh/sport/football/U19_1._Liga/FC_Banik_Ostrava_vs_Karvina/sr:match:72575872",
+          "openOdds": 1.72,
+          "lastOdds": 1.72,
+          "finalOdds": 1.72
+        }
+      ]
+    }
+  ]
+}

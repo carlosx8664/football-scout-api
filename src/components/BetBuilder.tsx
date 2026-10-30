@@ -10,6 +10,9 @@ import type {
 } from "../types";
 import "./BetBuilder.css";
 
+// AI features temporarily disabled (arbitrage-logic focus). Flip to true to re-enable.
+const AI_FEATURES_ENABLED = false;
+
 type Phase = "idle" | "scanning" | "done";
 
 const REASON_LABEL: Record<UnresolvedLeg["reason"], string> = {
@@ -347,6 +350,11 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     async (file: File | null | undefined) => {
       if (!file) return;
 
+      if (!AI_FEATURES_ENABLED) {
+        setError("AI bet-slip extraction is temporarily disabled.");
+        return;
+      }
+
       if (!file.type.startsWith("image/")) {
         setError("That file is not an image. Drop a PNG or JPEG screenshot of your betslip.");
         return;
@@ -458,6 +466,8 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
         </>
       )}
 
+      {AI_FEATURES_ENABLED ? (
+        <>
       <input
         ref={inputRef}
         className="bb-input"
@@ -519,6 +529,13 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
           </>
         )}
       </div>
+        </>
+      ) : (
+        <div className="bb-error" role="alert">
+          <strong>Bet Builder</strong>
+          <span>AI bet-slip extraction is temporarily disabled.</span>
+        </div>
+      )}
 
       {error && (
         <div className="bb-error" role="alert">

@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
-import { computePlan, openingBalanceFor, useBankroll } from "../lib/bankroll";
-import { startRecycleCooldown } from "../lib/cooldown";
+import {
+  computePlan,
+  hasSplit,
+  openingBalanceFor,
+  selectedBookies,
+  unallocatedFor,
+  useBankroll,
+} from "../lib/bankroll";
 import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 import {
   cashOutWeeklyProfits,
   createTransfer,
   fetchWallets,
-  formatGhs,
-  recycleCapital,
+  formatAmount,
   refreshWallets,
 } from "../lib/wallets";
 import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
 import CashFlowPanel from "./CashFlowPanel";
-import HistoryLedger from "./HistoryLedger";
-import MoneyGuide from "./MoneyGuide";
 import MugBetsPanel from "./MugBetsPanel";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
@@ -89,54 +92,90 @@ const WalletsDashboard = () => {
           ? "Cash out"
           : "Win";
     const result = settled.netProfit >= 0 ? "profit" : "loss";
-    setToast(`${label} settled: ${result} ${formatGhs(Math.abs(settled.netProfit))}.`);
+    setToast(`${label} settled: ${result} ${formatAmount(Math.abs(settled.netProfit))}.`);
   }, []);
 
-  /** Deposit/withdrawal buttons in Rebalancing Hints. Rejects so the panel can show why. */
+  /**
+   * The plan drives every wallet figure: the per-bookie split, the deposits it implies and the
+   * Momo leftover. Recomputed on each render, so changing the bankroll or ticking a bookie
+   * reprices My Wallets, Rebalancing Hints, Cash Flow and Momo together.
+   */
+  const plan = (() => {
+    const bookies = selectedBookies(settings);
+    const splitReady = hasSplit(settings);
+    const perWallet = splitReady ? computePlan(settings, bookies.length).perWallet : 0;
+    const leftover = splitReady
+      ? unallocatedFor(settings.bankroll, perWallet, bookies.length)
+      : 0;
+    return {
+      count: bookies.length,
+      splitReady,
+      perWallet,
+      deposits: perWallet * bookies.length,
+      // Momo: the plan leftover plus the cash that has actually moved in and out of the bookies.
+      momo: (payload?.cashReserve ?? 0) + leftover,
+    };
+  })();
+  const momoBalance = plan.momo;
+
+  /** Deposit/withdrawal buttons in My Wallets. Rejects so the panel can show why. */
   const handleTransfer = useCallback(
     async (walletId: string, kind: "deposit" | "withdrawal", amount: number) => {
-      const next = await createTransfer(walletId, kind, amount, enabled);
+      const next = await createTransfer(walletId, kind, amount, enabled, momoBalance);
       applyPayload(next);
+      setRefreshToken((current) => current + 1);
       const bookie = next.wallets.find((wallet) => wallet.id === walletId)?.name ?? "wallet";
       setToast(
-        `${kind === "deposit" ? "Topped up" : "Withdrew"} ${formatGhs(amount)} ` +
+        `${kind === "deposit" ? "Topped up" : "Withdrew"} ${formatAmount(amount)} ` +
           `${kind === "deposit" ? "to" : "from"} ${bookie}.`,
       );
     },
-    [applyPayload, enabled],
+    [applyPayload, enabled, momoBalance],
   );
 
-  /** Start afresh: wipe this mode's ledger and re-open every wallet at one balance. */
+  /** Start afresh: wipe this mode's ledger and re-open every selected wallet at one balance. */
   const handleStartAfresh = useCallback(
     async (openingBalance: number) => {
-      // The bankroll lets the server park the leftover as unallocated cash.
-      const next = await refreshWallets(enabled, openingBalance, "mode", settings.bankroll);
+      // Only the selected bookies are funded; everything else in the ledger is zeroed.
+      const next = await refreshWallets(
+        enabled,
+        openingBalance,
+        "mode",
+        selectedBookies(settings),
+      );
       applyPayload(next);
       setRefreshToken((current) => current + 1);
-      setToast(`Fresh start: wallets reset to ${formatGhs(openingBalance)} each.`);
+      setToast(
+        `Fresh start: ${selectedBookies(settings).length} selected wallets reset to ${formatAmount(openingBalance)} each.`,
+      );
     },
-    [applyPayload, enabled, settings.bankroll],
+    [applyPayload, enabled, settings],
   );
 
   /** Per-bookie base the weekly sweep leaves behind: the plan's rounded opening deposit. */
   const baseTarget = (() => {
-    const wallets = payload?.wallets.length ?? 0;
-    if (wallets === 0) return 0;
-    return openingBalanceFor(computePlan(settings, wallets).perWallet);
+    if (!hasSplit(settings)) return 0;
+    const bookies = selectedBookies(settings).length;
+    return openingBalanceFor(computePlan(settings, bookies).perWallet);
   })();
 
   /** Withdraw weekly profits from every bookie into the mobile-money wallet. */
   const handleCashOut = useCallback(async () => {
+    if (!hasSplit(settings)) {
+      setToast("Select at least two bookies in My Wallets before cashing out.");
+      return;
+    }
+
     const next = await cashOutWeeklyProfits(enabled, baseTarget);
     applyPayload(next);
     setRefreshToken((current) => current + 1);
 
     if (next.cashOut.total > 0) {
-      setToast(`Cashed out ${formatGhs(next.cashOut.total)} from ${next.cashOut.bookies.length} bookies.`);
+      setToast(`Cashed out ${formatAmount(next.cashOut.total)} from ${next.cashOut.bookies.length} bookies.`);
     } else {
-      setToast(`No profits to withdraw above ${formatGhs(baseTarget)} per bookie.`);
+      setToast(`No profits to withdraw above ${formatAmount(baseTarget)} per bookie.`);
     }
-  }, [applyPayload, baseTarget, enabled]);
+  }, [applyPayload, baseTarget, enabled, settings]);
 
   /** Mug-bet writes return the fresh wallet payload, so balances repaint immediately. */
   const handleMugBetChange = useCallback(
@@ -147,26 +186,11 @@ const WalletsDashboard = () => {
     [applyPayload],
   );
 
-  /** Merchant-MoMo capital move; starts the 15-minute cool-down before the next arb. */
-  const handleRecycle = useCallback(
-    async (fromWalletId: string, toWalletId: string, amount: number) => {
-      const next = await recycleCapital(enabled, fromWalletId, toWalletId, amount);
-      applyPayload(next);
-      setRefreshToken((current) => current + 1);
-      startRecycleCooldown();
-      setToast(
-        `Recycled ${formatGhs(amount)}: ${next.recycle.from} → ${next.recycle.to}. ` +
-          "Wait 15 minutes before the next arb.",
-      );
-    },
-    [applyPayload, enabled],
-  );
-
   const handleCancelled = useCallback((cancelled: CancelBetResult) => {
     // Refunded stakes change balances, liquidity and the rebalancing split alike.
     setRefreshToken((current) => current + 1);
     setToast(
-      `Bet removed: ${formatGhs(cancelled.totalRefunded)} refunded to ` +
+      `Bet removed: ${formatAmount(cancelled.totalRefunded)} refunded to ` +
         `${cancelled.refunded.map((entry) => entry.bookie).join(" and ")}.`,
     );
   }, []);
@@ -177,6 +201,7 @@ const WalletsDashboard = () => {
         <BankrollPlan
           payload={payload}
           simulation={enabled}
+          momo={momoBalance}
           onStartAfresh={handleStartAfresh}
         />
         <WalletsPanel
@@ -184,18 +209,11 @@ const WalletsDashboard = () => {
           error={error}
           loading={loading}
           simulation={enabled}
-          onPayload={applyPayload}
+          momo={momoBalance}
+          onTransfer={handleTransfer}
           onError={reportError}
         />
-        <RebalancingHints
-          payload={payload}
-          error={error}
-          loading={loading}
-          simulation={enabled}
-          onTransfer={handleTransfer}
-          onRecycle={handleRecycle}
-        />
-        <HistoryLedger simulation={enabled} refreshToken={refreshToken} />
+        <RebalancingHints payload={payload} error={error} loading={loading} />
       </div>
       <aside className="right-sidebar wallets-aside">
         <ActiveBetsLedger
@@ -205,12 +223,12 @@ const WalletsDashboard = () => {
           onSettled={handleSettled}
           onCancelled={handleCancelled}
         />
-        <MoneyGuide wallets={payload?.wallets ?? []} simulation={enabled} />
         <CashFlowPanel
           simulation={enabled}
           refreshToken={refreshToken}
           summary={payload?.cashFlow ?? null}
-          cashReserve={payload?.cashReserve ?? 0}
+          planDeposits={plan.deposits}
+          planCount={plan.count}
           baseTarget={baseTarget}
           onCashOut={handleCashOut}
         />
