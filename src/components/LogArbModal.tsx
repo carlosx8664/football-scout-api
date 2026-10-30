@@ -98,8 +98,8 @@ const LogArbModal = ({
       await logArb({
         eventName: `${arb.home} vs ${arb.away} — ${arb.market || "arbitrage"}`,
         legs: [
-          { name: legs[0].bookmaker, odds: legs[0].odds, stake: numbers[0] },
-          { name: legs[1].bookmaker, odds: legs[1].odds, stake: numbers[1] },
+          { name: legs[0].bookmaker, selection: legs[0].outcome, odds: legs[0].odds, stake: numbers[0] },
+          { name: legs[1].bookmaker, selection: legs[1].outcome, odds: legs[1].odds, stake: numbers[1] },
         ],
         simulation,
         kickoff: Number.isFinite(arb.kickoff) ? arb.kickoff : undefined,

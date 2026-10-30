@@ -22,11 +22,13 @@ function toActiveBet(row) {
     isFreeBet: Number(row.is_free_bet) === 1,
     legA: {
       name: row.bookie_a_name,
+      selection: row.bookie_a_selection ?? null,
       odds: round2(Number(row.bookie_a_odds)),
       stake: round2(Number(row.bookie_a_stake)),
     },
     legB: {
       name: row.bookie_b_name,
+      selection: row.bookie_b_selection ?? null,
       odds: round2(Number(row.bookie_b_odds)),
       stake: round2(Number(row.bookie_b_stake)),
     },
@@ -49,8 +51,8 @@ export async function onRequestGet({ request, env }) {
     const { results } = await db
       .prepare(
         `SELECT id, event_name, kind, is_free_bet,
-                bookie_a_name, bookie_a_odds, bookie_a_stake,
-                bookie_b_name, bookie_b_odds, bookie_b_stake,
+                bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
+                bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
                 profit_percent, is_simulation, created_at, kickoff
            FROM active_bets
           WHERE is_simulation = ?
@@ -106,10 +108,14 @@ export async function onRequestPost({ request, env }) {
   const legs = [];
   for (const raw of rawLegs) {
     const name = typeof raw?.name === "string" ? raw.name.trim() : "";
+    const selection = typeof raw?.selection === "string" ? raw.selection.trim() : "";
     const odds = Number(raw?.odds);
     const stake = Number(raw?.stake);
 
     if (!name) return json({ error: "Every leg needs a bookmaker name." }, 400);
+    if (selection.length > 200) {
+      return json({ error: `${name}: selection must be at most 200 characters.` }, 400);
+    }
     if (!Number.isFinite(odds) || odds <= 1) {
       return json({ error: `${name}: odds must be greater than 1.` }, 400);
     }
@@ -119,7 +125,7 @@ export async function onRequestPost({ request, env }) {
       return json({ error: `${name}: stake must be between 0 and ${MAX_STAKE}.` }, 400);
     }
 
-    legs.push({ name, odds: round2(odds), stake: round2(stake) });
+    legs.push({ name, selection: selection || null, odds: round2(odds), stake: round2(stake) });
   }
 
   const [legA, legB] = legs;
@@ -140,28 +146,34 @@ export async function onRequestPost({ request, env }) {
   const kickoffValue = Number.isFinite(kickoff) && kickoff > 0 ? Math.round(kickoff) : null;
 
   try {
-    // Camouflage rule: one muggy acca a day before any arb. Both the open ledger and today's
-    // settled history count, so settling the mug bet early does not re-block the day.
+    // Camouflage rule: every bookie used by the arb needs its own muggy acca today, so both sides
+    // of the bet look human. Both the open ledger and today's settled history count, so settling
+    // the mug bet early does not re-block the day.
     if (kind === "arb") {
-      const mug = await db
+      const { results } = await db
         .prepare(
-          `SELECT 1 AS found FROM active_bets
+          `SELECT DISTINCT lower(bookie_a_name) AS bookie FROM active_bets
             WHERE is_simulation = ? AND kind = 'muggy' AND date(created_at) = date('now')
-           UNION ALL
-           SELECT 1 AS found FROM history
+           UNION
+           SELECT DISTINCT lower(bookie_a_name) AS bookie FROM history
             WHERE is_simulation = ? AND kind = 'muggy'
-              AND settlement_type <> 'cancelled' AND date(settled_at) = date('now')
-           LIMIT 1`,
+              AND settlement_type <> 'cancelled' AND date(settled_at) = date('now')`,
         )
         .bind(modeValue(simulation), modeValue(simulation))
-        .first();
+        .all();
 
-      if (!mug) {
+      const mugged = new Set((results ?? []).map((row) => String(row.bookie)));
+      const missing = [...new Set([legA.name, legB.name])].filter(
+        (name) => !mugged.has(name.toLowerCase()),
+      );
+
+      if (missing.length > 0) {
         return json(
           {
             error:
-              "Log a muggy acca first: one mug bet a day is required before placing arbs. " +
-              "Use Mug Bets → Muggy Acca, then come back.",
+              `Log a muggy acca for ${missing.join(" and ")} today before arbing with ` +
+              `${missing.length === 1 ? "it" : "them"}: every bookie in an arb needs one mug bet ` +
+              "a day. Use Mug Bets → Muggy Acca, then come back.",
           },
           409,
         );
@@ -227,10 +239,10 @@ export async function onRequestPost({ request, env }) {
         .prepare(
           `INSERT INTO active_bets (
              id, event_name, kind, is_free_bet,
-             bookie_a_name, bookie_a_odds, bookie_a_stake,
-             bookie_b_name, bookie_b_odds, bookie_b_stake,
+             bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
+             bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
              profit_percent, is_simulation, kickoff
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -238,9 +250,11 @@ export async function onRequestPost({ request, env }) {
           kind,
           freeBet ? 1 : 0,
           legA.name,
+          legA.selection,
           legA.odds,
           legA.stake,
           legB.name,
+          legB.selection,
           legB.odds,
           legB.stake,
           profitPercent,
@@ -260,8 +274,8 @@ export async function onRequestPost({ request, env }) {
         kickoff: kickoffValue,
         simulation,
         legs: [
-          { name: legA.name, odds: legA.odds, stake: legA.stake },
-          { name: legB.name, odds: legB.odds, stake: legB.stake },
+          { name: legA.name, selection: legA.selection, odds: legA.odds, stake: legA.stake },
+          { name: legB.name, selection: legB.selection, odds: legB.odds, stake: legB.stake },
         ],
       },
       201,

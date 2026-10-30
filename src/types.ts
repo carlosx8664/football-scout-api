@@ -284,6 +284,8 @@ export interface RecycleResult extends WalletsPayload {
 
 export interface LogArbLegInput {
   name: string;
+  /** Which side this bookie holds, e.g. "Over 6.5" or "Under 6.5". */
+  selection?: string | null;
   odds: number;
   stake: number;
 }
@@ -319,6 +321,8 @@ export interface LogArbResult {
 
 export interface ActiveBetLegRecord {
   name: string;
+  /** Which side this bookie holds, e.g. "Over 6.5"; null for rows logged before it was stored. */
+  selection: string | null;
   odds: number;
   stake: number;
 }

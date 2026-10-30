@@ -167,6 +167,9 @@ const ActiveBetsLedger = ({
                         <li key={`${leg.name}-${index}`}>
                           <span className="active-bet-bookie">
                             {leg.name}
+                            {leg.selection && (
+                              <span className="active-bet-selection">({leg.selection})</span>
+                            )}
                             {role && <span className={`active-bet-role ${bet.kind}`}>{role}</span>}
                           </span>
                           <span className="active-bet-leg-meta">

@@ -135,6 +135,12 @@
   font-size: 0.74rem;
 }
 .active-bet-bookie { font-weight: 700; }
+.active-bet-selection {
+  margin-left: 5px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+}
 .active-bet-leg-meta { color: var(--color-neutral-6); white-space: nowrap; }
 
 .active-bet-footer {

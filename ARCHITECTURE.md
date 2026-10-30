@@ -133,7 +133,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `wallets/cash-out.js` | `POST` — weekly profit sweep to base target (bypasses per-move caps) |
 | `wallets/recycle.js` | `POST` — move capital bookie → bookie (one withdrawal + one deposit, atomic) |
 | `transfers.js` | `GET` — cash-flow ledger + totals |
-| `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; **arbs are refused until a muggy acca is logged today**) |
+| `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; **an arb is refused until both of its bookies have a muggy acca logged today**) |
 | `active-bets/[id].js` | `DELETE` — cancel + refund both stakes + zero-profit `cancelled` history row |
 | `active-bets/[id]/settle.js` | `POST` — win / void / cash-out settlement with credits batch |
 | `history.js` | `GET` — settled arbs by date range + weekly outlay |
@@ -272,3 +272,11 @@ a fine-grained PAT.
 [src/components/WalletsDashboard.tsx]()
 (page wiring + single fetch), and
 [scripts/find-arbs.js]() (the whole engine).
+
+---
+
+## 9. Mug-Bet Ledger, Free-Bet Hedging and the Daily Mug Gate
+
+- **New feature.** Muggy accas and free bets now live in `active_bets` (`kind` = `arb` | `muggy` | `free`, plus `is_free_bet`) instead of the separate `mug_bets` table, so they appear in Active Bets with the same **Remove** / **Settle** actions as arbs and their stakes flow through liquidity, Momo and profit/loss. A free bet's stake is fictitious: only the **hedge stake** is debited from the hedge bookie, the hedge auto-calculates as `(free stake x free odds) / hedge odds` (overridable), and settlement credits `stake x odds` to the winning bookie while `total_stake` counts only the hedge. A daily camouflage gate blocks any arb unless **every bookie in both legs** has had a muggy acca logged today (open ledger or today's settled history), with an error naming the missing bookies.
+- **Files created/modified.** Created: `migrations/0007_active_bets_kind.sql`, `migrations/0008_history_kind.sql`, `migrations/0009_free_bet_flag.sql`, `components/WalletsHistory.tsx` (+ CSS). Modified: `functions/api/active-bets.js` (kind/free-bet debits + mug gate), `functions/api/active-bets/[id].js` and `[id]/settle.js` (free-bet refunds, `total_stake`, `history.kind`/`is_free_bet`), `src/components/MugBetsPanel.tsx` (+ CSS: tabbed entry, auto hedge, Possible Win / Expected Profit), `ActiveBetsLedger.tsx`, `SettleBetModal.tsx`, `BankrollPlan.tsx` (Momo card, floor-to-100 split, Daily stat), `WalletsPanel.tsx`, `RebalancingHints.tsx` (target-relative gauges), `CashFlowPanel.tsx`, `WalletsDashboard.tsx`, `Header.tsx`, `App.tsx`, `lib/bankroll.ts`, `lib/wallets.ts`, `types.ts`, `ARCHITECTURE.md`/`README.md`.
+- **How it connects.** `GET /api/wallets` still owns cash state and `shared/wallets.js` feeds the Momo reserve; mug/free writes go through `POST /api/active-bets`, which debits the correct wallets in one D1 batch and repaints the dashboard from the returned wallets payload. Settlement writes a `history` row carrying `kind` / `is_free_bet` / `total_stake`, which both History and the next day's mug gate read, so the camouflage rule is enforced end-to-end from the UI down to D1.
