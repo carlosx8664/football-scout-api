@@ -35,7 +35,7 @@ function toActiveBet(row) {
     profitPercent: round2(Number(row.profit_percent)),
     createdAt: row.created_at ?? null,
     /** Epoch ms from the arb feed; null for bets logged before kickoff was stored. */
-    kickoff: Number.isFinite(Number(row.kickoff)) ? Number(row.kickoff) : null,
+    kickoff: Number(row.kickoff) > 0 ? Number(row.kickoff) : null,
     isSimulation: row.is_simulation === 1,
   };
 }

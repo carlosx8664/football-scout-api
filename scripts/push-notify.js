@@ -28,22 +28,41 @@ const MAX_PUSH_PER_RUN = Math.max(1, Number(process.env.PUSH_MAX_PER_RUN ?? '5')
 
 const env = (name) => String(process.env[name] ?? '').trim();
 
+/** Every one of these must be set before a single push can be delivered. */
+const PUSH_REQUIRED_ENV = [
+  'VAPID_PUBLIC_KEY',
+  'VAPID_PRIVATE_KEY',
+  'VAPID_SUBJECT',
+  'CF_ACCOUNT_ID',
+  'CF_KV_NAMESPACE_ID',
+  'CF_API_TOKEN',
+];
+
+/** web-push only accepts `mailto:` or an absolute https URL, so accept a bare domain/address. */
+function vapidSubject(raw) {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  if (/^(mailto:|https?:\/\/)/i.test(value)) return value;
+  return value.includes('@') ? `mailto:${value}` : `https://${value}`;
+}
+
+export function missingPushEnv() {
+  return PUSH_REQUIRED_ENV.filter((name) => !env(name));
+}
+
 export function pushConfigured() {
-  return Boolean(
-    env('VAPID_PUBLIC_KEY') &&
-      env('VAPID_PRIVATE_KEY') &&
-      env('VAPID_SUBJECT') &&
-      env('CF_ACCOUNT_ID') &&
-      env('CF_KV_NAMESPACE_ID') &&
-      env('CF_API_TOKEN'),
-  );
+  return missingPushEnv().length === 0;
 }
 
 let vapidReady = false;
 
 function configureVapid() {
   if (vapidReady) return;
-  webpush.setVapidDetails(env('VAPID_SUBJECT'), env('VAPID_PUBLIC_KEY'), env('VAPID_PRIVATE_KEY'));
+  webpush.setVapidDetails(
+    vapidSubject(env('VAPID_SUBJECT')),
+    env('VAPID_PUBLIC_KEY'),
+    env('VAPID_PRIVATE_KEY'),
+  );
   // VAPID signing is per-process, so this only needs to happen once per run.
   vapidReady = true;
 }
@@ -155,13 +174,20 @@ export async function sendPushAlerts(arbs, options = {}) {
 
   const result = { delivered: 0, pruned: 0, devices: 0, deliveredArbs: new Set() };
 
-  if (!pushConfigured()) {
-    log('🔕 Push: VAPID or KV credentials missing; skipping web push.');
+  const missing = missingPushEnv();
+  if (missing.length > 0) {
+    log(`🔕 Push: skipping web push; unset: ${missing.join(', ')}.`);
     return result;
   }
   if (!arbs || arbs.length === 0) return result;
 
-  configureVapid();
+  try {
+    configureVapid();
+  } catch (error) {
+    // A malformed keypair or subject fails here, not on delivery: say so instead of going quiet.
+    log(`⚠️  Push: VAPID setup rejected (${error.message}); skipping web push.`);
+    return result;
+  }
 
   let subscriptions;
   try {

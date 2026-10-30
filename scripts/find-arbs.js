@@ -62,6 +62,11 @@ const num = (x) => {
 // ============================================================================
 const ALERT_DEDUP_MS = 15 * 60_000;
 const ALERT_PROFIT_DELTA = 0.5;
+/**
+ * Profit gain (in points) that overrides the dedupe window entirely: 5% -> 8% is a different,
+ * far more valuable opportunity than the one already sent and must not be suppressed.
+ */
+const ALERT_HIGH_VALUE_JUMP = 2;
 /** Phone pings are only for arbs worth acting on; anything thinner is logged, not sent. */
 const MIN_ALERT_PROFIT = Number(opt('alert-min', '1.5'));
 
@@ -157,7 +162,7 @@ const money = (value, decimals) =>
     maximumFractionDigits: decimals,
   });
 
-function formatAlert(arb) {
+function formatAlert(arb, upgradedFrom = null) {
   const { hedge, sharp } = executionOrder(arb);
   const { grade, hint } = gradeArb(arb);
   const total =
@@ -193,6 +198,10 @@ function formatAlert(arb) {
   const profitIfWins = (stake, odds) => stake * odds - exampleTotal;
 
   const lines = [
+    upgradedFrom === null
+      ? null
+      : `🔥 URGENT: profit is now ${arb.profitPct.toFixed(2)}% ` +
+        `(was ${Number(upgradedFrom).toFixed(2)}% when last sent) — act on this price.`,
     `🚨 Found Arb: ${arb.home} vs ${arb.away} (${arb.profitPct.toFixed(2)}%)`,
     `League: ${arb.tournament ?? 'Unknown'}`,
     '',
@@ -211,7 +220,7 @@ function formatAlert(arb) {
       `(profit GHS ${money(profitIfWins(sharpStake, sharpOdds), 2)})`,
     '',
     `⏱️ Kickoff: ${formatKickoff(arb.kickoff)}`,
-  ];
+  ].filter((line) => line !== null);
 
   // Only a single, actionable note rides along: obscure-market review first, then caution.
   const notes = [];
@@ -225,8 +234,24 @@ function formatAlert(arb) {
   return lines.join('\n');
 }
 
+/**
+ * The profit already alerted when this arb has since become materially better, or null when it
+ * has not. This is the high-value bypass: it ignores how recently the last alert went out.
+ */
+function highValueJump(arb, previousByKey) {
+  const prior = previousByKey.get(historyKey(arb));
+  if (!prior?.alertedAt) return null;
+
+  const lastProfit = Number(prior.alertedProfitPct);
+  if (!Number.isFinite(lastProfit)) return null;
+
+  return arb.profitPct - lastProfit >= ALERT_HIGH_VALUE_JUMP ? lastProfit : null;
+}
+
 /** True unless this event+market was already alerted recently with effectively the same profit. */
 function shouldAlert(arb, previousByKey, nowMs) {
+  if (highValueJump(arb, previousByKey) !== null) return true;
+
   const prior = previousByKey.get(historyKey(arb));
   if (!prior?.alertedAt) return true;
 
@@ -259,12 +284,20 @@ function pendingAlerts(arbs, previous = [], nowMs = Date.now()) {
   const previousByKey = new Map(previous.map((row) => [row.key ?? historyKey(row), row]));
   const pending = alertable.filter((arb) => shouldAlert(arb, previousByKey, nowMs));
 
-  return { alertable, pending, suppressed: arbs.length - alertable.length };
+  // arbs that only made it through because of the high-value bypass, mapped to the profit we
+  // alerted last time, so the channel can mark the message as urgent.
+  const upgrades = new Map();
+  for (const arb of pending) {
+    const previousProfit = highValueJump(arb, previousByKey);
+    if (previousProfit !== null) upgrades.set(arb, previousProfit);
+  }
+
+  return { alertable, pending, upgrades, suppressed: arbs.length - alertable.length };
 }
 
 async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
   // Low-value / flagged arbs stay in arbs.json but never reach the phone.
-  const { pending, suppressed } = pendingAlerts(arbs, previous, nowMs);
+  const { pending, upgrades, suppressed } = pendingAlerts(arbs, previous, nowMs);
   if (suppressed > 0) {
     console.log(
       `🔕 Telegram: ${suppressed} low-confidence arb(s) suppressed ` +
@@ -283,13 +316,22 @@ async function sendTelegramAlert(arbs, previous = [], nowMs = Date.now()) {
 
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
   for (const arb of pending) {
+    // Set when this arb is a far better version of one already alerted: it bypassed dedupe.
+    const upgradedFrom = upgrades.get(arb) ?? null;
+    if (upgradedFrom !== null) {
+      console.log(
+        `🔥 Telegram: high-value upgrade on ${arb.home} vs ${arb.away} ` +
+          `(${Number(upgradedFrom).toFixed(2)}% → ${arb.profitPct}%); bypassing dedupe.`,
+      );
+    }
+
     try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: formatAlert(arb),
+          text: formatAlert(arb, upgradedFrom),
           disable_web_page_preview: true,
         }),
       });

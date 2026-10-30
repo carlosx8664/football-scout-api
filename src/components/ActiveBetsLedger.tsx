@@ -139,7 +139,7 @@ const ActiveBetsLedger = ({
                   )}
                 </div>
 
-                {bet.kickoff != null ? (
+                {bet.kind === "arb" && bet.kickoff != null && bet.kickoff > 0 ? (
                   <span className="active-bet-when">
                     Kickoff {new Date(bet.kickoff).toLocaleString("en-GB", {
                       day: "2-digit",

@@ -424,6 +424,9 @@ Behaviour worth knowing:
 - **Endpoints the push service reports as gone (404/410) are deleted from KV** on the spot.
 - **Telegram and push are independent**: either can record the alert for de-duplication, and a
   failure in one never silences the other.
+- **A materially better re-sighting is never de-duplicated**: if an arb already alerted comes back
+  at least 2 profit points higher (5% → 8%), the alert goes out again immediately, prefixed
+  `🔥 URGENT:` on Telegram with the old and new percentage.
 - Rotating the VAPID pair invalidates every existing subscription — users must press
   **Allow alerts** again.
 
