@@ -45,12 +45,27 @@ function planSettlement(bet, outcome, body) {
   const totalStake = round2(stakeOf("a") + stakeOf("b"));
   const credits = [];
 
+  if (outcome === "loss") {
+    // Mug bets: the acca lost, so nothing is credited back — only the history row is written.
+    return {
+      credits: [],
+      winningBookie: null,
+      netProfit: round2(-totalStake),
+      settlementType: "loss",
+    };
+  }
+
   if (outcome === "win") {
     const side = body?.winner;
     if (side !== "a" && side !== "b") return { error: '`winner` must be "a" or "b".' };
 
     const won = legOf(bet, side);
-    const payout = round2(won.stake * won.odds);
+    // A muggy acca's return is whatever the bookie actually paid, not stake × odds.
+    const manual = body?.payoutAmount === undefined ? null : amountFrom(body.payoutAmount);
+    if (body?.payoutAmount !== undefined && manual === null) {
+      return { error: "`payoutAmount` must be a valid amount." };
+    }
+    const payout = manual === null ? round2(won.stake * won.odds) : manual;
     return {
       credits: [{ bookie: won.bookie, amount: payout }],
       winningBookie: won.bookie,
@@ -137,14 +152,18 @@ function planSettlement(bet, outcome, body) {
     return { error: '`remaining` must be "won", "lost" or "cashed".' };
   }
 
-  return { error: '`outcome` must be "win", "void" or "cashout".' };
+  return { error: '`outcome` must be "win", "loss", "void" or "cashout".' };
 }
 
 /**
  * POST /api/active-bets/:id/settle
  *
- * Body: `{ outcome: "win" | "void" | "cashout", … , simulation?: boolean }`.
- *   - win:     `{ winner: "a" | "b" }` → pays the winning bookie `stake × odds`.
+ * Body: `{ outcome: "win" | "loss" | "void" | "cashout", … , simulation?: boolean }`.
+ *   - win:     `{ winner: "a" | "b", payoutAmount?: number }` → pays the winning bookie
+ *              `stake × odds`, or `payoutAmount` when given (muggy accas, where the return is
+ *              whatever the bookie actually paid).
+ *   - loss:    `{}` → nothing is credited; the stakes are already gone, so only the `history`
+ *              row records the loss.
  *   - void:    `{ voided: "a" | "b" | "both", remaining?: "won" | "lost" | "cashed",
  *                 cashOutAmount?: number }` → refunds the cancelled stake(s), then applies what
  *                 happened to the live leg.
@@ -190,21 +209,24 @@ export async function onRequestPost({ request, env, params }) {
 
     // Every credited bookie needs a wallet in this mode, otherwise the move would silently no-op.
     const bookies = [...new Set(plan.credits.map((credit) => credit.bookie))];
-    const wallets = await db
-      .prepare(
-        `SELECT bookie_name FROM wallets
-          WHERE is_simulation = ? AND bookie_name IN (${bookies.map(() => "?").join(", ")})`,
-      )
-      .bind(mode, ...bookies)
-      .all();
 
-    const found = new Set((wallets.results ?? []).map((row) => row.bookie_name));
-    const missing = bookies.find((bookie) => !found.has(bookie));
-    if (missing) {
-      return json(
-        { error: `Missing ${simulation ? "simulation" : "real"} wallet for ${missing}.` },
-        409,
-      );
+    if (bookies.length > 0) {
+      const wallets = await db
+        .prepare(
+          `SELECT bookie_name FROM wallets
+          WHERE is_simulation = ? AND bookie_name IN (${bookies.map(() => "?").join(", ")})`,
+        )
+        .bind(mode, ...bookies)
+        .all();
+
+      const found = new Set((wallets.results ?? []).map((row) => row.bookie_name));
+      const missing = bookies.find((bookie) => !found.has(bookie));
+      if (missing) {
+        return json(
+          { error: `Missing ${simulation ? "simulation" : "real"} wallet for ${missing}.` },
+          409,
+        );
+      }
     }
 
     const historyId = crypto.randomUUID();

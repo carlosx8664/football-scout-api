@@ -349,14 +349,16 @@ export interface ActiveBetsPayload {
   activeBets: ActiveBetRecord[];
 }
 
-/** How a bet left the active ledger. */
-export type SettlementOutcome = "win" | "void" | "cashout" | "cancelled";
+/** How a bet left the active ledger. `loss` is a mug bet that simply lost — no money returns. */
+export type SettlementOutcome = "win" | "loss" | "void" | "cashout" | "cancelled";
 
 export interface SettleBetRequest {
   simulation: boolean;
   outcome: SettlementOutcome;
   /** Normal win: the winning leg. Cash out: the bookie you cashed out on. */
   winner?: "a" | "b";
+  /** Win only: the amount the bookie paid back, used by muggy accas instead of stake × odds. */
+  payoutAmount?: number;
   /** Void only: which leg(s) were cancelled. */
   voided?: "a" | "b" | "both";
   /** Void with one leg cancelled: what happened to the live leg. */

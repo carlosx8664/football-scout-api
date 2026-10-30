@@ -206,7 +206,9 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                               ? "Void"
                               : entry.settlementType === "cashout"
                                 ? "Cash Out"
-                                : "Cancelled"}
+                                : entry.settlementType === "loss"
+                                  ? "Lost"
+                                  : "Cancelled"}
                           </span>
                         )}
                       </td>
@@ -229,7 +231,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                         className={`history-profit${
                           entry.settlementType === "cancelled"
                             ? " muted"
-                            : entry.settlementType !== "win"
+                            : entry.settlementType !== "win" && entry.settlementType !== "loss"
                               ? " adhoc"
                               : ""
                         }${entry.netProfit < 0 ? " negative" : ""}`}

@@ -53,6 +53,9 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
   const [voided, setVoided] = useState<VoidedLegs | null>(null);
   const [remaining, setRemaining] = useState<RemainingOutcome | null>(null);
   const [cashOutAmount, setCashOutAmount] = useState("");
+  /** Muggy accas settle on a single question: did it win, and how much came back? */
+  const [muggyWon, setMuggyWon] = useState<boolean | null>(null);
+  const [payoutAmount, setPayoutAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +83,14 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
   const amountValid =
     cashOutAmount.trim() !== "" && Number.isFinite(amountValue) && amountValue >= 0;
 
+  /** A muggy acca funds one leg only; that bookie is the one that pays out or keeps the stake. */
+  const isMuggy = bet.kind === "muggy";
+  const fundedSide: "a" | "b" = bet.legA.stake > 0 ? "a" : "b";
+  const fundedLeg = legOf(fundedSide);
+  const payoutValue = Number(payoutAmount);
+  const payoutValid =
+    payoutAmount.trim() !== "" && Number.isFinite(payoutValue) && payoutValue >= 0;
+
   const needsAmount =
     (outcome === "cashout" && winner !== null) ||
     (outcome === "void" && voided !== null && voided !== "both" && remaining === "cashed");
@@ -87,6 +98,20 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
   const liveLeg = voided === "a" ? bet.legB : bet.legA;
 
   function buildPlan(): Plan | null {
+    if (isMuggy) {
+      if (muggyWon === null) return null;
+      // A loss credits nothing: the stake left the wallet at placement.
+      if (!muggyWon) {
+        return { request: { simulation, outcome: "loss" }, credits: [], net: -totalStake };
+      }
+      if (!payoutValid) return null;
+      return {
+        request: { simulation, outcome: "win", winner: fundedSide, payoutAmount: payoutValue },
+        credits: [{ bookie: fundedLeg.name, amount: payoutValue, kind: "Payout" }],
+        net: payoutValue - totalStake,
+      };
+    }
+
     if (outcome === "win" && winner) {
       const leg = legOf(winner);
       const payout = leg.stake * leg.odds;
@@ -163,6 +188,7 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
   }
 
   const plan = buildPlan();
+  const canReset = isMuggy ? muggyWon !== null : outcome !== null;
 
   const reset = () => {
     setOutcome(null);
@@ -170,6 +196,8 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
     setVoided(null);
     setRemaining(null);
     setCashOutAmount("");
+    setMuggyWon(null);
+    setPayoutAmount("");
     setError(null);
   };
 
@@ -208,7 +236,40 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
         <p className="settle-event">{bet.eventName}</p>
         <p className="settle-outlay">Total outlay {formatGhs(totalStake)}</p>
 
-        {!outcome && (
+        {isMuggy && (
+          <>
+            <p className="settle-question">Did the muggy acca win?</p>
+            <div className="settle-choices">
+              <Choice
+                label="Won"
+                hint={`${fundedLeg.name} pays back — enter the amount`}
+                onClick={() => setMuggyWon(true)}
+              />
+              <Choice
+                label="Lost"
+                hint="No wallet changes — the stake is already gone"
+                onClick={() => setMuggyWon(false)}
+              />
+            </div>
+          </>
+        )}
+
+        {isMuggy && muggyWon && (
+          <label className="settle-amount">
+            <span>Amount returned by {fundedLeg.name} (GHS)</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              value={payoutAmount}
+              onChange={(event) => setPayoutAmount(event.target.value)}
+              autoFocus
+            />
+          </label>
+        )}
+
+        {!isMuggy && !outcome && (
           <>
             <p className="settle-question">What was the outcome?</p>
             <div className="settle-choices">
@@ -364,10 +425,10 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
           <button
             type="button"
             className="settle-cancel"
-            onClick={outcome ? reset : onClose}
+            onClick={canReset ? reset : onClose}
             disabled={busy}
           >
-            {outcome ? "Start over" : "Cancel"}
+            {canReset ? "Start over" : "Cancel"}
           </button>
           <button
             type="button"
