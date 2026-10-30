@@ -216,8 +216,10 @@ const WalletsPanel = ({
                 </div>
 
                 <span className="wallet-amount" title={`Holds ${formatAmount(wallet.balance)}`}>
-                  {formatAmount(planAmount)}
-                  <span className="wallet-plan">{isSelected ? "plan" : "not in plan"}</span>
+                  {formatAmount(wallet.balance)}
+                  <span className="wallet-plan">
+                    {isSelected ? `plan ${formatAmount(planAmount)}` : "not in plan"}
+                  </span>
                 </span>
 
                 <div className="wallet-actions">

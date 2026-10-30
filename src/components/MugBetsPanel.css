@@ -104,18 +104,6 @@
 
 .mugbets-field-wide { grid-column: 1 / -1; }
 
-.mugbets-win {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border: 1px dashed var(--color-neutral-4);
-  border-radius: 8px;
-  background: var(--color-neutral-2);
-}
-.mugbets-win strong { font-size: 0.85rem; font-weight: 800; color: var(--color-brand-4); }
-
 .mugbets-auto {
   margin-left: 6px;
   font-size: 0.58rem;

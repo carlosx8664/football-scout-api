@@ -43,7 +43,6 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
   const [muggy, setMuggy] = useState({ bookie: "", stake: defaultStake, odds: "1.30" });
   const [free, setFree] = useState({
     bookie: "",
-    match: "",
     stake: defaultStake,
     odds: "1.30",
     hedgeBookie: "",
@@ -106,7 +105,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
     setNotice(null);
     try {
       const result = await logArb({
-        eventName: `Muggy acca - ${muggyBookie}`,
+        eventName: `Muggy Acca - ${muggyBookie}`,
         kind: "muggy",
         simulation,
         // One funded leg; the second is the ledger's required slot, carrying no stake.
@@ -115,7 +114,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
           { name: muggyBookie, odds: 1.01, stake: 0 },
         ],
       });
-      setNotice(`Muggy acca logged: ${formatAmount(result.totalStake)} on ${muggyBookie}.`);
+      setNotice(`Muggy Acca logged: ${formatAmount(result.totalStake)} on ${muggyBookie}.`);
       onChanged(await refreshWallets());
     } catch (err) {
       setProblem((err as Error).message);
@@ -131,10 +130,6 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
     const hedgeStakeValue = Number(free.hedgeStake) || 0;
     const hedgeOddsValue = Number(free.hedgeOdds) || 1.01;
 
-    if (!free.match.trim()) {
-      setProblem("Add the match the free bet is on.");
-      return;
-    }
     if (!Number.isFinite(stakeValue) || stakeValue <= 0) {
       setProblem("Stake must be greater than 0.");
       return;
@@ -145,7 +140,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
     setNotice(null);
     try {
       const result = await logArb({
-        eventName: free.match.trim(),
+        eventName: `Free bet - ${freeBookie}`,
         kind: "free",
         simulation,
         legs: [
@@ -159,7 +154,6 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
           : `Free bet logged with no hedge (${formatAmount(result.totalStake)} outlay).`,
       );
       onChanged(await refreshWallets());
-      setFree((current) => ({ ...current, match: "" }));
     } catch (err) {
       setProblem((err as Error).message);
     } finally {
@@ -250,7 +244,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
         </form>
       ) : (
         <form className="mugbets-form" onSubmit={submitFree}>
-          <label>
+          <label className="mugbets-field-wide">
             <span>Bookie</span>
             <select
               value={freeBookie}
@@ -266,12 +260,13 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
           </label>
 
           <label>
-            <span>Match</span>
+            <span>Odds</span>
             <input
-              type="text"
-              placeholder="Barcelona to win"
-              value={free.match}
-              onChange={(event) => updateFree({ match: event.target.value })}
+              type="number"
+              min="1.01"
+              step="0.01"
+              value={free.odds}
+              onChange={(event) => updateFree({ odds: event.target.value })}
               required
             />
           </label>
@@ -288,21 +283,9 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             />
           </label>
 
-          <label>
-            <span>Odds</span>
-            <input
-              type="number"
-              min="1.01"
-              step="0.01"
-              value={free.odds}
-              onChange={(event) => updateFree({ odds: event.target.value })}
-              required
-            />
-          </label>
-
           <fieldset className="mugbets-hedge">
             <legend>Hedge details</legend>
-            <label>
+            <label className="mugbets-field-wide">
               <span>Hedge Bookie</span>
               <select
                 value={hedgeBookie}
@@ -316,6 +299,17 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
                     </option>
                   ))}
               </select>
+            </label>
+            <label>
+              <span>Odds</span>
+              <input
+                type="number"
+                min="1.01"
+                step="0.01"
+                value={free.hedgeOdds}
+                onChange={(event) => updateFree({ hedgeOdds: event.target.value })}
+                placeholder="1.30"
+              />
             </label>
             <label>
               <span>
@@ -350,27 +344,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
                 placeholder="0"
               />
             </label>
-            <label>
-              <span>Odds</span>
-              <input
-                type="number"
-                min="1.01"
-                step="0.01"
-                value={free.hedgeOdds}
-                onChange={(event) => updateFree({ hedgeOdds: event.target.value })}
-                placeholder="1.30"
-              />
-            </label>
-            <div className="mugbets-win mugbets-field-wide">
-              <span>Possible Win (profit)</span>
-              <strong>{formatAmount(hedgeProfit)}</strong>
-            </div>
           </fieldset>
-
-          <div className="mugbets-win mugbets-field-wide">
-            <span>Possible Win (free bet payout)</span>
-            <strong>{formatAmount(freePayout)}</strong>
-          </div>
 
           <div className="mugbets-profit mugbets-field-wide">
             <div className="mugbets-profit-head">
