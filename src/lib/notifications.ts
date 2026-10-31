@@ -223,6 +223,19 @@ export function limitNotifications(items: AppNotification[]): AppNotification[] 
   return items.slice(0, MAX_NOTIFICATIONS);
 }
 
+/** Local midnight that starts the current day. */
+function startOfToday(now = Date.now()): number {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime();
+}
+
+/** Drops everything from a previous day: the inbox only ever shows today's alerts. */
+export function pruneToToday(items: AppNotification[], now = Date.now()): AppNotification[] {
+  const cutoff = startOfToday(now);
+  return items.filter((item) => item.createdAt >= cutoff);
+}
+
 function readJson<T>(key: string, fallback: T): T {
   try {
     const raw = window.localStorage.getItem(key);
@@ -241,7 +254,11 @@ function writeJson(key: string, value: unknown) {
 }
 
 export function loadNotifications(simulation: boolean): AppNotification[] {
-  return readJson<AppNotification[]>(`${STORAGE_PREFIX}:${simulation ? "sim" : "real"}`, []);
+  const stored = readJson<AppNotification[]>(
+    `${STORAGE_PREFIX}:${simulation ? "sim" : "real"}`,
+    [],
+  );
+  return pruneToToday(stored);
 }
 
 export function saveNotifications(simulation: boolean, items: AppNotification[]) {

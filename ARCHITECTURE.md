@@ -206,7 +206,8 @@ a fine-grained PAT.
   `/wallets/history`, which renders the ledger full width without the aside.
 - Global simulation toggle + yellow banner; all wallet/bet queries filtered by `is_simulation`.
 - Notification inbox with rules: live arbs from the arbitrage feed, withdrawal >35%, top-up <15%
-  after a 4-hour cool-down and past 08:00, daily profit >100 GHS; per-mode localStorage inboxes.
+  after a 4-hour cool-down and past 08:00, daily profit >100 GHS; per-mode localStorage inboxes
+  pruned to the current day (earlier notifications are deleted).
 - Settlement wizard (win/void/cash-out), Remove-and-refund with audit row, history with date
   presets, day grouping and weekly outlay.
 - Automatic wallet provisioning for every bookmaker in `BOOKMAKERS`.

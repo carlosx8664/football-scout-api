@@ -9,6 +9,7 @@ import {
   loadNotifications,
   loadSeen,
   newNotificationId,
+  pruneToToday,
   saveLowBalances,
   saveNotifications,
   saveSeen,
@@ -26,11 +27,15 @@ type ModeKey = "sim" | "real";
 
 const modeKey = (simulation: boolean): ModeKey => (simulation ? "sim" : "real");
 
+/** How often the arb feed is polled so new opportunities alert without a page reload. */
+const ARB_POLL_INTERVAL_MS = 30_000;
+
 /**
  * Owns the notification inbox and the suggestion engine.
  *
  * Alerts are rebuilt from the wallets payload on mode change, on mount, and whenever a caller
- * passes a fresh payload (wallet edit, reset, log, settle). `dueAlerts` suppresses duplicates
+ * passes a fresh payload (wallet edit, reset, log, settle). The arb feed is also polled in the
+ * background so new opportunities alert without a reload. `dueAlerts` suppresses duplicates
  * within the hour, so repeated triggers do not spam the bell.
  */
 const NotificationProvider = ({ children }: { children: ReactNode }) => {
@@ -52,6 +57,8 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   });
   // Latest arb feed, so a wallet-only refresh still raises the arb alerts.
   const arbsRef = useRef<ArbOpportunity[]>([]);
+  // Most recent wallets payload, so an arbs-only poll can rebuild alerts without refetching it.
+  const payloadRef = useRef<WalletsPayload | null>(null);
 
   const activeMode = modeKey(enabled);
   const notifications = inboxes[activeMode];
@@ -65,6 +72,7 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   }, [inboxes.real]);
 
   const ingest = useCallback((payload: WalletsPayload, arbs = arbsRef.current) => {
+    payloadRef.current = payload;
     const mode = modeKey(payload.simulation);
     const now = Date.now();
 
@@ -93,7 +101,7 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     setInboxes((current) => ({
       ...current,
-      [mode]: limitNotifications([...created, ...current[mode]]),
+      [mode]: limitNotifications(pruneToToday([...created, ...current[mode]], now)),
     }));
   }, []);
 
@@ -132,6 +140,43 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     return () => controller.abort();
   }, [enabled, ingest]);
+
+  // Poll only the arb feed so a new opportunity raises a notification (and inbox entry)
+  // without waiting for a manual reload. Wallets are reused from the last ingest.
+  useEffect(() => {
+    const controller = new AbortController();
+    let inFlight = false;
+
+    const poll = async () => {
+      if (document.hidden || inFlight) return;
+      inFlight = true;
+      try {
+        const rawArbs = await fetchArbsJson(controller.signal);
+        if (rawArbs === null || controller.signal.aborted) return;
+        arbsRef.current = extractArbs(rawArbs);
+        const payload = payloadRef.current;
+        if (payload) ingest(payload);
+      } catch {
+        // A failed poll keeps the last good feed on screen; the next tick retries.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timer = setInterval(() => void poll(), ARB_POLL_INTERVAL_MS);
+
+    // Catch up immediately after a quick tab switch instead of waiting for the next tick.
+    const handleVisibilityChange = () => {
+      if (!document.hidden) void poll();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [ingest]);
 
   const markAllRead = useCallback(() => {
     setInboxes((current) => ({

@@ -550,7 +550,8 @@ that is not sitting in a bookie account.
   History reports "arb profit vs net mug cost" for the selected window instead of merging them.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
-inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` plus the
+inbox per mode, persisted in `localStorage` and pruned to the current day on load (anything from
+an earlier day is deleted). Alerts are rebuilt from `GET /api/wallets` plus the
 arbitrage feed on mount, on mode switch, and whenever a payload arrives from a wallet edit, reset,
 logged arb or settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
 
