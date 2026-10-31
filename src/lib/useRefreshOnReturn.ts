@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { LOADING_OVERLAY_FADE_MS } from "../components/LoadingOverlay";
+import { LOADING_OVERLAY_MIN_VISIBLE_MS } from "../components/LoadingOverlay";
 
 /** Time (ms) the page must stay hidden before returning triggers a hard refresh. */
 const MIN_HIDDEN_MS = 5_000;
@@ -14,11 +14,11 @@ const MIN_HIDDEN_MS = 5_000;
 export function useRefreshOnReturn(minHiddenMs: number = MIN_HIDDEN_MS) {
   const [refreshing, setRefreshing] = useState(false);
 
-  // Mount the overlay first, then reload as soon as it is opaque. The wait is only
-  // the fade duration; `location.reload()` tears the page down right after.
+  // Mount the overlay first, let it sit fully opaque for the minimum duration, then
+  // reload. `location.reload()` tears the page down right after.
   const reloadWithOverlay = useCallback(() => {
     setRefreshing(true);
-    window.setTimeout(() => window.location.reload(), LOADING_OVERLAY_FADE_MS);
+    window.setTimeout(() => window.location.reload(), LOADING_OVERLAY_MIN_VISIBLE_MS);
   }, []);
 
   useEffect(() => {
