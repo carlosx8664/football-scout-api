@@ -7,11 +7,25 @@ import type {
   SettleBetResult,
 } from "../types";
 
+/**
+ * UTC instants bounding the user's local calendar day. Sent with every log so the server's daily
+ * mug-bet gate resets on the punter's own midnight instead of UTC's, and follows timezone changes.
+ */
+export function localDayWindow(now: Date = new Date()): { dayStart: string; dayEnd: string } {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+  return {
+    dayStart: new Date(year, month, day).toISOString(),
+    dayEnd: new Date(year, month, day + 1).toISOString(),
+  };
+}
+
 export async function logArb(input: LogArbInput): Promise<LogArbResult> {
   const response = await fetch("/api/active-bets", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, ...localDayWindow() }),
   });
 
   const payload = (await response.json().catch(() => null)) as

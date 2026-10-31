@@ -12,6 +12,28 @@ import {
 const MAX_STAKE = 1_000_000;
 /** Which form logged the row: a two-leg arb, a muggy acca or a free bet. */
 const KINDS = new Set(["arb", "muggy", "free"]);
+/** A local calendar day is at most 25h once a DST shift is accounted for. */
+const MAX_DAY_MS = 27 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * UTC instants bounding the punter's local calendar day. The client sends the UTC bounds of its
+ * own midnight-to-midnight window, so the daily mug-bet gate resets when the user's date changes
+ * rather than when UTC's does. Older clients send nothing and fall back to the UTC day.
+ */
+function localDayWindow(body) {
+  const start = typeof body?.dayStart === "string" ? Date.parse(body.dayStart) : NaN;
+  const end = typeof body?.dayEnd === "string" ? Date.parse(body.dayEnd) : NaN;
+  if (Number.isFinite(start) && Number.isFinite(end) && end > start && end - start <= MAX_DAY_MS) {
+    return { start: new Date(start).toISOString(), end: new Date(end).toISOString() };
+  }
+  const now = new Date();
+  const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return {
+    start: new Date(utcMidnight).toISOString(),
+    end: new Date(utcMidnight + DAY_MS).toISOString(),
+  };
+}
 
 function toActiveBet(row) {
   return {
@@ -148,18 +170,23 @@ export async function onRequestPost({ request, env }) {
   try {
     // Camouflage rule: every bookie used by the arb needs its own muggy acca today, so both sides
     // of the bet look human. Both the open ledger and today's settled history count, so settling
-    // the mug bet early does not re-block the day.
+    // the mug bet early does not re-block the day. "Today" is the punter's local day — the client
+    // sends the UTC bounds of its own midnight-to-midnight window — so the gate flips exactly when
+    // their calendar does, and a mug bet from yesterday never satisfies it.
     if (kind === "arb") {
+      const { start, end } = localDayWindow(body);
       const { results } = await db
         .prepare(
           `SELECT DISTINCT lower(bookie_a_name) AS bookie FROM active_bets
-            WHERE is_simulation = ? AND kind = 'muggy' AND date(created_at) = date('now')
+            WHERE is_simulation = ? AND kind = 'muggy'
+              AND datetime(created_at) >= datetime(?) AND datetime(created_at) < datetime(?)
            UNION
            SELECT DISTINCT lower(bookie_a_name) AS bookie FROM history
             WHERE is_simulation = ? AND kind = 'muggy'
-              AND settlement_type <> 'cancelled' AND date(settled_at) = date('now')`,
+              AND settlement_type <> 'cancelled'
+              AND datetime(settled_at) >= datetime(?) AND datetime(settled_at) < datetime(?)`,
         )
-        .bind(modeValue(simulation), modeValue(simulation))
+        .bind(modeValue(simulation), start, end, modeValue(simulation), start, end)
         .all();
 
       const mugged = new Set((results ?? []).map((row) => String(row.bookie)));
