@@ -121,7 +121,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | Endpoint | Purpose |
 | --- | --- |
 | `matches.js` | `GET` — KV `feed-matches`, 404 until the workflow has run |
-| `arbs.js` | `GET` — KV `feed-arbs` (+ horizon feed merge), 404 until populated |
+| `arbs.js` | `GET` — KV `feed-arbs`, 404 until populated |
 | `arbs/share.js` | `POST` — SportyBet booking codes → share URL |
 | `analysis.js` | `GET` — DeepSeek match preview w/ live search, KV-cached 6 h |
 | `standings.js` | `GET` — league table via football-data.org, KV-cached 30 min |
@@ -189,7 +189,7 @@ a fine-grained PAT.
   deep links.
 - Cross-bookie matching by `sr:match:` ID first, then `normalizeTeam(home)|normalizeTeam(away)` with
   a 2-hour kickoff tolerance (covers bucket edges).
-- Feeds published to KV with circuit breaker; arb history carried across runs.
+- Feeds published to KV on every refresh; arb history carried across runs.
 - Telegram alerts: percentage stake split, 1,000-GHS scaled example, human-readable kickoff,
   deep links, `--alert-min=1.5` floor, palpable-error (>7%) suppression, one optional caution note.
   A 15-minute de-dupe window per event+market suppresses repeat pings, except when the profit has
@@ -298,3 +298,11 @@ a fine-grained PAT.
 - **New feature.** Mug bets no longer borrow the arb settle wizard. Settling a `kind = "muggy"` row asks one question — **Won** or **Lost**. Won then takes the amount the bookie actually paid back and credits it to the funded leg's bookie (`netProfit` = amount − stake), because a muggy acca's return is not `stake × odds`. Lost writes no wallet movement at all: the stake already left at placement, so only a `history` row tagged `settlement_type = 'loss'` records it. Separately, Active Bets stopped printing `Kickoff 01 Jan 1970` — kickoff is shown on arb cards only and only when the stored epoch is positive.
 - **Files created/modified.** No new files. Modified: `functions/api/active-bets/[id]/settle.js` (new `outcome: "loss"` branch, optional `payoutAmount` override on `win`, wallet-existence check skipped when a settlement credits nothing — the empty `IN ()` list was a SQL syntax error), `src/types.ts` (`SettlementOutcome` gains `"loss"`, `SettleBetRequest.payoutAmount`), `src/components/SettleBetModal.tsx` (muggy Won/Lost branch, funded-leg payout input, `canReset`), `src/components/WalletsDashboard.tsx` (dedicated "Bet lost: … no wallet change" toast), `src/components/HistoryLedger.tsx` (`Lost` tag, normal profit styling), `src/components/ActiveBetsLedger.tsx` and `functions/api/active-bets.js` (kickoff rendered/passed only when `> 0`), `ARCHITECTURE.md`.
 - **How it connects.** `ActiveBetsLedger` still calls `settleBet` → `POST /api/active-bets/:id/settle`, so the payload contract gained fields rather than endpoints: the modal previews credits locally, the endpoint applies them plus the `history` insert and the `active_bets` delete in one D1 batch, and the dashboard bumps `refreshToken` so My Wallets, Rebalancing Hints and History all repaint from the same wallet payload. A loss is therefore visible as a negative History row with zero wallet delta, which is exactly how the plan's staked-cash accounting expects it.
+
+---
+
+## 12. Live Web Push Delivery and the Telegram High-Value Bypass
+
+- **New feature.** Web Push now delivers end-to-end (it had been silently skipped because the VAPID variables were unset in the Actions job), so every arb that clears the Telegram gates also wakes each subscribed browser with a notification whose tap opens that arb's card. Alongside it, the Telegram de-duplication gained a high-value bypass: if a match+market we already alerted on comes back at least **2 profit points** higher (5% → 8%), the 15-minute de-dupe window is ignored and an `🔥 URGENT: profit is now X% (was Y% when last sent)` alert is sent, so a materially better arb is never suppressed.
+- **Files created/modified.** No new files. Modified: `scripts/find-arbs.js` (`ALERT_HIGH_VALUE_JUMP = 2`, `highValueJump()`, early bypass in `shouldAlert()`, `pendingAlerts()` now also returns an `upgrades` map, `formatAlert(arb, upgradedFrom)` prepends the urgent header, urgent send logged), `scripts/push-notify.js` (`PUSH_REQUIRED_ENV` / `missingPushEnv()` so the run names the exact unset variables, `vapidSubject()` normalises a bare domain/email to `https://`/`mailto:`, and a guarded `configureVapid()` that reports a rejected keypair instead of failing silently), `.github/workflows/odds-refresh.yml` (the three `VAPID_*` values and `SITE_ORIGIN` now resolve as `secrets.X || vars.X`), `README.md`, `ARCHITECTURE.md`. The `functions/api/push/*` handlers needed no changes; `VAPID_PUBLIC_KEY` must also be a Pages variable so `/api/push/key` can serve it.
+- **How it connects.** `find-arbs.js` computes the alert set once in `pendingAlerts` (shared gate for both channels) → `sendTelegramAlert` sends the urgent or normal message → `sendPushAlert` → `sendPushAlerts` reads every `push-sub:<fingerprint>` record out of KV over the Cloudflare REST API and signs with VAPID via `web-push` → `public/sw.js` shows it with `tag = arbDeepLinkKey(arb)` → the tap opens `/arbs?arb=<key>`, which `ArbsTable` scrolls to and highlights. `alertedAt` / `alertedProfitPct` are written into `arbs-history.json` (via `mergeHistory`), which is what lets the next run both de-dupe and detect the 2-point upgrade.
