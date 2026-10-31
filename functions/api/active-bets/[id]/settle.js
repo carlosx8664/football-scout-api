@@ -244,8 +244,8 @@ export async function onRequestPost({ request, env, params }) {
           `INSERT INTO history (
              id, event_name, winning_bookie, net_profit, is_simulation, settlement_type,
              bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kind,
-             is_free_bet
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             is_free_bet, logged_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           historyId,
@@ -261,6 +261,9 @@ export async function onRequestPost({ request, env, params }) {
           totalStake,
           bet.kind ?? "arb",
           Number(bet.is_free_bet) === 1 ? 1 : 0,
+          // When the bet was placed, so the daily mug gate never mistakes a late settlement
+          // for a fresh mug bet.
+          bet.created_at ?? null,
         ),      db
         .prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?")
         .bind(id, mode),

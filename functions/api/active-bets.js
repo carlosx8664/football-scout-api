@@ -169,27 +169,45 @@ export async function onRequestPost({ request, env }) {
 
   try {
     // Camouflage rule: every bookie used by the arb needs its own muggy acca today, so both sides
-    // of the bet look human. Both the open ledger and today's settled history count, so settling
-    // the mug bet early does not re-block the day. "Today" is the punter's local day — the client
-    // sends the UTC bounds of its own midnight-to-midnight window — so the gate flips exactly when
-    // their calendar does, and a mug bet from yesterday never satisfies it.
+    // of the bet look human. "Today" is the punter's local day — the client sends the UTC bounds
+    // of its own midnight-to-midnight window — so the gate flips exactly when their calendar does,
+    // and a mug bet from any earlier day never satisfies it.
     if (kind === "arb") {
       const { start, end } = localDayWindow(body);
-      const { results } = await db
+      const mode = modeValue(simulation);
+      const mugged = new Set();
+
+      // Open muggy accas logged inside the punter's local day.
+      const open = await db
         .prepare(
           `SELECT DISTINCT lower(bookie_a_name) AS bookie FROM active_bets
             WHERE is_simulation = ? AND kind = 'muggy'
-              AND datetime(created_at) >= datetime(?) AND datetime(created_at) < datetime(?)
-           UNION
-           SELECT DISTINCT lower(bookie_a_name) AS bookie FROM history
-            WHERE is_simulation = ? AND kind = 'muggy'
-              AND settlement_type <> 'cancelled'
-              AND datetime(settled_at) >= datetime(?) AND datetime(settled_at) < datetime(?)`,
+              AND datetime(created_at) >= datetime(?) AND datetime(created_at) < datetime(?)`,
         )
-        .bind(modeValue(simulation), start, end, modeValue(simulation), start, end)
+        .bind(mode, start, end)
         .all();
+      for (const row of open.results ?? []) mugged.add(String(row.bookie));
 
-      const mugged = new Set((results ?? []).map((row) => String(row.bookie)));
+      // Settling a mug bet early must not re-block the day, so today's settled mug bets count
+      // too — but keyed on the day they were *logged* (`logged_at`), never the day they settled.
+      // An acca placed last night that settles this morning is yesterday's camouflage.
+      try {
+        const settled = await db
+          .prepare(
+            `SELECT DISTINCT lower(bookie_a_name) AS bookie FROM history
+              WHERE is_simulation = ? AND kind = 'muggy' AND settlement_type <> 'cancelled'
+                AND logged_at IS NOT NULL
+                AND datetime(logged_at) >= datetime(?) AND datetime(logged_at) < datetime(?)`,
+          )
+          .bind(mode, start, end)
+          .all();
+        for (const row of settled.results ?? []) mugged.add(String(row.bookie));
+      } catch {
+        // `history.logged_at` arrives with migration 0011. Until it is applied only the open
+        // ledger counts, which errs towards asking for today's mug bet again — never towards
+        // letting an arb through.
+      }
+
       const missing = [...new Set([legA.name, legB.name])].filter(
         (name) => !mugged.has(name.toLowerCase()),
       );
