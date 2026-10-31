@@ -114,6 +114,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
 | `components/PushToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |
 | `components/Sidebar.tsx`, `MainFeed.tsx`, `MatchDetail.tsx`, `RightSidebar.tsx`, `LeagueTable.tsx`, `BetBuilder.tsx`, `BestArbBadge.tsx`, `RecycleCooldown.tsx`, `Toast.tsx` | Feed, detail, standings, betslip OCR, misc |
+| `components/LoadingOverlay.tsx` | Full-screen solid overlay (`message` prop) shown on first boot and before `useRefreshOnReturn` reloads; fades in ≤120ms and stays static under `prefers-reduced-motion` |
 | `styles/base.css` | Design tokens |
 
 ### Backend — `functions/api/` (Cloudflare Pages Functions)

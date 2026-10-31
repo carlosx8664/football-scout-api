@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { leagueName } from "../shared/leagues.js";
 import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
+import LoadingOverlay from "./components/LoadingOverlay";
 import MainFeed from "./components/MainFeed";
 import MatchDetail from "./components/MatchDetail";
 import RightSidebar from "./components/RightSidebar";
@@ -35,7 +36,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
 );
 
 function App() {
-  useRefreshOnReturn();
+  const { refreshing } = useRefreshOnReturn();
   const [data, setData] = useState<SnapshotData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,8 +108,19 @@ function App() {
 
   // The arbs page only reads /arbs.json, so it must not wait on (or break with) the
   // API-Football snapshot. The wallets page only talks to /api/wallets.
+  const filteredMatches =
+    !data || selectedLeague === 0
+      ? (data?.matches ?? [])
+      : data.matches.filter((match) => match.league.id === selectedLeague);
+  const focusedMatch =
+    data && matchId !== null
+      ? (data.matches.find((match) => match.fixture.id === matchId) ?? null)
+      : null;
+
+  let content: ReactNode;
+
   if (isArbs) {
-    return (
+    content = (
       <Shell>
         <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
@@ -116,10 +128,8 @@ function App() {
         </div>
       </Shell>
     );
-  }
-
-  if (isWalletsHistory) {
-    return (
+  } else if (isWalletsHistory) {
+    content = (
       <Shell>
         <div className="app-body app-body-wide">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
@@ -127,10 +137,8 @@ function App() {
         </div>
       </Shell>
     );
-  }
-
-  if (isWallets) {
-    return (
+  } else if (isWallets) {
+    content = (
       <Shell>
         <div className="app-body">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
@@ -138,43 +146,45 @@ function App() {
         </div>
       </Shell>
     );
+  } else if (loading) {
+    content = <div className="loader">Loading today's matches...</div>;
+  } else if (error) {
+    content = <div className="error">Error: {error}</div>;
+  } else if (data) {
+    content = (
+      <Shell>
+        <div className="app-body">
+          <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
+
+          {matchId !== null ? (
+            <MatchDetail match={focusedMatch} date={data.date} />
+          ) : (
+            <MainFeed
+              matches={filteredMatches}
+              selectedLeagueName={
+                selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
+              }
+              date={data.date}
+              now={now}
+            />
+          )}
+
+          <RightSidebar matches={data.matches} date={data.date} focusMatch={focusedMatch} />
+        </div>
+      </Shell>
+    );
+  } else {
+    content = null;
   }
 
-  if (loading) return <div className="loader">Loading today's matches...</div>;
-  if (error) return <div className="error">Error: {error}</div>;
-  if (!data) return null;
-
-
-  const filteredMatches =
-    selectedLeague === 0
-      ? data.matches
-      : data.matches.filter((match) => match.league.id === selectedLeague);
-  const focusedMatch =
-    matchId !== null
-      ? (data.matches.find((match) => match.fixture.id === matchId) ?? null)
-      : null;
-
   return (
-    <Shell>
-      <div className="app-body">
-        <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
-
-        {matchId !== null ? (
-          <MatchDetail match={focusedMatch} date={data.date} />
-        ) : (
-          <MainFeed
-            matches={filteredMatches}
-            selectedLeagueName={
-              selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
-            }
-            date={data.date}
-            now={now}
-          />
-        )}
-
-        <RightSidebar matches={data.matches} date={data.date} focusMatch={focusedMatch} />
-      </div>
-    </Shell>
+    <>
+      <LoadingOverlay
+        message={refreshing ? "Refreshing…" : "Loading today's matches…"}
+        visible={loading || refreshing}
+      />
+      {content}
+    </>
   );
 }
 

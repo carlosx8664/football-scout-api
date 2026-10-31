@@ -1,0 +1,65 @@
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  /* Solid, not transparent: a see-through overlay would still flash the page underneath. */
+  background-color: var(--color-neutral-2);
+  animation: loading-overlay-fade-in 120ms ease-out both;
+}
+
+.loading-overlay--hiding {
+  animation: loading-overlay-fade-out 120ms ease-out both;
+  pointer-events: none;
+}
+
+.loading-overlay__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.loading-overlay__logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  animation: loading-overlay-pulse 1.4s ease-in-out infinite;
+}
+
+.loading-overlay__message {
+  color: var(--color-neutral-6);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+@keyframes loading-overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes loading-overlay-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes loading-overlay-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay {
+    animation: none;
+  }
+
+  .loading-overlay--hiding {
+    animation: none;
+    opacity: 0;
+  }
+
+  .loading-overlay__logo {
+    animation: none;
+  }
+}
