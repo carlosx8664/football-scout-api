@@ -57,9 +57,10 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
           mkdir -p data
+          CF_API_TOKEN_CLEAN=$(printf '%s' "$CF_API_TOKEN" | tr -d '[:space:]')
           curl -sS --fail \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-arbs-history" \
-            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+              -H "Authorization: Bearer ${CF_API_TOKEN_CLEAN}" \
             -o data/arbs-history.json \
             && echo "Restored $(wc -c < data/arbs-history.json) bytes of arb history." \
             || echo "No previous arb history in KV; starting a fresh one."
@@ -102,11 +103,12 @@ jobs:
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
+          CF_API_TOKEN_CLEAN=$(printf '%s' "$CF_API_TOKEN" | tr -d '[:space:]')
           upload() {
             local key="$1" file="$2"
             if ! curl -sS --fail-with-body -X PUT \
               "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/${key}" \
-              -H "Authorization: ******" \
+              -H "Authorization: Bearer ${CF_API_TOKEN_CLEAN}" \
               -H "Content-Type: application/json" \
               --data-binary "@${file}"; then
               echo "::error::Failed to upload ${key} to Cloudflare KV."
