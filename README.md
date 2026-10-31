@@ -509,11 +509,6 @@ cd ../.. && npm run worker:deploy
 While it is on, a yellow `🧪 SIMULATION MODE ACTIVE` banner sits under the header and every wallet
 query filters `is_simulation = 1`; switching it off filters `is_simulation = 0` instead.
 
-**Dark mode** is the `Dark` switch beside it. The choice is stored in `localStorage` under
-`oddtor:theme` (falling back to `prefers-color-scheme`) and applied as `data-theme="dark"` on
-`<html>`, which `src/styles/dark.css` uses to override the design tokens and the few components
-that hard-code a light surface.
-
 **Wallet accounting.** Logging an arb debits each stake from its bookie wallet immediately, so
 `available liquidity = SUM(wallets.balance)` at all times — the cash that is actually sitting in
 the bookie accounts. Settling only credits the winning bookie with `winning stake × winning odds`
@@ -555,15 +550,15 @@ that is not sitting in a bookie account.
   History reports "arb profit vs net mug cost" for the selected window instead of merging them.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
-inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` on mount,
-on mode switch, and whenever a payload arrives from a wallet edit, reset, logged arb or
-settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
+inbox per mode, persisted in `localStorage`. Alerts are rebuilt from `GET /api/wallets` plus the
+arbitrage feed on mount, on mode switch, and whenever a payload arrives from a wallet edit, reset,
+logged arb or settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
 
 | Alert | Trigger |
 | --- | --- |
+| 🎯 [x.xx]% arb: A vs B | a live pre-kickoff opportunity in `/api/arbs` (re-alerts after 12 h or a 1-point profit gain) |
 | 🔴 Withdraw from [bookie] | cash share of the portfolio (cash + staked) > 35% |
 | 🟡 Consider topping up [bookie] | cash share < 15%, only once the shortfall has lasted 4 h **and** the local hour is ≥ 08:00; at most one per day |
-| 🚨 BetBoro Warning | BetBoro cash > 0 (always) |
 | 🎯 Daily Goal Reached | `dailyProfit` (history settled today) > 100 GHS |
 
 Cool-down state (when each bookie first fell below 15%) is kept per mode in `localStorage`, so
@@ -571,5 +566,6 @@ logging a bet never triggers an instant top-up ping — the nudge waits for the 
 and the morning cutoff.
 
 Duplicates are suppressed for an hour unless the number moved by ≥ 5 percentage points (share
-alerts) or ≥ 100 GHS (cash alerts). Clicking a notification dismisses it; "Mark all as read"
+alerts) or ≥ 100 GHS (cash alerts); an arb is suppressed for 12 hours unless its profit rises by
+≥ 1 percentage point. Clicking a notification dismisses it; "Mark all as read"
 clears the badge.

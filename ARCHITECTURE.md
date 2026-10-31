@@ -87,7 +87,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 
 | File / folder | Role |
 | --- | --- |
-| `main.tsx` | Provider stack: `ThemeProvider → SimulationProvider → BankrollProvider → NotificationProvider → App` |
+| `main.tsx` | Provider stack: `SimulationProvider → BankrollProvider → NotificationProvider → App` |
 | `App.tsx` | Route switch (`/`, `/arbs`, `/wallets`, `/match/:id`), snapshot loading, league filter |
 | `types.ts` | All shared payload/record types (matches, arbs, wallets, bets, history, mug bets, push) |
 | `lib/api.ts` | Match/arb feed fetchers with fallbacks; SportyBet share-code POST |
@@ -96,8 +96,8 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `lib/history.ts` | Date-range presets + settled-arb fetch |
 | `lib/bankroll.ts` | Bankroll plan math (`computePlan`), floor-to-100 per-bookie split (`splitPerWallet`), selected bookies (`selectedBookies`/`hasSplit`), localStorage persistence |
 | `lib/notifications.ts` | Alert rule engine, dedupe windows, cool-downs, persistence |
-| `lib/mugBets.ts`, `lib/push.ts`, `lib/cooldown.ts`, `lib/theme.ts`, `lib/simulation.ts` | Feature clients/state |
-| `components/Header.tsx` | Logo, nav (Arbs · Wallets), simulation toggle, notifications bell, theme toggle, best-arb badge |
+| `lib/mugBets.ts`, `lib/push.ts`, `lib/cooldown.ts`, `lib/simulation.ts` | Feature clients/state |
+| `components/Header.tsx` | Logo, nav (Arbs · Wallets), simulation toggle, notifications bell, best-arb badge |
 | `components/ArbsTable.tsx` | Live + past arb tables, stake scaling/rounding, Ledger checkbox → log arb |
 | `components/LogArbModal.tsx` | Pre-filled editable stakes, per-bookie available balance, save to `active_bets` |
 | `components/WalletsDashboard.tsx` | `/wallets` layout + single owner of `GET /api/wallets`; wires all wallet panels |
@@ -112,9 +112,9 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, daily stake, odds) and **Free Bet** (bookie, match, stake, odds + hedge bookie/stake/odds) with a live **Possible Win** (stake × odds) for the free stake and the hedge — both log to `active_bets` |
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
-| `components/PushToggle.tsx`, `ThemeToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |
+| `components/PushToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |
 | `components/Sidebar.tsx`, `MainFeed.tsx`, `MatchDetail.tsx`, `RightSidebar.tsx`, `LeagueTable.tsx`, `BetBuilder.tsx`, `BestArbBadge.tsx`, `RecycleCooldown.tsx`, `Toast.tsx` | Feed, detail, standings, betslip OCR, misc |
-| `styles/base.css`, `styles/dark.css` | Design tokens + dark theme |
+| `styles/base.css` | Design tokens |
 
 ### Backend — `functions/api/` (Cloudflare Pages Functions)
 
@@ -205,8 +205,8 @@ a fine-grained PAT.
   Cash Flow and Mug Bets (340px aside). Settled history lives on its own page,
   `/wallets/history`, which renders the ledger full width without the aside.
 - Global simulation toggle + yellow banner; all wallet/bet queries filtered by `is_simulation`.
-- Notification inbox with rules: withdrawal >35%, top-up <15% after a 4-hour cool-down and past
-  08:00, BetBoro >0, daily profit >100 GHS; per-mode localStorage inboxes.
+- Notification inbox with rules: live arbs from the arbitrage feed, withdrawal >35%, top-up <15%
+  after a 4-hour cool-down and past 08:00, daily profit >100 GHS; per-mode localStorage inboxes.
 - Settlement wizard (win/void/cash-out), Remove-and-refund with audit row, history with date
   presets, day grouping and weekly outlay.
 - Automatic wallet provisioning for every bookmaker in `BOOKMAKERS`.

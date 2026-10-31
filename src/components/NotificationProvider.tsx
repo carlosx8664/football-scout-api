@@ -3,6 +3,7 @@ import {
   NotificationContext,
   buildAlerts,
   dueAlerts,
+  extractArbs,
   limitNotifications,
   loadLowBalances,
   loadNotifications,
@@ -16,9 +17,10 @@ import {
   type LowBalances,
   type SeenAlerts,
 } from "../lib/notifications";
+import { fetchArbsJson } from "../lib/api";
 import { useSimulation } from "../lib/simulation";
 import { fetchWallets } from "../lib/wallets";
-import type { WalletsPayload } from "../types";
+import type { ArbOpportunity, WalletsPayload } from "../types";
 
 type ModeKey = "sim" | "real";
 
@@ -48,6 +50,8 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     sim: loadLowBalances(true),
     real: loadLowBalances(false),
   });
+  // Latest arb feed, so a wallet-only refresh still raises the arb alerts.
+  const arbsRef = useRef<ArbOpportunity[]>([]);
 
   const activeMode = modeKey(enabled);
   const notifications = inboxes[activeMode];
@@ -60,7 +64,7 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     saveNotifications(false, inboxes.real);
   }, [inboxes.real]);
 
-  const ingest = useCallback((payload: WalletsPayload) => {
+  const ingest = useCallback((payload: WalletsPayload, arbs = arbsRef.current) => {
     const mode = modeKey(payload.simulation);
     const now = Date.now();
 
@@ -71,7 +75,7 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     saveLowBalances(mode === "sim", lowSince);
 
     const seen = seenRef.current[mode];
-    const due = dueAlerts(buildAlerts(payload, { now, lowSince }), seen, now);
+    const due = dueAlerts(buildAlerts(payload, { now, lowSince, arbs }), seen, now);
     if (due.length === 0) return;
 
     for (const alert of due) {
@@ -100,8 +104,9 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      fetchWallets(enabled)
-        .then((next) => {
+      Promise.all([fetchWallets(enabled), fetchArbsJson()])
+        .then(([next, rawArbs]) => {
+          arbsRef.current = extractArbs(rawArbs);
           setError(null);
           ingest(next);
         })
@@ -114,8 +119,9 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetchWallets(enabled, controller.signal)
-      .then((next) => {
+    Promise.all([fetchWallets(enabled, controller.signal), fetchArbsJson(controller.signal)])
+      .then(([next, rawArbs]) => {
+        arbsRef.current = extractArbs(rawArbs);
         setError(null);
         ingest(next);
       })

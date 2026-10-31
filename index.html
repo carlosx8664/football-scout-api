@@ -8,18 +8,6 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Oddtor | AI Football Predictions</title>
-    <!-- Paint the right theme before the bundle loads (same rule as src/lib/theme.ts). -->
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("oddtor:theme");
-          var dark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-          var theme = dark ? "dark" : "light";
-          document.documentElement.dataset.theme = theme;
-          document.documentElement.style.colorScheme = theme;
-        } catch (error) {}
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -3,7 +3,6 @@ import BestArbBadge from "./BestArbBadge";
 import NotificationBell from "./NotificationBell";
 import PushToggle from "./PushToggle";
 import SimulationToggle from "./SimulationToggle";
-import ThemeToggle from "./ThemeToggle";
 import "./Header.css";
 
 const Header = () => {
@@ -32,7 +31,6 @@ const Header = () => {
         </div>
         <div className="header-right">
           <SimulationToggle />
-          <ThemeToggle />
           <PushToggle />
           <NotificationBell />
           <BestArbBadge />

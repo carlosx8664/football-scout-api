@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { WalletsPayload } from "../types";
+import type { ArbOpportunity, WalletsPayload } from "../types";
 import { formatGhs } from "./wallets";
 
 /** Cash share of the portfolio that triggers a withdrawal nudge. */
@@ -14,6 +14,11 @@ const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 /** ...unless its number moved by at least this much (percentage points / GHS). */
 const SHARE_SIGNIFICANCE_PCT = 5;
 const CASH_SIGNIFICANCE_GHS = 100;
+/** Profit percentage points an arb must gain before it re-alerts inside its window. */
+const ARB_PROFIT_SIGNIFICANCE_PCT = 1;
+
+/** An arb stays "sent" for this long unless its profit improves materially. */
+const ARB_DEDUPE_MS = 12 * 60 * 60 * 1000;
 
 /** A top-up nudge at most once a day, so repeat alerts never look like bot traffic. */
 const TOPUP_DEDUPE_MS = 24 * 60 * 60 * 1000;
@@ -26,7 +31,6 @@ const MAX_NOTIFICATIONS = 50;
 const STORAGE_PREFIX = "oddtor:notifications";
 const SEEN_PREFIX = "oddtor:notifications-seen";
 const LOW_PREFIX = "oddtor:notifications-low";
-const SPECIAL_BOOKIE = "BetBoro";
 
 export type AlertTone = "critical" | "warning" | "good" | "info";
 
@@ -45,9 +49,9 @@ export interface Alert {
   key: string;
   tone: AlertTone;
   message: string;
-  /** Share (percentage points) or cash amount the alert was based on. */
+  /** Share (percentage points), cash amount, or arb profit the alert was based on. */
   metric: number;
-  unit: "share" | "cash";
+  unit: "share" | "cash" | "profit";
 }
 
 export type SeenAlerts = Record<string, { sentAt: number; metric: number }>;
@@ -58,16 +62,38 @@ export type LowBalances = Record<string, number>;
 export interface AlertContext {
   now: number;
   lowSince: LowBalances;
+  /** Live opportunities from the arbitrage feed; each one also lands in the inbox. */
+  arbs?: ArbOpportunity[];
+}
+
+/** Reads the arb list out of the `/api/arbs` or `arbs.json` payload. */
+export function extractArbs(raw: unknown): ArbOpportunity[] {
+  if (Array.isArray(raw)) return raw as ArbOpportunity[];
+  const payload = (raw ?? {}) as { arbs?: unknown };
+  return Array.isArray(payload.arbs) ? (payload.arbs as ArbOpportunity[]) : [];
+}
+
+function arbAlertKey(arb: ArbOpportunity): string {
+  const base = arb.eventId ?? `${arb.kickoff}-${arb.home}-${arb.away}`;
+  const legs = (arb.legs ?? []).map((leg) => `${leg.bookmaker}:${leg.outcome}`).join("|");
+  return `arb:${base}|${arb.market}|${legs}`;
+}
+
+function arbLegLine(arb: ArbOpportunity): string {
+  return (arb.legs ?? [])
+    .filter((leg) => Number.isFinite(Number(leg.odds)))
+    .map((leg) => `${leg.bookmaker} ${leg.outcome} @ ${Number(leg.odds).toFixed(2)}`)
+    .join(" · ");
 }
 
 /**
- * Turns the current wallets payload into suggestions.
+ * Turns the current wallets payload and live arbs into suggestions.
  *
  * The portfolio is cash + staked: stakes are debited at log time, so a large pending arb must
  * not make every bookie look under-funded.
  */
 export function buildAlerts(payload: WalletsPayload, context: AlertContext): Alert[] {
-  const { now, lowSince } = context;
+  const { now, lowSince, arbs = [] } = context;
   const cash = payload.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
   const portfolio = cash + payload.liquidity.staked;
   const alerts: Alert[] = [];
@@ -106,21 +132,24 @@ export function buildAlerts(payload: WalletsPayload, context: AlertContext): Ale
         }
       }
     }
+  }
 
-    const betboro = payload.wallets.find(
-      (wallet) => wallet.name.toLowerCase() === SPECIAL_BOOKIE.toLowerCase(),
-    );
-    if (betboro && betboro.balance > 0) {
-      alerts.push({
-        key: "betboro:withdraw",
-        tone: "critical",
-        unit: "cash",
-        metric: betboro.balance,
-        message:
-          `🚨 BetBoro Warning: Withdraw your ${formatGhs(betboro.balance)} immediately to ` +
-          "avoid slow withdrawal limits.",
-      });
-    }
+  for (const arb of arbs) {
+    const profitPct = Number(arb.profitPct);
+    if (!Number.isFinite(profitPct)) continue;
+    // Only pre-kickoff opportunities are actionable; started matches live in history.
+    if (!Number.isFinite(arb.kickoff) || arb.kickoff <= now) continue;
+
+    const legs = arbLegLine(arb);
+    alerts.push({
+      key: arbAlertKey(arb),
+      tone: "good",
+      unit: "profit",
+      metric: profitPct,
+      message:
+        `🎯 ${profitPct.toFixed(2)}% arb: ${arb.home} vs ${arb.away}` +
+        `${legs ? ` — ${legs}` : ""}. Open the Arbs page to log it.`,
+    });
   }
 
   const dailyProfit = payload.dailyProfit ?? 0;
@@ -140,12 +169,19 @@ export function buildAlerts(payload: WalletsPayload, context: AlertContext): Ale
 }
 
 function isSignificant(alert: Alert, previous: { metric: number }): boolean {
-  const threshold = alert.unit === "share" ? SHARE_SIGNIFICANCE_PCT : CASH_SIGNIFICANCE_GHS;
+  const threshold =
+    alert.unit === "share"
+      ? SHARE_SIGNIFICANCE_PCT
+      : alert.unit === "profit"
+        ? ARB_PROFIT_SIGNIFICANCE_PCT
+        : CASH_SIGNIFICANCE_GHS;
   return Math.abs(alert.metric - previous.metric) >= threshold;
 }
 
 function dedupeWindowMs(alert: Alert): number {
-  return alert.key.startsWith("topup:") ? TOPUP_DEDUPE_MS : DEDUPE_WINDOW_MS;
+  if (alert.key.startsWith("topup:")) return TOPUP_DEDUPE_MS;
+  if (alert.key.startsWith("arb:")) return ARB_DEDUPE_MS;
+  return DEDUPE_WINDOW_MS;
 }
 
 /** Drops alerts already sent inside their window unless their number moved significantly. */
