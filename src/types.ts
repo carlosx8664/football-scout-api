@@ -402,6 +402,8 @@ export interface SettleBetResult {
 export interface HistoryEntry {
   id: string;
   eventName: string;
+  /** `muggy` rows are single-leg mug bets, so they show no Bookie A / Bookie B. */
+  kind: BetKind;
   winningBookie: string | null;
   /** Null only for rows settled before `history` stored leg details. */
   bookieAName: string | null;

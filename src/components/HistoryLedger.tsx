@@ -200,7 +200,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                       </td>
                       <td className="history-event">
                         {entry.eventName}
-                        {entry.settlementType !== "win" && (
+                        {entry.settlementType !== "win" ? (
                           <span className="history-tag">
                             {entry.settlementType === "void"
                               ? "Void"
@@ -210,21 +210,31 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                                   ? "Lost"
                                   : "Cancelled"}
                           </span>
+                        ) : (
+                          entry.kind === "muggy" && <span className="history-tag">Won</span>
                         )}
                       </td>
                       <td className="history-bookie">
-                        {entry.bookieAName ?? "—"}
-                        {entry.winningBookie !== null &&
-                          entry.winningBookie === entry.bookieAName && (
-                            <span className="history-won">won</span>
-                          )}
+                        {entry.kind !== "muggy" && (
+                          <>
+                            {entry.bookieAName ?? "—"}
+                            {entry.winningBookie !== null &&
+                              entry.winningBookie === entry.bookieAName && (
+                                <span className="history-won">won</span>
+                              )}
+                          </>
+                        )}
                       </td>
                       <td className="history-bookie">
-                        {entry.bookieBName ?? "—"}
-                        {entry.winningBookie !== null &&
-                          entry.winningBookie === entry.bookieBName && (
-                            <span className="history-won">won</span>
-                          )}
+                        {entry.kind !== "muggy" && (
+                          <>
+                            {entry.bookieBName ?? "—"}
+                            {entry.winningBookie !== null &&
+                              entry.winningBookie === entry.bookieBName && (
+                                <span className="history-won">won</span>
+                              )}
+                          </>
+                        )}
                       </td>
                       <td>{formatAmount(entry.totalStake)}</td>
                       <td

@@ -26,6 +26,7 @@ function toEntry(row) {
   return {
     id: row.id,
     eventName: row.event_name,
+    kind: row.kind ?? "arb",
     winningBookie: row.winning_bookie,
     bookieAName: row.bookie_a_name ?? null,
     bookieBName: row.bookie_b_name ?? null,
@@ -71,7 +72,7 @@ export async function onRequestGet({ request, env }) {
     const [entries, totals, mugRows, mugTotals] = await Promise.all([
       db
         .prepare(
-          `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type,
+          `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type, kind,
                   bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
              FROM history
             WHERE ${where.join(" AND ")}
