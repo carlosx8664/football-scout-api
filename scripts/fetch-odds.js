@@ -72,38 +72,58 @@ async function fetchSportyBetPage(pageNum, marketIds) {
 async function fetchAllSportyBet(marketIds) {
   const seen = new Set();
   const allTournaments = [];
-  let page = 1;
   const MAX_PAGES = Math.ceil(WINDOW_DAYS / 2) * 15;
+  const PAGE_BATCH_SIZE = 5;
 
-  while (page <= MAX_PAGES) {
-    console.log(`📄 SportyBet [markets ${marketIds.join(',')}] page ${page}...`);
-    const data = await fetchSportyBetPage(page, marketIds);
-    const tournaments = data.data?.tournaments || [];
-    if (tournaments.length === 0) break;
+  for (let batchStart = 1; batchStart <= MAX_PAGES; batchStart += PAGE_BATCH_SIZE) {
+    const pages = Array.from(
+      { length: Math.min(PAGE_BATCH_SIZE, MAX_PAGES - batchStart + 1) },
+      (_, index) => batchStart + index,
+    );
+    const results = await Promise.all(
+      pages.map(async (page) => {
+        try {
+          console.log(`📄 SportyBet [markets ${marketIds.join(',')}] page ${page}...`);
+          return { page, data: await fetchSportyBetPage(page, marketIds) };
+        } catch (error) {
+          console.log(`   ⚠️  SportyBet page ${page} failed: ${error.message}`);
+          return { page, data: null };
+        }
+      }),
+    );
+    let stop = false;
 
-    let freshEvents = 0;
-    for (const t of tournaments) {
-      const kept = [];
-      for (const e of t.events || []) {
-        const ts = e.estimateStartTime;
-        if (!withinWindow(ts)) continue;
-        if (seen.has(e.eventId)) continue;
-        seen.add(e.eventId);
-        kept.push(e);
-        freshEvents++;
+    for (const result of results) {
+      const tournaments = result.data?.data?.tournaments || [];
+      if (tournaments.length === 0) {
+        stop = true;
+        continue;
       }
-      if (kept.length > 0) allTournaments.push({ ...t, events: kept });
+
+      let freshEvents = 0;
+      for (const t of tournaments) {
+        const kept = [];
+        for (const e of t.events || []) {
+          const ts = e.estimateStartTime;
+          if (!withinWindow(ts)) continue;
+          if (seen.has(e.eventId)) continue;
+          seen.add(e.eventId);
+          kept.push(e);
+          freshEvents++;
+        }
+        if (kept.length > 0) allTournaments.push({ ...t, events: kept });
+      }
+
+      const totalOnPage = tournaments.reduce((s, t) => s + (t.events?.length || 0), 0);
+      console.log(`   → page ${result.page}: ${totalOnPage} events (${freshEvents} kept)`);
+      if (totalOnPage < 100) stop = true;
     }
 
-    const totalOnPage = tournaments.reduce((s, t) => s + (t.events?.length || 0), 0);
-    console.log(`   → page ${page}: ${totalOnPage} events (${freshEvents} kept)`);
-
-    if (totalOnPage < 100) break;
-    page++;
-    await sleep(1500);
+    if (stop) break;
+    if (batchStart + PAGE_BATCH_SIZE <= MAX_PAGES) await sleep(100);
   }
 
-  if (page > MAX_PAGES) {
+  if (allTournaments.length >= MAX_PAGES) {
     console.log(`   ⚠️  Stopped at the ${MAX_PAGES}-page safety limit.`);
   }
 
@@ -313,7 +333,7 @@ const BETBORO_COMPETITIONS = [
 ];
 
 const BETBORO_REGIONS_URL = 'https://bs.betboro.com.gh/regions/competitions/sport/1';
-const BETBORO_BATCH_SIZE = 8;
+const BETBORO_BATCH_SIZE = 5;
 
 const betboroHeaders = () => ({
   accept: 'application/json, text/plain, */*',
@@ -409,18 +429,18 @@ async function fetchAllBetBoro(competitionIds) {
   for (let i = 0; i < competitionIds.length; i += BETBORO_BATCH_SIZE) {
     const ids = competitionIds.slice(i, i + BETBORO_BATCH_SIZE);
     console.log(`📄 BetBoro competitions ${ids.join(',')}...`);
-    try {
-      const resp = await fetchBetBoroBatch(ids);
-      responses.push(resp);
-      console.log(`   → ${Array.isArray(resp) ? resp.length : 0} competitions returned`);
-    } catch (e) {
-      console.log(`   ⚠️  Batch failed. Retrying individually...`);
-      for (const id of ids) {
-        try { responses.push(await fetchBetBoroBatch([id])); } catch (e2) {}
-        await sleep(1000);
-      }
-    }
-    await sleep(1000);
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          return await fetchBetBoroBatch([id]);
+        } catch (error) {
+          console.log(`   ⚠️  BetBoro competition ${id} failed: ${error.message}`);
+          return null;
+        }
+      }),
+    );
+    responses.push(...results.filter(Boolean));
+    if (i + BETBORO_BATCH_SIZE < competitionIds.length) await sleep(100);
   }
   return collectBetBoro(responses);
 }

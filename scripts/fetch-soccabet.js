@@ -54,7 +54,7 @@ const USER_AGENT =
 const SOCCER_SPORT_ID = 77;
 
 const WINDOW_DAYS = Math.max(1, Number(opt('days', '2')) || 2);
-const CAPTURE_SECONDS = Math.max(5, Number(opt('seconds', '60')) || 60);
+const CAPTURE_SECONDS = Math.max(5, Number(opt('seconds', '20')) || 20);
 const FILE_SUFFIX = opt('suffix', '');
 const INCLUDE_LIVE = has('include-live');
 const DUMP_RAW = has('dump-raw');
