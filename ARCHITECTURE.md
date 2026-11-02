@@ -176,6 +176,7 @@ plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `c
 | `0009_free_bet_flag.sql` | `active_bets.is_free_bet` / `history.is_free_bet` — the free stake is never debited and `total_stake` counts only the hedge |
 | `0010_active_bets_selection.sql` | `active_bets.bookie_a_selection` / `bookie_b_selection` — the side each leg holds |
 | `0011_history_logged_at.sql` | `history.logged_at` — when the bet was placed, so the daily mug gate never counts a late settlement as today's mug bet |
+| `0012_history_kickoff.sql` | `history.kickoff` — the match kickoff, so History groups daily profit by match day rather than settlement day |
 
 ### Worker — `workers/dispatch-trigger/`
 

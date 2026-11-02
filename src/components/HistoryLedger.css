@@ -184,6 +184,22 @@
 /* Cancellations net to zero: shown greyed so they read as audit trail, not performance. */
 .history-profit.muted { color: var(--color-neutral-6); }
 
+/* Running total for the whole filtered window, pinned to the bottom of the ledger. */
+.history-total-row th,
+.history-total-row td {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 12px;
+  background: var(--color-neutral-3);
+  border-top: 2px solid var(--color-neutral-5);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: left;
+  color: var(--color-neutral-7);
+}
+.history-total-row .history-profit { color: #15803d; }
+.history-total-row .history-profit.negative { color: #c20a0a; }
+
 .history-tag {
   display: inline-block;
   margin-left: 8px;

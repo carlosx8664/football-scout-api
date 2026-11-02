@@ -17,6 +17,15 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const WEEK_START = "date('now', '-' || ((strftime('%w', 'now') + 6) % 7) || ' days')";
 const MAX_ENTRIES = 500;
 
+/**
+ * Settlement day vs. match day. History groups profit by the day the match kicked off, so a
+ * late settlement stays on the right day. Rows without a stored kickoff fall back to `settled_at`.
+ */
+const KICKOFF_MS =
+  "COALESCE(NULLIF(kickoff, 0), CAST(strftime('%s', settled_at) AS INTEGER) * 1000)";
+const KICKOFF_DAY =
+  "date(COALESCE(NULLIF(kickoff, 0) / 1000, strftime('%s', settled_at)), 'unixepoch')";
+
 function toEntry(row) {
   const stakeA = row.bookie_a_stake === null ? null : round2(Number(row.bookie_a_stake));
   const stakeB = row.bookie_b_stake === null ? null : round2(Number(row.bookie_b_stake));
@@ -33,6 +42,7 @@ function toEntry(row) {
     totalStake,
     netProfit: round2(Number(row.net_profit ?? 0)),
     settledAt: row.settled_at,
+    kickoff: row.kickoff ?? null,
     settlementType: row.settlement_type ?? "win",
   };
 }
@@ -60,11 +70,11 @@ export async function onRequestGet({ request, env }) {
   const where = ["is_simulation = ?"];
   const params = [mode];
   if (from) {
-    where.push("date(settled_at) >= date(?)");
+    where.push(`${KICKOFF_DAY} >= date(?)`);
     params.push(from);
   }
   if (to) {
-    where.push("date(settled_at) <= date(?)");
+    where.push(`${KICKOFF_DAY} <= date(?)`);
     params.push(to);
   }
 
@@ -73,10 +83,10 @@ export async function onRequestGet({ request, env }) {
       db
         .prepare(
           `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type, kind,
-                  bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake
+                  bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kickoff
              FROM history
             WHERE ${where.join(" AND ")}
-            ORDER BY settled_at DESC
+            ORDER BY ${KICKOFF_MS} DESC
             LIMIT ${MAX_ENTRIES}`,
         )
         .bind(...params)

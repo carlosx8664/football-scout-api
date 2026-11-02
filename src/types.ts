@@ -411,6 +411,8 @@ export interface HistoryEntry {
   totalStake: number;
   netProfit: number;
   settledAt: string;
+  /** Match kickoff in epoch ms; null for rows settled before kickoff was stored. */
+  kickoff: number | null;
   /** `void` and `cashout` rows are badged in the History table. */
   settlementType: SettlementOutcome;
 }

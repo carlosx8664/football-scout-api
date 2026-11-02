@@ -26,6 +26,15 @@ const PRESETS: Array<{ value: HistoryPreset; label: string }> = [
 /** Calendar day key (UTC, matching the server's date() filter) for the group headers. */
 const dayKey = (iso: string) => iso.slice(0, 10);
 
+/**
+ * The group a row belongs to: the day the match kicked off, so a match played yesterday but
+ * settled this morning stays under yesterday. Rows without a kickoff fall back to settlement.
+ */
+const matchDayKey = (entry: HistoryEntry) =>
+  entry.kickoff && entry.kickoff > 0
+    ? dayKey(new Date(entry.kickoff).toISOString())
+    : dayKey(entry.settledAt);
+
 const dayLabel = (key: string) =>
   new Date(`${key}T00:00:00`).toLocaleDateString("en-GB", {
     weekday: "long",
@@ -45,9 +54,9 @@ interface DayGroup {
 function groupByDay(entries: HistoryEntry[]): DayGroup[] {
   const groups: DayGroup[] = [];
 
-  // The API returns newest first, so groups keep that order without a second sort.
+  // The API returns newest kickoff first, so groups keep that order without a second sort.
   for (const entry of entries) {
-    const key = dayKey(entry.settledAt);
+    const key = matchDayKey(entry);
     let group = groups[groups.length - 1];
     if (!group || group.key !== key) {
       group = { key, netProfit: 0, entries: [] };
@@ -101,7 +110,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
         <div>
           <h2>History</h2>
           <p className="history-subtitle">
-            Settled arbs from the {simulation ? "simulation" : "real"} ledger, grouped by day.
+            Settled arbs from the {simulation ? "simulation" : "real"} ledger, grouped by match day.
           </p>
         </div>
         <span className="history-badge">
@@ -129,7 +138,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
           <div className="history-custom">
             <input
               type="date"
-              aria-label="From date"
+              aria-label="From match date"
               value={custom.from}
               max={custom.to}
               onChange={(event) => setCustom((current) => ({ ...current, from: event.target.value }))}
@@ -137,7 +146,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
             <span>→</span>
             <input
               type="date"
-              aria-label="To date"
+              aria-label="To match date"
               value={custom.to}
               min={custom.from}
               onChange={(event) => setCustom((current) => ({ ...current, to: event.target.value }))}
@@ -196,7 +205,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                     <tr key={entry.id}>
                       <td className="history-when">
                         <span>{timeLabel(entry.settledAt)}</span>
-                        <span className="history-when-date">{dayLabel(group.key)}</span>
+                        <span className="history-when-date">{dayLabel(dayKey(entry.settledAt))}</span>
                       </td>
                       <td className="history-event">
                         {entry.eventName}
@@ -254,6 +263,17 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                 </Fragment>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="history-total-row">
+                <th scope="row" colSpan={5}>
+                  Total {arbProfit >= 0 ? "Profit" : "Loss"}
+                </th>
+                <td className={`history-profit${arbProfit < 0 ? " negative" : ""}`}>
+                  {arbProfit >= 0 ? "+" : "−"}
+                  {formatAmount(Math.abs(arbProfit))}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
