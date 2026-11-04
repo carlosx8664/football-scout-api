@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "oddtor-live-scores",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-19",
+  "observability": {
+    "enabled": true
+  },
+  "triggers": {
+    // Cloudflare's finest granularity is one minute.
+    "crons": ["* * * * *"]
+  },
+  // Same namespace as the Pages project: /api/live-scores reads feed-live-scores from it.
+  "kv_namespaces": [
+    {
+      "binding": "FOOTBALL_DATA",
+      "id": "dbf948e365cd4d95ba73cebf4bb35a0a"
+    }
+  ],
+  // Same database as the Pages project; the binding name must stay "DB".
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "football-scout-db",
+      "database_id": "020ff25b-1e9e-4f5b-9981-c9a86e5f7b32"
+    }
+  ]
+}

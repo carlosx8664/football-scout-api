@@ -157,3 +157,14 @@
   color: var(--color-neutral-6);
 }
 .settle-cancel:hover:not(:disabled) { color: var(--color-neutral-7); }
+
+/* Final score handed over by the live feed: context only, never an auto-settlement. */
+.settle-final-score {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.1);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #b45309;
+}

@@ -58,6 +58,8 @@ function toActiveBet(row) {
     createdAt: row.created_at ?? null,
     /** Epoch ms from the arb feed; null for bets logged before kickoff was stored. */
     kickoff: Number(row.kickoff) > 0 ? Number(row.kickoff) : null,
+    /** Sportradar fixture id; null for bets logged before it was stored. */
+    srEventId: row.sr_event_id ?? null,
     isSimulation: row.is_simulation === 1,
   };
 }
@@ -75,7 +77,7 @@ export async function onRequestGet({ request, env }) {
         `SELECT id, event_name, kind, is_free_bet,
                 bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
                 bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
-                profit_percent, is_simulation, created_at, kickoff
+                profit_percent, is_simulation, created_at, kickoff, sr_event_id
            FROM active_bets
           WHERE is_simulation = ?
           ORDER BY created_at DESC`,
@@ -166,6 +168,9 @@ export async function onRequestPost({ request, env }) {
   // Kickoff comes from the arb feed so the card can show when the match starts.
   const kickoff = Number(body?.kickoff);
   const kickoffValue = Number.isFinite(kickoff) && kickoff > 0 ? Math.round(kickoff) : null;
+  // Sportradar id from the arb feed: only a well-formed id can be matched against live scores.
+  const rawEventId = typeof body?.srEventId === "string" ? body.srEventId.trim() : "";
+  const srEventId = /^sr:match:\d+$/.test(rawEventId) ? rawEventId : null;
 
   try {
     // Camouflage rule: every bookie used by the arb needs its own muggy acca today, so both sides
@@ -286,8 +291,8 @@ export async function onRequestPost({ request, env }) {
              id, event_name, kind, is_free_bet,
              bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
              bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
-             profit_percent, is_simulation, kickoff
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             profit_percent, is_simulation, kickoff, sr_event_id
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -305,6 +310,7 @@ export async function onRequestPost({ request, env }) {
           profitPercent,
           modeValue(simulation),
           kickoffValue,
+          srEventId,
         ),
     ]);
 
@@ -317,6 +323,7 @@ export async function onRequestPost({ request, env }) {
         profitPercent,
         totalStake: freeBet ? legB.stake : total,
         kickoff: kickoffValue,
+        srEventId,
         simulation,
         legs: [
           { name: legA.name, selection: legA.selection, odds: legA.odds, stake: legA.stake },

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { cancelBet, fetchActiveBets, settleBet } from "../lib/bets";
+import { fetchSettlementQueue } from "../lib/liveScores";
 import { formatAmount } from "../lib/wallets";
 import type {
   ActiveBetRecord,
@@ -7,6 +8,7 @@ import type {
   CancelBetResult,
   SettleBetRequest,
   SettleBetResult,
+  SettlementQueueItem,
 } from "../types";
 import SettleBetModal from "./SettleBetModal";
 import "./ActiveBetsLedger.css";
@@ -38,6 +40,8 @@ const ActiveBetsLedger = ({
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [page, setPage] = useState(0);
+  // Bets whose match the live-scores Worker has already seen end.
+  const [queue, setQueue] = useState<SettlementQueueItem[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -55,6 +59,31 @@ const ActiveBetsLedger = ({
     return () => controller.abort();
   }, [simulation, refreshToken, localRefresh]);
 
+  // Poll the finished-match queue: a prompt appears when a tracked fixture reaches full time.
+  useEffect(() => {
+    const controller = new AbortController();
+    let inFlight = false;
+
+    const load = async () => {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const items = await fetchSettlementQueue(simulation, controller.signal);
+        if (!controller.signal.aborted) setQueue(items);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void load();
+    const timer = setInterval(() => void load(), 60_000);
+
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [simulation, refreshToken, localRefresh]);
+
   const payload = result?.simulation === simulation ? result.payload : null;
   const error = problem?.simulation === simulation ? problem.message : null;
   const loading = payload === null && error === null;
@@ -65,6 +94,7 @@ const ActiveBetsLedger = ({
   const pageCount = Math.max(1, Math.ceil(bets.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
   const visible = bets.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
+  const finishedByBet = new Map(queue.map((item) => [item.betId, item]));
 
   const settle = async (bet: ActiveBetRecord, request: SettleBetRequest) => {
     const settled = await settleBet(bet.id, request);
@@ -121,6 +151,29 @@ const ActiveBetsLedger = ({
         </p>
       ) : (
         <>
+          {queue.length > 0 && (
+            <div className="active-bets-finished-list">
+              {queue.map((item) => {
+                const bet = bets.find((entry) => entry.id === item.betId);
+                if (!bet) return null;
+                return (
+                  <div className="active-bets-finished" key={item.betId}>
+                    <div className="active-bets-finished-copy">
+                      <strong>
+                        Match finished
+                        {item.finalScore ? ` · ${item.finalScore.replace(":", "–")}` : ""}
+                      </strong>
+                      <span>{item.eventName}</span>
+                    </div>
+                    <button type="button" onClick={() => setTarget(bet)}>
+                      Settle
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <ul className="active-bets-list">
             {visible.map((bet) => (
               <li className="active-bet-card" key={bet.id}>
@@ -240,6 +293,7 @@ const ActiveBetsLedger = ({
         <SettleBetModal
           bet={target}
           simulation={simulation}
+          finalScore={finishedByBet.get(target.id)?.finalScore ?? null}
           onClose={() => setTarget(null)}
           onConfirm={(request) => settle(target, request)}
         />

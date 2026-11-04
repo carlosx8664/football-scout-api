@@ -297,6 +297,8 @@ export interface LogArbInput {
   simulation: boolean;
   /** Epoch milliseconds, taken from the arb feed so the card shows the match start. */
   kickoff?: number;
+  /** Sportradar fixture id, so live scores can be matched back to this bet. */
+  srEventId?: string | null;
   /** Form that logged the row: a two-leg arb (default), a muggy acca or a free bet. */
   kind?: BetKind;
 }
@@ -341,12 +343,72 @@ export interface ActiveBetRecord {
   createdAt: string | null;
   /** Match kickoff in epoch ms; null for bets logged before it was stored. */
   kickoff: number | null;
+  /** Sportradar fixture id, matched against the live-scores feed. */
+  srEventId: string | null;
   isSimulation: boolean;
 }
 
 export interface ActiveBetsPayload {
   simulation: boolean;
   activeBets: ActiveBetRecord[];
+}
+
+/** One in-play fixture from the live-scores Worker. */
+export interface LiveMatch {
+  /** Sportradar id, e.g. "sr:match:73835744"; matches `Match.sr_id`. */
+  eventId: string;
+  home: string;
+  away: string;
+  /** "Not start" | "H1" | "HT" | "H2" | "Ended" as reported by SportyBet. */
+  matchStatus: string;
+  /** "home:away", e.g. "2:1"; null before the first goal. */
+  score: string | null;
+  /** Elapsed clock as "MM:SS". */
+  playedSeconds: string | null;
+  period: string | null;
+  /** 0 = not started, 1 = live, 4 = ended. */
+  status: number;
+  startTime: number;
+}
+
+/** A final score the Worker resolved for a match the user has a bet on. */
+export interface FinishedMatch {
+  eventId: string;
+  home: string;
+  away: string;
+  score: string | null;
+  matchStatus: string;
+  status?: number;
+  startTime?: number;
+  /** Epoch ms when the result was first seen; used to prune old entries. */
+  finishedAt?: number;
+}
+
+export interface LiveScoresPayload {
+  /** Epoch ms of the last write of any kind. */
+  generatedAt: number;
+  /** Epoch ms of the last successful live scrape; the client ignores older `live` data. */
+  liveAt: number;
+  /** Epoch ms the `live` clocks were read at; the client extrapolates from here. */
+  serverNow: number;
+  live: LiveMatch[];
+  finished: FinishedMatch[];
+}
+
+/** One bet the ledger can offer to settle, with the score that decided it. */
+export interface SettlementQueueItem {
+  betId: string;
+  eventName: string;
+  srEventId: string;
+  home: string;
+  away: string;
+  finalScore: string;
+  matchStatus: string;
+}
+
+export interface SettlementQueuePayload {
+  simulation: boolean;
+  items: SettlementQueueItem[];
 }
 
 /** How a bet left the active ledger. `loss` is a mug bet that simply lost — no money returns. */

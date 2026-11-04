@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
+import { indexLiveMatches, liveLabel, scoreParts, useLiveScores } from "../lib/liveScores";
 import { matchesForTab, type FeedTab } from "../lib/schedule";
 import BookBreakdown from "./BookBreakdown";
 import "./MainFeed.css";
@@ -25,12 +26,16 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
   const [page, setPage] = useState(1);
 
+  const { payload: liveScores } = useLiveScores();
+  const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
+  const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
+
   const counts: Record<FeedTab, number> = {
-    today: matchesForTab(matches, "today", now).length,
-    tomorrow: matchesForTab(matches, "tomorrow", now).length,
-    week: matchesForTab(matches, "week", now).length,
+    today: matchesForTab(matches, "today", now, liveEventIds).length,
+    tomorrow: matchesForTab(matches, "tomorrow", now, liveEventIds).length,
+    week: matchesForTab(matches, "week", now, liveEventIds).length,
   };
-  const visibleMatches = matchesForTab(matches, activeTab, now);
+  const visibleMatches = matchesForTab(matches, activeTab, now, liveEventIds);
 
   const pageCount = Math.max(1, Math.ceil(visibleMatches.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -78,6 +83,12 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
           pageMatches.map((match) => {
             const prices = matchWinnerPrices(match.odds);
             const kickoff = formatKickoff(match.fixture.date);
+            // A live entry replaces the kickoff time with the clock and the "-" with the score.
+            const live = match.sr_id ? liveById.get(match.sr_id) : undefined;
+            const clock = live
+              ? liveLabel(live, { now, serverNow: liveScores?.serverNow ?? 0 })
+              : "";
+            const score = live ? scoreParts(live.score) : null;
 
             return (
               <div key={match.fixture.id} className="new-match-card">
@@ -87,9 +98,9 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
                   <div className="hot-badge hot-badge-muted">Awaiting odds</div>
                 )}
 
-                <div className="card-league-date">
+                <div className={`card-league-date${clock ? " is-live" : ""}`}>
                   <span>{kickoff.date}</span>
-                  <span>{kickoff.time}</span>
+                  <span>{clock || kickoff.time}</span>
                 </div>
                 <div className="card-league-name">{match.league.name}</div>
 
@@ -98,7 +109,13 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
                     {match.teams.home.logo && <img src={match.teams.home.logo} alt="" />}
                     <span>{match.teams.home.name}</span>
                   </div>
-                  <span className="card-vs">-</span>
+                  {score ? (
+                    <span className="card-live-score">
+                      {score.home} - {score.away}
+                    </span>
+                  ) : (
+                    <span className="card-vs">-</span>
+                  )}
                   <div className="card-team">
                     {match.teams.away.logo && <img src={match.teams.away.logo} alt="" />}
                     <span>{match.teams.away.name}</span>

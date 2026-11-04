@@ -26,11 +26,17 @@ export function hasMatchStartingSoon(
 }
 
 /**
- * Matches for a feed tab. Today hides matches that already kicked off; tomorrow shows all of
- * tomorrow's fixtures (none of which can have started yet). "week" is everything after
- * tomorrow, which the 6-day horizon feed supplies.
+ * Matches for a feed tab. Today hides matches that already kicked off — unless the live feed
+ * still has them, so an in-play fixture keeps its card instead of vanishing at minute one.
+ * Tomorrow shows all of tomorrow's fixtures (none of which can have started yet), and "week" is
+ * everything after tomorrow, which the 6-day horizon feed supplies.
  */
-export function matchesForTab(matches: Match[], tab: FeedTab, now: number): Match[] {
+export function matchesForTab(
+  matches: Match[],
+  tab: FeedTab,
+  now: number,
+  liveEventIds?: ReadonlySet<string>,
+): Match[] {
   const todayKey = new Date(now).toISOString().slice(0, 10);
   const tomorrowKey = new Date(now + DAY_MS).toISOString().slice(0, 10);
 
@@ -38,7 +44,10 @@ export function matchesForTab(matches: Match[], tab: FeedTab, now: number): Matc
     const dayKey = utcDayKey(match.fixture.date);
     if (tab === "week") return dayKey > tomorrowKey;
     if (dayKey !== (tab === "today" ? todayKey : tomorrowKey)) return false;
-    if (tab === "today") return new Date(match.fixture.date).getTime() > now;
+    if (tab === "today") {
+      if (new Date(match.fixture.date).getTime() > now) return true;
+      return Boolean(match.sr_id && liveEventIds?.has(match.sr_id));
+    }
     return true;
   });
 }

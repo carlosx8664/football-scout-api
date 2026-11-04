@@ -103,6 +103,7 @@ const LogArbModal = ({
         ],
         simulation,
         kickoff: Number.isFinite(arb.kickoff) ? arb.kickoff : undefined,
+        srEventId: arb.eventId ?? null,
       });
       setSaving(false);
       onSaved();

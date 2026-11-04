@@ -9,6 +9,8 @@ interface SettleBetModalProps {
   onClose: () => void;
   /** Rejects with the server message when the settlement cannot be applied. */
   onConfirm: (request: SettleBetRequest) => Promise<void>;
+  /** "home:away" from the live feed; null when the match was not tracked. */
+  finalScore?: string | null;
 }
 
 type VoidedLegs = "a" | "b" | "both";
@@ -47,7 +49,13 @@ const Choice = ({
  * Settlement wizard: outcome (normal win / void / cash out) -> the questions that outcome
  * needs -> a preview of the wallet credits and net result before anything is written.
  */
-const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalProps) => {
+const SettleBetModal = ({
+  bet,
+  simulation,
+  onClose,
+  onConfirm,
+  finalScore,
+}: SettleBetModalProps) => {
   const [outcome, setOutcome] = useState<SettlementOutcome | null>(null);
   const [winner, setWinner] = useState<"a" | "b" | null>(null);
   const [voided, setVoided] = useState<VoidedLegs | null>(null);
@@ -234,6 +242,11 @@ const SettleBetModal = ({ bet, simulation, onClose, onConfirm }: SettleBetModalP
         </header>
 
         <p className="settle-event">{bet.eventName}</p>
+        {finalScore && (
+          <p className="settle-final-score">
+            Final score {finalScore.replace(":", "–")} — confirm the outcome below.
+          </p>
+        )}
         <p className="settle-outlay">Total outlay {formatGhs(totalStake)}</p>
 
         {isMuggy && (

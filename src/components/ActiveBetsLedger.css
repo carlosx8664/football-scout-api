@@ -214,3 +214,59 @@
   transition: background 0.2s, color 0.2s;
 }
 .active-bets-settle:hover { background: var(--color-brand); color: #fff; }
+
+/* Finished-match prompt: opens the settle wizard with the final score already known. */
+.active-bets-finished-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.active-bets-finished {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: 10px;
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.active-bets-finished-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.active-bets-finished-copy strong {
+  font-size: 0.82rem;
+}
+
+.active-bets-finished-copy span {
+  overflow: hidden;
+  font-size: 0.75rem;
+  color: var(--color-neutral-6);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-bets-finished button {
+  flex: none;
+  padding: 5px 12px;
+  border: 1px solid #d97706;
+  border-radius: 999px;
+  background: #d97706;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.active-bets-finished button:hover {
+  border-color: #b45309;
+  background: #b45309;
+}

@@ -253,3 +253,16 @@
 .details-btn:hover {
   background-color: #d97706;
 }
+
+/* Live state: the clock replaces the kickoff time and the score replaces the dash. */
+.card-league-date.is-live {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.card-live-score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: #111827;
+}
