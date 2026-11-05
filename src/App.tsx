@@ -13,7 +13,6 @@ import WalletsDashboard from "./components/WalletsDashboard";
 import WalletsHistory from "./components/WalletsHistory";
 import { fetchSnapshot } from "./lib/api";
 import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
-import { useRefreshOnReturn } from "./lib/useRefreshOnReturn";
 import type { SnapshotData } from "./types";
 
 const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
@@ -36,7 +35,6 @@ const Shell = ({ children }: { children: ReactNode }) => (
 );
 
 function App() {
-  const { refreshing } = useRefreshOnReturn();
   const [data, setData] = useState<SnapshotData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -179,10 +177,7 @@ function App() {
 
   return (
     <>
-      <LoadingOverlay
-        message={refreshing ? "Refreshing…" : "Loading today's matches…"}
-        visible={loading || refreshing}
-      />
+      <LoadingOverlay message="Loading today's matches…" visible={loading} />
       {content}
     </>
   );
