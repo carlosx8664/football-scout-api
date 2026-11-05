@@ -17,7 +17,7 @@ const MAX_OPENING_BALANCE = 1_000_000;
 /**
  * POST /api/wallets/refresh
  *
- * Body: `{ simulation?: boolean, scope?: "mode" | "all", openingBalance?: number, bookies?: string[] }`
+ * Body: `{ simulation?: boolean, scope?: "mode" | "all", openingBalance?: number, bookies?: string[], reserve?: number }`
  *
  * Wipes the ledger for a clean start: every active bet, settled history row, cash-flow entry and
  * mug bet for the selected mode(s) is removed, and each wallet is set back to `openingBalance`
@@ -26,8 +26,8 @@ const MAX_OPENING_BALANCE = 1_000_000;
  *
  * When `bookies` is supplied only those wallets are funded and every other wallet is zeroed, so
  * the reset matches the selection in My Wallets. Each funded wallet gets an opening deposit in
- * the cash-flow ledger, and the Momo reserve restarts at 0: the unallocated part of the bankroll
- * is derived from the plan on the client, so storing it here too would count it twice.
+ * the cash-flow ledger, and the Momo reserve is set to the unallocated cash the rounded deposits
+ * leave behind, so that leftover shows up as real money the bookies can be topped up from.
  */
 export async function onRequestPost({ request, env }) {
   const db = getDb(env);
@@ -48,6 +48,10 @@ export async function onRequestPost({ request, env }) {
     Number.isFinite(requested) && requested >= 0 && requested <= MAX_OPENING_BALANCE
       ? round2(requested)
       : SIMULATION_RESET_PER_WALLET;
+
+  const requestedReserve = Number(body?.reserve);
+  const reserve =
+    Number.isFinite(requestedReserve) && requestedReserve > 0 ? round2(requestedReserve) : 0;
 
   // Lower-cased names of the bookies picked in My Wallets; null keeps the legacy "every wallet".
   const requestedBookies = Array.isArray(body?.bookies)
@@ -122,10 +126,10 @@ export async function onRequestPost({ request, env }) {
 
     await db.batch(statements);
 
-    // Momo is derived from the plan on the client (unallocated bankroll) plus the real cash that
-    // has moved in and out, so the reserve itself starts empty and only tracks transfers.
+    // Momo holds only real cash: the unallocated part of the bankroll the rounded deposits left
+    // behind, plus whatever withdrawals have added since.
     for (const mode of modes) {
-      await setCashReserve(db, mode, 0);
+      await setCashReserve(db, mode, reserve);
     }
 
     return json(await walletPayload(db, simulation));

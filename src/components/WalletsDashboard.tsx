@@ -101,24 +101,19 @@ const WalletsDashboard = () => {
   }, []);
 
   /**
-   * The plan drives every wallet figure: the per-bookie split, the deposits it implies and the
-   * Momo leftover. Recomputed on each render, so changing the bankroll or ticking a bookie
-   * reprices My Wallets, Rebalancing Hints, Cash Flow and Momo together.
+   * The plan drives the per-bookie split and the deposits it implies. Momo is real cash only:
+   * every withdrawal lands in the reserve and every top-up spends from it.
    */
   const plan = (() => {
     const bookies = selectedBookies(settings);
     const splitReady = hasSplit(settings);
     const perWallet = splitReady ? computePlan(settings, bookies.length).perWallet : 0;
-    const leftover = splitReady
-      ? unallocatedFor(settings.bankroll, perWallet, bookies.length)
-      : 0;
     return {
       count: bookies.length,
       splitReady,
       perWallet,
       deposits: perWallet * bookies.length,
-      // Momo: the plan leftover plus the cash that has actually moved in and out of the bookies.
-      momo: (payload?.cashReserve ?? 0) + leftover,
+      momo: payload?.cashReserve ?? 0,
     };
   })();
   const momoBalance = plan.momo;
@@ -141,12 +136,17 @@ const WalletsDashboard = () => {
   /** Start afresh: wipe this mode's ledger and re-open every selected wallet at one balance. */
   const handleStartAfresh = useCallback(
     async (openingBalance: number) => {
-      // Only the selected bookies are funded; everything else in the ledger is zeroed.
+      // Only the selected bookies are funded; everything else in the ledger is zeroed. Cash the
+      // rounded deposits leave behind is seeded into the Momo reserve so it stays spendable.
+      const unallocated = plan.splitReady
+        ? unallocatedFor(settings.bankroll, plan.perWallet, plan.count)
+        : 0;
       const next = await refreshWallets(
         enabled,
         openingBalance,
         "mode",
         selectedBookies(settings),
+        unallocated,
       );
       applyPayload(next);
       setRefreshToken((current) => current + 1);
@@ -154,7 +154,7 @@ const WalletsDashboard = () => {
         `Fresh start: ${selectedBookies(settings).length} selected wallets reset to ${formatAmount(openingBalance)} each.`,
       );
     },
-    [applyPayload, enabled, settings],
+    [applyPayload, enabled, settings, plan.splitReady, plan.perWallet, plan.count],
   );
 
   /** Per-bookie base the weekly sweep leaves behind: the plan's rounded opening deposit. */

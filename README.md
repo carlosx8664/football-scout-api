@@ -537,10 +537,13 @@ Bookies with an unsettled bet placed in the last 4 hours
 withdrawal ledger. `cash_reserve` holds one row per mode: the mobile-money wallet, i.e. bankroll
 that is not sitting in a bookie account.
 
-- **Start afresh** rounds each wallet's opening deposit DOWN to a round 50
-  (`openingBalanceFor`), so 10,000 across 6 bookies becomes 6 ? 1,650 = 9,900 with the remaining
-  100 parked in `cash_reserve`. The exact per-bookie target (1,666.67) is still shown ? only the
-  deposit is rounded.
+- **Start afresh** rounds each wallet's opening deposit DOWN to a round 100
+  (`openingBalanceFor`), so 10,000 across 6 bookies becomes 6 × 1,600 = 9,600 with the remaining
+  400 seeded into `cash_reserve` as Momo cash. The exact per-bookie target (1,666.67) is still
+  shown — only the deposit is rounded.
+- **Momo** is real cash only: `cash_reserve`, i.e. what withdrawals moved out of the bookies plus
+  the unallocated leftover from Start afresh, minus top-ups. Nothing is derived from the plan on
+  the client any more.
 - **Withdraw Weekly Profits** keeps `baseTarget` (the plan's opening deposit) in every bookie and
   sweeps the excess into `cash_reserve`, rounded down to whole 50s. A 1,750 balance against a
   1,650 base withdraws 100. The sweep deliberately skips the manual buttons' 50?500 cap and

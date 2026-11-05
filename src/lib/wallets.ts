@@ -152,11 +152,13 @@ export async function refreshWallets(
   scope: "mode" | "all" = "mode",
   /** Bookies picked in My Wallets: only these are funded, the rest are zeroed. */
   bookies?: string[],
+  /** Unallocated bankroll the rounded deposits leave behind, seeded into the Momo reserve. */
+  reserve?: number,
 ): Promise<WalletsPayload> {
   return request("/api/wallets/refresh", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ simulation, openingBalance, scope, bookies }),
+    body: JSON.stringify({ simulation, openingBalance, scope, bookies, reserve }),
   });
 }
 
