@@ -18,13 +18,16 @@ const WEEK_START = "date('now', '-' || ((strftime('%w', 'now') + 6) % 7) || ' da
 const MAX_ENTRIES = 500;
 
 /**
- * Settlement day vs. match day. History groups profit by the day the match kicked off, so a
- * late settlement stays on the right day. Rows without a stored kickoff fall back to `settled_at`.
+ * Which day a settled row belongs to. Arbs follow the match, so a late settlement stays on the
+ * day the match was played. Mug bets (and free bets) are logged by hand with no fixture attached,
+ * so they always follow the day they were placed (`logged_at`, then `settled_at` as a last resort).
  */
-const KICKOFF_MS =
-  "COALESCE(NULLIF(kickoff, 0), CAST(strftime('%s', settled_at) AS INTEGER) * 1000)";
-const KICKOFF_DAY =
-  "date(COALESCE(NULLIF(kickoff, 0) / 1000, strftime('%s', settled_at)), 'unixepoch')";
+const PLACED_TIME = "CAST(strftime('%s', COALESCE(logged_at, settled_at)) AS INTEGER) * 1000";
+const MATCH_TIME_MS = `CASE WHEN COALESCE(kind, 'arb') = 'arb'
+  THEN COALESCE(NULLIF(kickoff, 0), ${PLACED_TIME})
+  ELSE ${PLACED_TIME}
+END`;
+const MATCH_DAY = `date((${MATCH_TIME_MS}) / 1000, 'unixepoch')`;
 
 function toEntry(row) {
   const stakeA = row.bookie_a_stake === null ? null : round2(Number(row.bookie_a_stake));
@@ -42,7 +45,8 @@ function toEntry(row) {
     totalStake,
     netProfit: round2(Number(row.net_profit ?? 0)),
     settledAt: row.settled_at,
-    kickoff: row.kickoff ?? null,
+    /** Grouping day in epoch ms: arb kickoff, or the placed time for mug bets. */
+    kickoff: Number(row.kickoff_ms) || null,
     settlementType: row.settlement_type ?? "win",
   };
 }
@@ -70,11 +74,11 @@ export async function onRequestGet({ request, env }) {
   const where = ["is_simulation = ?"];
   const params = [mode];
   if (from) {
-    where.push(`${KICKOFF_DAY} >= date(?)`);
+    where.push(`${MATCH_DAY} >= date(?)`);
     params.push(from);
   }
   if (to) {
-    where.push(`${KICKOFF_DAY} <= date(?)`);
+    where.push(`${MATCH_DAY} <= date(?)`);
     params.push(to);
   }
 
@@ -83,10 +87,11 @@ export async function onRequestGet({ request, env }) {
       db
         .prepare(
           `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type, kind,
-                  bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kickoff
+                  bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake,
+                  ${MATCH_TIME_MS} AS kickoff_ms
              FROM history
             WHERE ${where.join(" AND ")}
-            ORDER BY ${KICKOFF_MS} DESC
+            ORDER BY ${MATCH_TIME_MS} DESC
             LIMIT ${MAX_ENTRIES}`,
         )
         .bind(...params)

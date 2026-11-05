@@ -83,8 +83,8 @@ export async function onRequestDelete({ request, env, params }) {
           `INSERT INTO history (
              id, event_name, winning_bookie, net_profit, is_simulation, settlement_type,
              bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kind,
-             is_free_bet, kickoff
-           ) VALUES (?, ?, NULL, 0, ?, 'cancelled', ?, ?, ?, ?, ?, ?, ?, ?)`,
+             is_free_bet, kickoff, logged_at
+           ) VALUES (?, ?, NULL, 0, ?, 'cancelled', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           historyId,
@@ -98,6 +98,9 @@ export async function onRequestDelete({ request, env, params }) {
           bet.kind ?? "arb",
           Number(bet.is_free_bet) === 1 ? 1 : 0,
           bet.kickoff ?? null,
+          // Cancelled rows are audit entries; keep the placed time so History still buckets them
+          // by the day the bet was made when there is no kickoff.
+          bet.created_at ?? null,
         ),
       db.prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?").bind(id, mode),
     ]);

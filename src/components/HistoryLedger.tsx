@@ -29,8 +29,8 @@ const PAGE_SIZES = [20, 50, 100] as const;
 const dayKey = (iso: string) => iso.slice(0, 10);
 
 /**
- * The group a row belongs to: the day the match kicked off, so a match played yesterday but
- * settled this morning stays under yesterday. Rows without a kickoff fall back to settlement.
+ * The group a row belongs to. The API resolves this per kind: arbs use the match kickoff, mug bets
+ * use the day they were placed, and only rows with neither fall back to settlement.
  */
 const matchDayKey = (entry: HistoryEntry) =>
   entry.kickoff && entry.kickoff > 0
