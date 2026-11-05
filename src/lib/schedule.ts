@@ -51,9 +51,9 @@ export function matchesForTab(
   return matches.filter((match) => {
     const dayKey = utcDayKey(match.fixture.date);
     if (dayKey !== (tab === "today" ? todayKey : tomorrowKey)) return false;
+    // In-play matches belong to the Live tab only, never Today's Matches.
     if (tab === "today") {
-      if (new Date(match.fixture.date).getTime() > now) return true;
-      return Boolean(match.sr_id && liveEventIds?.has(match.sr_id));
+      return new Date(match.fixture.date).getTime() > now;
     }
     return true;
   });

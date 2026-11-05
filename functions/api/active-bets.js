@@ -173,23 +173,25 @@ export async function onRequestPost({ request, env }) {
   const srEventId = /^sr:match:\d+$/.test(rawEventId) ? rawEventId : null;
 
   try {
-    // Camouflage rule: every bookie used by the arb needs its own muggy acca today, so both sides
-    // of the bet look human. "Today" is the punter's local day — the client sends the UTC bounds
-    // of its own midnight-to-midnight window — so the gate flips exactly when their calendar does,
-    // and a mug bet from any earlier day never satisfies it.
+    // Camouflage rule: a bookie only needs a muggy acca while it has nothing else running on it.
+    // Any bet still open on that bookie — an arb for a future match included — already keeps the
+    // account active, so it bypasses the daily mug-bet gate. Only a bookie with no open position
+    // and no mug bet logged today is asked for one.
     if (kind === "arb") {
       const { start, end } = localDayWindow(body);
       const mode = modeValue(simulation);
       const mugged = new Set();
 
-      // Open muggy accas logged inside the punter's local day.
+      // Any open position on the bookie, whatever its match date or kind.
       const open = await db
         .prepare(
-          `SELECT DISTINCT lower(bookie_a_name) AS bookie FROM active_bets
-            WHERE is_simulation = ? AND kind = 'muggy'
-              AND datetime(created_at) >= datetime(?) AND datetime(created_at) < datetime(?)`,
+          `SELECT DISTINCT lower(name) AS bookie FROM (
+              SELECT bookie_a_name AS name FROM active_bets WHERE is_simulation = ?
+              UNION
+              SELECT bookie_b_name AS name FROM active_bets WHERE is_simulation = ?
+            )`,
         )
-        .bind(mode, start, end)
+        .bind(mode, mode)
         .all();
       for (const row of open.results ?? []) mugged.add(String(row.bookie));
 
@@ -222,8 +224,8 @@ export async function onRequestPost({ request, env }) {
           {
             error:
               `Log a muggy acca for ${missing.join(" and ")} today before arbing with ` +
-              `${missing.length === 1 ? "it" : "them"}: every bookie in an arb needs one mug bet ` +
-              "a day. Use Mug Bets → Muggy Acca, then come back.",
+              `${missing.length === 1 ? "it" : "them"}: a bookie with no active bets needs one mug ` +
+              "bet a day. Use Mug Bets → Muggy Acca, then come back.",
           },
           409,
         );
