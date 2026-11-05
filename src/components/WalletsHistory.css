@@ -32,3 +32,11 @@
   color: var(--color-neutral-7);
   border-color: var(--color-brand);
 }
+
+@media (max-width: 900px) {
+  .wallets-history-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .wallets-history-header h1 { font-size: 1.2rem; }
+}

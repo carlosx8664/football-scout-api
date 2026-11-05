@@ -310,3 +310,19 @@
 
 .history-mug-status.won { color: #15803d; }
 .history-mug-status.lost { color: #b91c1c; }
+
+@media (max-width: 900px) {
+  .history-panel { padding: 16px; }
+  .history-header { flex-direction: column; gap: 8px; }
+  .history-toolbar { gap: 8px; }
+  .history-custom { flex-wrap: wrap; }
+  .history-custom input { flex: 1 1 auto; min-width: 0; }
+
+  /* Keep every column legible by scrolling the ledger sideways on phones. */
+  .history-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .history-table { min-width: 620px; }
+  .history-event { min-width: 0; }
+}

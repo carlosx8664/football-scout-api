@@ -127,3 +127,49 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   line-height: 1.5;
   color: var(--color-neutral-6);
 }
+
+/* --- Responsive layout --- */
+
+/* Below the desktop width the right rail drops under the main column instead of
+   squeezing it; the left sidebar keeps the feed company until tablet width. */
+@media (max-width: 1180px) {
+  .app-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 24px;
+    padding: 24px 20px;
+  }
+  .app-body > .right-sidebar {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phones: single column, tighter gutters, league nav becomes a swipeable strip. */
+@media (max-width: 900px) {
+  .app-body,
+  .app-body-wide {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 20px 16px 40px;
+  }
+  .app-body > .right-sidebar,
+  .app-body > .left-sidebar {
+    grid-column: auto;
+  }
+  /* Controls first, feed second, supporting panels last. */
+  .app-body > .left-sidebar { order: -1; }
+
+  .notice {
+    margin: 40px auto;
+    padding: 28px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-body,
+  .app-body-wide {
+    padding: 16px 12px 32px;
+  }
+  .loader,
+  .error,
+  .empty-state { padding: 28px 12px; }
+}

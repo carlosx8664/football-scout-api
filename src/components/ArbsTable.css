@@ -18,6 +18,11 @@
   gap: 10px;
 }
 
+@media (max-width: 900px) {
+  .arbs-view-title { font-size: 1.4rem; }
+  .arbs-stake-control { justify-content: flex-start; flex-wrap: wrap; }
+}
+
 .arbs-stake-control label {
   color: var(--color-neutral-6);
   font-size: 0.8125rem;

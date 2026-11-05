@@ -118,3 +118,24 @@
   font-size: 0.75rem;
   text-transform: uppercase;
 }
+
+@media (max-width: 900px) {
+  .detail-container { padding: 20px 0 40px; }
+  .detail-card { padding: 20px 16px; border-radius: 12px; }
+  .detail-meta { flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .detail-teams { gap: 8px; margin-bottom: 20px; }
+  .detail-team { font-size: 0.9rem; }
+  .detail-team img { width: 48px; height: 48px; }
+  .detail-score { font-size: 1.1rem; padding: 0 4px; }
+  .detail-odds { gap: 6px; margin-bottom: 18px; }
+  .detail-odds .odd-box {
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-team img { width: 40px; height: 40px; }
+  .detail-odds .odd-value { font-size: 0.9rem; }
+}

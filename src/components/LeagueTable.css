@@ -130,3 +130,12 @@
   font-size: 0.8rem;
   line-height: 1.5;
 }
+
+@media (max-width: 900px) {
+  /* Once the rail sits below the feed, a sticky table only gets in the way. */
+  .league-table-container {
+    position: static;
+    top: auto;
+    padding: 16px;
+  }
+}

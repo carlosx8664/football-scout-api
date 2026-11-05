@@ -59,3 +59,11 @@
 }
 .simulation-banner strong { font-weight: 800; }
 .simulation-banner-hint { font-weight: 500; opacity: 0.85; letter-spacing: 0; }
+
+@media (max-width: 900px) {
+  .simulation-banner {
+    padding: 8px 12px;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+}
