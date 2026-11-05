@@ -173,6 +173,30 @@ export async function onRequestPost({ request, env }) {
   const srEventId = /^sr:match:\d+$/.test(rawEventId) ? rawEventId : null;
 
   try {
+    // One position per match: a second bet on a match already in the ledger is blocked outright,
+    // even on a different market, until the existing one is settled or cancelled.
+    if (kind === "arb") {
+      const duplicate = await db
+        .prepare(
+          `SELECT id FROM active_bets
+            WHERE is_simulation = ?
+              AND (sr_event_id = ? OR lower(trim(event_name)) = lower(trim(?)))
+            LIMIT 1`,
+        )
+        .bind(modeValue(simulation), srEventId, eventName)
+        .first();
+      if (duplicate) {
+        return json(
+          {
+            error:
+              "You already have an active bet on this match. Settle or remove the existing bet " +
+              "before adding a new one.",
+          },
+          409,
+        );
+      }
+    }
+
     // Camouflage rule: a bookie only needs a muggy acca while it has nothing else running on it.
     // Any bet still open on that bookie — an arb for a future match included — already keeps the
     // account active, so it bypasses the daily mug-bet gate. Only a bookie with no open position
