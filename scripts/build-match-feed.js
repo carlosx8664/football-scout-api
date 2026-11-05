@@ -24,6 +24,12 @@ const OUTPUT_FILE = "public/matches.json";
 const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
 const DEFAULT_MODEL = "deepseek-flash";
 const AI_CONCURRENCY = 3;
+/**
+ * A match plus stoppages. The scrapers stop listing a fixture about an hour after kickoff, so
+ * without this the feed would delete every in-play match and the Live tab would have no card to
+ * attach a score to.
+ */
+const LIVE_CARRY_MS = 3 * 60 * 60 * 1000;
 
 const SOURCES = [
   { name: "SportyBet", file: "data/sportybet.json", readEvents: readSportyEvents },
@@ -38,6 +44,7 @@ const SOURCES = [
  */
 const LEAGUE_ALIASES = {
   2: ["international clubs uefa champions league"],
+  3: ["international clubs uefa europa league", "europe uefa europa league"],
   39: ["england premier league"],
   40: ["england championship"],
   45: ["england fa cup"],
@@ -606,11 +613,52 @@ async function addAnalysis(matches, { apiKey, model, log }) {
   log(`AI analyses: ${done}/${targets.length}.`);
 }
 
+async function readPreviousFeed(file) {
+  if (!file) return [];
+
+  try {
+    const payload = JSON.parse(await readFile(file, "utf8"));
+    return Array.isArray(payload?.matches) ? payload.matches : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Keeps the cards of fixtures that have already kicked off. The bookmaker dumps only carry a
+ * fixture for an hour after kickoff, so a rebuild would otherwise drop it mid-match and the Live
+ * tab (which scores fixtures from this feed) would go empty. The card is carried as it was last
+ * seen; the live feed supplies the clock and the score.
+ */
+async function carryLiveMatches(matches, previousFile, now) {
+  const previous = await readPreviousFeed(previousFile);
+  if (previous.length === 0) return matches;
+
+  const seenIds = new Set(matches.map((match) => match.fixture?.id));
+  const seenSrIds = new Set(matches.map((match) => match.sr_id).filter(Boolean));
+
+  const carried = previous.filter((match) => {
+    const kickoff = new Date(match?.fixture?.date ?? 0).getTime();
+    if (!Number.isFinite(kickoff)) return false;
+    if (kickoff > now || now - kickoff > LIVE_CARRY_MS) return false;
+    if (seenIds.has(match.fixture?.id)) return false;
+    return !(match.sr_id && seenSrIds.has(match.sr_id));
+  });
+
+  if (carried.length === 0) return matches;
+
+  return [...matches, ...carried].sort(
+    (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
+  );
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
       days: { type: "string", default: "2" },
       out: { type: "string", default: OUTPUT_FILE },
+      // The feed the last run published; its in-play fixtures are carried into this build.
+      prev: { type: "string", default: "" },
       suffix: { type: "string", default: "" },
       "no-ai": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
@@ -621,9 +669,10 @@ async function main() {
 
   if (values.help) {
     console.log(
-      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--suffix=-horizon] [--no-ai]\n\n" +
+      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--prev path] [--suffix=-horizon] [--no-ai]\n\n" +
         "Reads data/sportybet.json, data/msport.json and data/betboro.json for fixtures and odds,\n" +
         "plus data/boltbet.json and data/betpawa.json for their fixture-page ids.\n" +
+        "`--prev` points at the feed the last run published; its in-play fixtures are carried over.\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL",
     );
     return;
@@ -775,18 +824,22 @@ async function main() {
     });
   }
 
+  const allMatches = await carryLiveMatches(matches, values.prev || values.out, Date.now());
+  const carried = allMatches.length - matches.length;
+  if (carried > 0) log(`Carried ${carried} in-play fixtures from the previous feed.`);
+
   const payload = {
     status: "success",
     date: start,
     window: { from: start, to: addDays(start, windowDays - 1) },
     generated_at: new Date().toISOString(),
-    match_count: matches.length,
-    analysed_count: matches.filter((match) => match.odds && match.ai_analysis).length,
-    matches,
+    match_count: allMatches.length,
+    analysed_count: allMatches.filter((match) => match.odds && match.ai_analysis).length,
+    matches: allMatches,
   };
 
   await writeFile(values.out, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  log(`Wrote ${values.out} (${matches.length} matches).`);
+  log(`Wrote ${values.out} (${allMatches.length} matches).`);
 }
 
 main().catch((error) => {

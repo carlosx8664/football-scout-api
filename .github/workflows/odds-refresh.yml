@@ -81,8 +81,27 @@ jobs:
           # Only a fallback: each subscription carries the origin it was created on.
           SITE_ORIGIN: ${{ vars.SITE_ORIGIN || secrets.SITE_ORIGIN }}
 
+      - name: Restore the previous match feed
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          # The dumps drop a fixture an hour after kickoff, so the build carries the previous
+          # feed's in-play fixtures forward — otherwise every live match leaves the feed and the
+          # Live tab is empty. A miss here simply builds without carry-forward.
+          CF_API_TOKEN_CLEAN=$(printf '%s' "$CF_API_TOKEN" | tr -d '[:space:]')
+          if curl -sS --fail -o public/matches.prev.json \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-matches" \
+            -H "Authorization: Bearer ${CF_API_TOKEN_CLEAN}"; then
+            echo "Previous feed: $(wc -c < public/matches.prev.json) bytes"
+          else
+            echo "::warning::No previous match feed in KV; building without carry-forward."
+            rm -f public/matches.prev.json
+          fi
+
       - name: Build match feed
-        run: node scripts/build-match-feed.js --no-ai --days="$DAYS"
+        run: node scripts/build-match-feed.js --no-ai --days="$DAYS" --prev=public/matches.prev.json
         env:
           # Unused while --no-ai is passed, but keeps CI working if AI analysis is re-enabled.
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
