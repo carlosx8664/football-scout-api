@@ -4,7 +4,7 @@ export const KICKOFF_REFRESH_WINDOW_MS = 60 * 60 * 1000;
 export const SNAPSHOT_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-export type FeedTab = "today" | "tomorrow" | "week";
+export type FeedTab = "live" | "today" | "tomorrow";
 
 /** UTC day key (`YYYY-MM-DD`) for an ISO kickoff string. */
 export function utcDayKey(iso: string): string {
@@ -26,10 +26,10 @@ export function hasMatchStartingSoon(
 }
 
 /**
- * Matches for a feed tab. Today hides matches that already kicked off — unless the live feed
- * still has them, so an in-play fixture keeps its card instead of vanishing at minute one.
- * Tomorrow shows all of tomorrow's fixtures (none of which can have started yet), and "week" is
- * everything after tomorrow, which the 6-day horizon feed supplies.
+ * Matches for a feed tab. "live" is every fixture that has kicked off and is still in the live
+ * feed. Today hides matches that already kicked off — unless the live feed still has them, so an
+ * in-play fixture keeps its card instead of vanishing at minute one. Tomorrow shows all of
+ * tomorrow's fixtures, none of which can have started yet.
  */
 export function matchesForTab(
   matches: Match[],
@@ -40,9 +40,16 @@ export function matchesForTab(
   const todayKey = new Date(now).toISOString().slice(0, 10);
   const tomorrowKey = new Date(now + DAY_MS).toISOString().slice(0, 10);
 
+  if (tab === "live") {
+    return matches.filter(
+      (match) =>
+        Boolean(match.sr_id && liveEventIds?.has(match.sr_id)) &&
+        new Date(match.fixture.date).getTime() <= now,
+    );
+  }
+
   return matches.filter((match) => {
     const dayKey = utcDayKey(match.fixture.date);
-    if (tab === "week") return dayKey > tomorrowKey;
     if (dayKey !== (tab === "today" ? todayKey : tomorrowKey)) return false;
     if (tab === "today") {
       if (new Date(match.fixture.date).getTime() > now) return true;

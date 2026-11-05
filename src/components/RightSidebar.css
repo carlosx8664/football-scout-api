@@ -64,6 +64,11 @@
   font-size: 0.7rem;
   font-weight: 600;
 }
+.top-pick-fair {
+  margin-top: 2px;
+  color: var(--color-neutral-6);
+  font-size: 0.68rem;
+}
 .top-pick-link {
   color: var(--color-brand-4);
   font-size: 0.75rem;

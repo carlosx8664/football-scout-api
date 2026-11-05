@@ -201,7 +201,7 @@ a fine-grained PAT.
 - Web Push alerts via `sendPushAlerts` inside `find-arbs.js`.
 
 **Frontend:**
-- Home feed with today/tomorrow/this-week tabs, league filter, best-price tooltips.
+- Home feed with live/today/tomorrow tabs (live appears only while matches are in play), league filter, best-price tooltips, and Top Picks ranked by overlay against a de-vigged market consensus (≥2%, one pick per fixture).
 - `/arbs`: live tables with stake scaling + rounding, near-miss mode, Ledger checkbox → Log Arb.
 - `/wallets`: Bankroll Plan → My Wallets → Rebalancing Hints (centre); Active Bets (2/page),
   Cash Flow and Mug Bets (340px aside). Settled history lives on its own page,

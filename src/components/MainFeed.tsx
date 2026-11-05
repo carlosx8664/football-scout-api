@@ -15,9 +15,9 @@ interface MainFeedProps {
 }
 
 const TABS: Array<{ id: FeedTab; label: string }> = [
+  { id: "live", label: "Live Matches" },
   { id: "today", label: "Today's Matches" },
   { id: "tomorrow", label: "Tomorrow's Matches" },
-  { id: "week", label: "This Week" },
 ];
 
 const PAGE_SIZE = 8;
@@ -31,11 +31,14 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
 
   const counts: Record<FeedTab, number> = {
+    live: matchesForTab(matches, "live", now, liveEventIds).length,
     today: matchesForTab(matches, "today", now, liveEventIds).length,
     tomorrow: matchesForTab(matches, "tomorrow", now, liveEventIds).length,
-    week: matchesForTab(matches, "week", now, liveEventIds).length,
   };
-  const visibleMatches = matchesForTab(matches, activeTab, now, liveEventIds);
+  // Live is only offered while something is actually in play.
+  const tabs = TABS.filter((tab) => tab.id !== "live" || counts.live > 0);
+  const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "today";
+  const visibleMatches = matchesForTab(matches, currentTab, now, liveEventIds);
 
   const pageCount = Math.max(1, Math.ceil(visibleMatches.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -52,13 +55,13 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
       </div>
 
       <div className="match-tabs" role="tablist" aria-label="Match days">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`match-tab${activeTab === tab.id ? " active" : ""}`}
+            aria-selected={currentTab === tab.id}
+            className={`match-tab${currentTab === tab.id ? " active" : ""}`}
             onClick={() => {
               setActiveTab(tab.id);
               setPage(1);
@@ -73,11 +76,11 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
       <div className="match-card-grid">
         {visibleMatches.length === 0 ? (
           <div className="empty-state">
-            {activeTab === "today"
-              ? "No more matches today for this league."
-              : activeTab === "tomorrow"
-                ? "No matches tomorrow for this league."
-                : "No matches later this week for this league."}
+            {currentTab === "live"
+              ? "No live matches right now for this league."
+              : currentTab === "today"
+                ? "No more matches today for this league."
+                : "No matches tomorrow for this league."}
           </div>
         ) : (
           pageMatches.map((match) => {
@@ -92,11 +95,7 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
 
             return (
               <div key={match.fixture.id} className="new-match-card">
-                {match.odds ? (
-                  <div className="hot-badge">HOT 🔥</div>
-                ) : (
-                  <div className="hot-badge hot-badge-muted">Awaiting odds</div>
-                )}
+                {!match.odds && <div className="hot-badge hot-badge-muted">Awaiting odds</div>}
 
                 <div className={`card-league-date${clock ? " is-live" : ""}`}>
                   <span>{kickoff.date}</span>
