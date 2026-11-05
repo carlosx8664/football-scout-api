@@ -27,9 +27,9 @@ export function hasMatchStartingSoon(
 
 /**
  * Matches for a feed tab. "live" is every fixture that has kicked off and is still in the live
- * feed. Today hides matches that already kicked off — unless the live feed still has them, so an
- * in-play fixture keeps its card instead of vanishing at minute one. Tomorrow shows all of
- * tomorrow's fixtures, none of which can have started yet.
+ * feed. Today and Tomorrow are the calendar fixtures for that day, including ones that have
+ * already kicked off. Tomorrow shows all of tomorrow's fixtures, none of which can have started
+ * yet.
  */
 export function matchesForTab(
   matches: Match[],
@@ -50,11 +50,6 @@ export function matchesForTab(
 
   return matches.filter((match) => {
     const dayKey = utcDayKey(match.fixture.date);
-    if (dayKey !== (tab === "today" ? todayKey : tomorrowKey)) return false;
-    // In-play matches belong to the Live tab only, never Today's Matches.
-    if (tab === "today") {
-      return new Date(match.fixture.date).getTime() > now;
-    }
-    return true;
+    return dayKey === (tab === "today" ? todayKey : tomorrowKey);
   });
 }

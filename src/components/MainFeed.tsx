@@ -35,9 +35,8 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
     today: matchesForTab(matches, "today", now, liveEventIds).length,
     tomorrow: matchesForTab(matches, "tomorrow", now, liveEventIds).length,
   };
-  // Live is only offered while something is actually in play.
-  const tabs = TABS.filter((tab) => tab.id !== "live" || counts.live > 0);
-  const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "today";
+  const tabs = TABS;
+  const currentTab = activeTab;
   const visibleMatches = matchesForTab(matches, currentTab, now, liveEventIds);
 
   const pageCount = Math.max(1, Math.ceil(visibleMatches.length / PAGE_SIZE));
