@@ -58,12 +58,36 @@
 .history-filter:hover { color: var(--color-neutral-7); }
 .history-filter.active { background: var(--color-neutral-1); color: var(--color-neutral-7); }
 
+.history-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
 .history-custom {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 0.8rem;
   color: var(--color-neutral-6);
+}
+
+.history-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-neutral-6);
+}
+.history-page-size select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  background: var(--color-neutral-1);
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--color-neutral-7);
 }
 .history-custom input {
   padding: 6px 8px;
@@ -315,6 +339,7 @@
   .history-panel { padding: 16px; }
   .history-header { flex-direction: column; gap: 8px; }
   .history-toolbar { gap: 8px; }
+  .history-controls { width: 100%; justify-content: space-between; }
   .history-custom { flex-wrap: wrap; }
   .history-custom input { flex: 1 1 auto; min-width: 0; }
 

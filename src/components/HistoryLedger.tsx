@@ -17,11 +17,13 @@ interface HistoryLedgerProps {
 }
 
 const PRESETS: Array<{ value: HistoryPreset; label: string }> = [
-  { value: "today", label: "Today" },
   { value: "yesterday", label: "Yesterday" },
+  { value: "today", label: "Today" },
   { value: "week", label: "This Week" },
   { value: "custom", label: "Custom" },
 ];
+
+const PAGE_SIZES = [20, 50, 100] as const;
 
 /** Calendar day key (UTC, matching the server's date() filter) for the group headers. */
 const dayKey = (iso: string) => iso.slice(0, 10);
@@ -74,6 +76,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
   const today = toDateInput(new Date());
   const [preset, setPreset] = useState<HistoryPreset>("week");
   const [custom, setCustom] = useState<HistoryRange>({ from: today, to: today });
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
   const [result, setResult] = useState<{ key: string; payload: HistoryPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
 
@@ -100,7 +103,8 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
   const error = problem?.key === key ? problem.message : null;
   const loading = payload === null && error === null;
   const entries = payload?.entries ?? [];
-  const groups = useMemo(() => groupByDay(entries), [entries]);
+  const visibleEntries = useMemo(() => entries.slice(0, pageSize), [entries, pageSize]);
+  const groups = useMemo(() => groupByDay(visibleEntries), [visibleEntries]);
   /** Arb profit for the chosen window, to sit next to what the mug bets cost. */
   const arbProfit = entries.reduce((sum, entry) => sum + entry.netProfit, 0);
 
@@ -134,25 +138,46 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
           ))}
         </div>
 
-        {preset === "custom" && (
-          <div className="history-custom">
-            <input
-              type="date"
-              aria-label="From match date"
-              value={custom.from}
-              max={custom.to}
-              onChange={(event) => setCustom((current) => ({ ...current, from: event.target.value }))}
-            />
-            <span>→</span>
-            <input
-              type="date"
-              aria-label="To match date"
-              value={custom.to}
-              min={custom.from}
-              onChange={(event) => setCustom((current) => ({ ...current, to: event.target.value }))}
-            />
-          </div>
-        )}
+        <div className="history-controls">
+          {preset === "custom" && (
+            <div className="history-custom">
+              <input
+                type="date"
+                aria-label="From match date"
+                value={custom.from}
+                max={custom.to}
+                onChange={(event) =>
+                  setCustom((current) => ({ ...current, from: event.target.value }))
+                }
+              />
+              <span>→</span>
+              <input
+                type="date"
+                aria-label="To match date"
+                value={custom.to}
+                min={custom.from}
+                onChange={(event) =>
+                  setCustom((current) => ({ ...current, to: event.target.value }))
+                }
+              />
+            </div>
+          )}
+
+          <label className="history-page-size">
+            <span>Show</span>
+            <select
+              aria-label="Entries per view"
+              value={pageSize}
+              onChange={(event) => setPageSize(Number(event.target.value))}
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {payload && (
