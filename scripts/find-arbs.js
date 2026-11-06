@@ -4,10 +4,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import {
   BETBORO,
-  BETPAWA,
   BOLTBET,
   MSPORT,
-  SOCCABET,
   SPORTY,
   buildUrl,
 } from '../shared/deeplinks.js';
@@ -31,8 +29,6 @@ const SPORTY_FILE = path.join(DATA_DIR, `sportybet${FILE_SUFFIX}.json`);
 const MSPORT_FILE = path.join(DATA_DIR, `msport${FILE_SUFFIX}.json`);
 const BETBORO_FILE = path.join(DATA_DIR, `betboro${FILE_SUFFIX}.json`);
 const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
-const BETPAWA_FILE = path.join(DATA_DIR, `betpawa${FILE_SUFFIX}.json`);
-const SOCCABET_FILE = path.join(DATA_DIR, `soccabet${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
@@ -1175,16 +1171,12 @@ async function main() {
   const msport = loadBookie(MSPORT_FILE, MSPORT);
   const betboro = loadBetBoro(BETBORO_FILE);
   const boltbet = loadBoltBet(BOLTBET_FILE);
-  const betpawa = loadBetPawa(BETPAWA_FILE);
-  const soccabet = loadSoccabet(SOCCABET_FILE);
 
   const sources = [
     { name: SPORTY, book: sporty },
     { name: MSPORT, book: msport },
     { name: BETBORO, book: betboro },
     { name: BOLTBET, book: boltbet },
-    { name: BETPAWA, book: betpawa },
-    { name: SOCCABET, book: soccabet },
   ];
 
   for (const { name, book } of sources) {

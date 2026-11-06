@@ -671,7 +671,7 @@ async function main() {
     console.log(
       "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--prev path] [--suffix=-horizon] [--no-ai]\n\n" +
         "Reads data/sportybet.json, data/msport.json and data/betboro.json for fixtures and odds,\n" +
-        "plus data/boltbet.json and data/betpawa.json for their fixture-page ids.\n" +
+        "plus data/boltbet.json for its fixture-page ids. Missing optional source files are skipped.\n" +
         "`--prev` points at the feed the last run published; its in-play fixtures are carried over.\n" +
         "Optional env: DEEPSEEK_API_KEY, DEEPSEEK_MODEL",
     );
@@ -809,8 +809,6 @@ async function main() {
   log(`Matches in ${start} + ${windowDays - 1} day window: ${matches.length}.`);
 
   await attachBoltBetIds(matches, log);
-  await attachBetPawaIds(matches, log);
-
   if (matches.length === 0) {
     log(`::warning::No fixtures in the sync window; leaving ${values.out} untouched.`);
     return;

@@ -35,19 +35,8 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
-
       - name: Fetch odds from the 4 fast bookmakers
         run: node scripts/fetch-odds.js --days="$DAYS"
-
-      - name: Fetch odds from BetPawa (Playwright)
-        run: node scripts/fetch-betpawa.js
-
-      - name: Fetch odds from Soccabet (Playwright)
-        # New source: a failed capture keeps the previous snapshot and must not kill the run.
-        continue-on-error: true
-        run: node scripts/fetch-soccabet.js
 
       - name: Restore arb history from KV
         continue-on-error: true
