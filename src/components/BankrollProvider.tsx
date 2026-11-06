@@ -5,15 +5,24 @@ import {
   storeBankroll,
   type BankrollSettings,
 } from "../lib/bankroll";
+import { useSimulation } from "../lib/simulation";
 
-/** Holds the bankroll/stake plan so every panel on the page reads the same numbers. */
+/** Holds an independent bankroll/stake plan for each simulation mode. */
 const BankrollProvider = ({ children }: { children: ReactNode }) => {
-  const [settings, setSettingsState] = useState<BankrollSettings>(readStoredBankroll);
+  const { enabled: simulation } = useSimulation();
+  const [settingsByMode, setSettingsByMode] = useState<Record<"sim" | "real", BankrollSettings>>(
+    () => ({
+      sim: readStoredBankroll(true),
+      real: readStoredBankroll(false),
+    }),
+  );
+  const mode = simulation ? "sim" : "real";
+  const settings = settingsByMode[mode];
 
   const setSettings = useCallback((next: BankrollSettings) => {
-    setSettingsState(next);
-    storeBankroll(next);
-  }, []);
+    setSettingsByMode((current) => ({ ...current, [mode]: next }));
+    storeBankroll(next, simulation);
+  }, [mode, simulation]);
 
   const value = useMemo(() => ({ settings, setSettings }), [settings, setSettings]);
 

@@ -250,7 +250,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     legs: ArbLeg[];
     stakes: Array<number | null>;
   } | null>(null);
-  const [loggedKeys, setLoggedKeys] = useState<string[]>([]);
+  const [loggedKeys, setLoggedKeys] = useState<Record<"sim" | "real", string[]>>({
+    sim: [],
+    real: [],
+  });
   const [toast, setToast] = useState<string | null>(null);
 
   // Follow the Bankroll Plan: changing the bankroll or risk profile re-sizes the stakes here.
@@ -490,7 +493,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       ]
                         .filter(Boolean)
                         .join(" ");
-                      const logged = loggedKeys.includes(rowKey);
+                      const modeKey = simulation ? "sim" : "real";
+                      const logged = loggedKeys[modeKey].includes(rowKey);
 
                       const rawStakes = legs.map((leg) =>
                         typeof leg.stake === "number"
@@ -784,9 +788,13 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           onClose={() => setLogTarget(null)}
           onSaved={() => {
             const savedKey = logTarget.key;
-            setLoggedKeys((current) =>
-              current.includes(savedKey) ? current : [...current, savedKey],
-            );
+            const modeKey = simulation ? "sim" : "real";
+            setLoggedKeys((current) => ({
+              ...current,
+              [modeKey]: current[modeKey].includes(savedKey)
+                ? current[modeKey]
+                : [...current[modeKey], savedKey],
+            }));
             setLogTarget(null);
             setToast("Arb logged successfully.");
             // Stakes were just debited, so re-run the balance alerts.

@@ -32,7 +32,8 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
 
 /**
  * Bankroll planner: how much capital to keep across the bookies and how to split it across the
- * bookies selected in My Wallets. The values are shared page-wide and persisted locally.
+ * bookies selected in My Wallets. The values are shared page-wide within the active mode and
+ * persisted separately for real and simulation data.
  */
 const BankrollPlan = ({ payload, simulation, momo, onStartAfresh }: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();

@@ -2,6 +2,10 @@ import { createContext, useContext } from "react";
 
 export const BANKROLL_STORAGE_KEY = "oddtor:bankroll-plan";
 
+function bankrollStorageKey(simulation: boolean): string {
+  return `${BANKROLL_STORAGE_KEY}:${simulation ? "sim" : "real"}`;
+}
+
 export const DEFAULT_BANKROLL = 10_000;
 /** Stake per arb is entered by hand; this is only what a fresh install starts at. */
 export const DEFAULT_STAKE = 2_000;
@@ -17,11 +21,11 @@ export const FLOAT_MULTIPLE = 2;
 /** Deposits in round steps look human; precise amounts look automated. */
 export const BLEND_STEP = 50;
 /**
- * Opening deposits are also round: each selected bookie's share of the bankroll is rounded to the
- * nearest 100, stepping back one step when rounding up would push the split past the bankroll.
+ * Opening deposits are also round: each selected bookie's share of the bankroll is rounded down
+ * to the nearest 50 so the split never exceeds the bankroll.
  * The leftover becomes unallocated cash.
  */
-export const OPENING_STEP = 100;
+export const OPENING_STEP = 50;
 /** Share of the bankroll each bookie should hold when everything is balanced. */
 export const BOOKIE_SHARE_PCT = 25;
 /** One bookie per leg: a split only exists once at least two bookies are selected. */
@@ -38,9 +42,8 @@ export function blendInAmount(amount: number): number {
 }
 
 /**
- * Each selected bookie's share of the bankroll, always rounded DOWN to a whole 100 so the split
- * is decimal-free and can never exceed the bankroll: 10,000 across 6 bookies gives 1,600 each
- * (9,600 funded) and leaves 400 for Momo.
+ * Each selected bookie's share of the bankroll, always rounded DOWN to a whole 50 so the split
+ * is decimal-free and can never exceed the bankroll: 500 across 2 bookies gives 250 each.
  */
 export function splitPerWallet(bankroll: number, bookies: number): number {
   const count = Math.max(1, Math.floor(bookies) || 1);
@@ -51,7 +54,7 @@ export function splitPerWallet(bankroll: number, bookies: number): number {
 
 /**
  * Per-bookie opening deposit: the rounded share, floored to a whole step so N deposits can never
- * exceed the bankroll. 10,000 across 6 bookies -> 1,600 each.
+ * exceed the bankroll.
  */
 export function openingBalanceFor(perWallet: number): number {
   if (!Number.isFinite(perWallet) || perWallet <= 0) return 0;
@@ -161,7 +164,7 @@ const LEGACY_PROFILE_PCT: Record<string, number> = {
   aggressive: 5,
 };
 
-export function readStoredBankroll(): BankrollSettings {
+export function readStoredBankroll(simulation = true): BankrollSettings {
   const fallback: BankrollSettings = {
     bankroll: DEFAULT_BANKROLL,
     stake: DEFAULT_STAKE,
@@ -171,7 +174,9 @@ export function readStoredBankroll(): BankrollSettings {
   if (typeof window === "undefined") return fallback;
 
   try {
-    const raw = window.localStorage.getItem(BANKROLL_STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(bankrollStorageKey(simulation)) ??
+      window.localStorage.getItem(BANKROLL_STORAGE_KEY);
     if (!raw) return fallback;
 
     const parsed = JSON.parse(raw) as {
@@ -205,9 +210,9 @@ export function readStoredBankroll(): BankrollSettings {
   }
 }
 
-export function storeBankroll(settings: BankrollSettings) {
+export function storeBankroll(settings: BankrollSettings, simulation = true) {
   try {
-    window.localStorage.setItem(BANKROLL_STORAGE_KEY, JSON.stringify(settings));
+    window.localStorage.setItem(bankrollStorageKey(simulation), JSON.stringify(settings));
   } catch {
     // Private mode: the plan simply resets on reload.
   }
