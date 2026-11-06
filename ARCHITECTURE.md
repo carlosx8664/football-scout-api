@@ -98,7 +98,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `lib/notifications.ts` | Alert rule engine, dedupe windows, cool-downs, persistence |
 | `lib/mugBets.ts`, `lib/push.ts`, `lib/cooldown.ts`, `lib/simulation.ts` | Feature clients/state |
 | `components/Header.tsx` | Logo, nav (Arbs · Wallets), simulation toggle, notifications bell, best-arb badge |
-| `components/ArbsTable.tsx` | Live + past arb tables, stake scaling/rounding, Ledger checkbox → log arb |
+| `components/ArbsTable.tsx` | Live + past arb tables, bookmaker-pair filtering, stake scaling/rounding, Ledger checkbox → log arb |
 | `components/LogArbModal.tsx` | Pre-filled editable stakes, per-bookie available balance, save to `active_bets` |
 | `components/WalletsDashboard.tsx` | `/wallets` layout + single owner of `GET /api/wallets`; wires all wallet panels |
 | `components/BankrollPlan.tsx` | Editable bankroll/stake plan split across the selected bookies, per-bookie target, Momo card (plan leftover + net transfers), float warning, **Start afresh** |

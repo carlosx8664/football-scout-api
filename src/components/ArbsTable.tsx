@@ -209,6 +209,22 @@ function arbKey(arb: ArbOpportunity, legs: ArbLeg[]): string {
   return `${base}|${arb.market}|${legPart}`;
 }
 
+function bookmakerPairKey(legs: ArbLeg[]): string | null {
+  if (legs.length !== LEGS_PER_MATCH) return null;
+  return legs
+    .map((leg) => leg.bookmaker.trim().toLowerCase())
+    .sort()
+    .join("|");
+}
+
+function bookmakerPairLabel(legs: ArbLeg[]): string | null {
+  if (legs.length !== LEGS_PER_MATCH) return null;
+  return legs
+    .map((leg) => leg.bookmaker.trim())
+    .sort((a, b) => a.localeCompare(b))
+    .join(" + ");
+}
+
 const ClockIcon = () => (
   <svg className="arb-clock" viewBox="0 0 16 16" aria-hidden="true">
     <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -240,6 +256,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   // fit inside a leg (a small bankroll can produce a stake below 20).
   const [rounding, setRounding] = useState(() => stepFor(planStake));
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
+  const [selectedPairKeys, setSelectedPairKeys] = useState<string[]>([]);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { enabled: simulation } = useSimulation();
   const { refresh: refreshNotifications } = useNotifications();
@@ -338,7 +355,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   }, []);
 
   // Only complete two-leg opportunities for games that have not started can be shown live.
-  const liveRows = (feed?.arbs ?? []).filter(
+  const allLiveRows = (feed?.arbs ?? []).filter(
     (arb) =>
       Number.isFinite(arb.kickoff) &&
       Number.isFinite(arb.profitPct) &&
@@ -349,7 +366,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   // Anything already kicked off (or dropped out of the feed since) comes from history,
   // limited to today's fixtures only.
   const cutoff = pastCutoff(now);
-  const pastRows = (feed?.history ?? [])
+  const allPastRows = (feed?.history ?? [])
     .filter(
       (record) =>
         Number.isFinite(record.kickoff) &&
@@ -360,6 +377,30 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     )
     .sort((a, b) => b.kickoff - a.kickoff)
     .slice(0, PAST_LIMIT);
+
+  const pairOptions = new Map<string, string>();
+  for (const arb of allLiveRows) {
+    const legs = legsFor(arb);
+    const key = bookmakerPairKey(legs);
+    const label = bookmakerPairLabel(legs);
+    if (key && label) pairOptions.set(key, label);
+  }
+  for (const record of allPastRows) {
+    const key = bookmakerPairKey(record.legs);
+    const label = bookmakerPairLabel(record.legs);
+    if (key && label) pairOptions.set(key, label);
+  }
+
+  const matchesSelectedPair = (legs: ArbLeg[]): boolean => {
+    const key = bookmakerPairKey(legs);
+    return selectedPairKeys.length === 0 || (key !== null && selectedPairKeys.includes(key));
+  };
+  const liveRows = allLiveRows.filter((arb) => matchesSelectedPair(legsFor(arb)));
+  const pastRows = allPastRows.filter((record) => matchesSelectedPair(record.legs));
+  const pairFilterLabel =
+    selectedPairKeys.length === 0
+      ? "All bookmaker pairs"
+      : `${selectedPairKeys.length} pair${selectedPairKeys.length === 1 ? "" : "s"} selected`;
 
   const isTestData = feed?.boost != null && Math.abs(feed.boost - 1) > 1e-9;
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
@@ -420,6 +461,44 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             >
               Open Calculator
             </button>
+          </div>
+
+          <div className="arbs-pair-filter">
+            <label htmlFor="arbs-pair-filter">Bookmaker pairs</label>
+            <select
+              id="arbs-pair-filter"
+              multiple
+              size={Math.min(4, Math.max(2, pairOptions.size))}
+              value={selectedPairKeys}
+              onChange={(event) => {
+                setSelectedPairKeys(
+                  Array.from(event.currentTarget.selectedOptions, (option) => option.value),
+                );
+              }}
+              aria-label={pairFilterLabel}
+            >
+              {Array.from(pairOptions, ([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <span className="arbs-pair-filter-hint">
+              {pairOptions.size === 0
+                ? "No pairs available"
+                : selectedPairKeys.length === 0
+                  ? "Showing all pairs"
+                  : "Ctrl/Cmd-click to select multiple"}
+            </span>
+            {selectedPairKeys.length > 0 && (
+              <button
+                type="button"
+                className="arbs-pair-filter-clear"
+                onClick={() => setSelectedPairKeys([])}
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           {activeTab === "live" ? (
