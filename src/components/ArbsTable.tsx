@@ -397,11 +397,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   };
   const liveRows = allLiveRows.filter((arb) => matchesSelectedPair(legsFor(arb)));
   const pastRows = allPastRows.filter((record) => matchesSelectedPair(record.legs));
-  const pairFilterLabel =
-    selectedPairKeys.length === 0
-      ? "All bookmaker pairs"
-      : `${selectedPairKeys.length} pair${selectedPairKeys.length === 1 ? "" : "s"} selected`;
-
   const isTestData = feed?.boost != null && Math.abs(feed.boost - 1) > 1e-9;
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
   const isStale = ageMs !== null && Number.isFinite(ageMs) && ageMs > STALE_AFTER_MS;
@@ -463,32 +458,32 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             </button>
           </div>
 
-          <div className="arbs-pair-filter">
-            <label htmlFor="arbs-pair-filter">Bookmaker pairs</label>
-            <select
-              id="arbs-pair-filter"
-              multiple
-              size={Math.min(4, Math.max(2, pairOptions.size))}
-              value={selectedPairKeys}
-              onChange={(event) => {
-                setSelectedPairKeys(
-                  Array.from(event.currentTarget.selectedOptions, (option) => option.value),
-                );
-              }}
-              aria-label={pairFilterLabel}
-            >
+          <fieldset className="arbs-pair-filter">
+            <legend>Bookmaker pairs</legend>
+            <div className="arbs-pair-options">
               {Array.from(pairOptions, ([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
+                <label key={key} className="arbs-pair-option">
+                  <input
+                    type="checkbox"
+                    checked={selectedPairKeys.includes(key)}
+                    onChange={(event) => {
+                      setSelectedPairKeys((current) =>
+                        event.currentTarget.checked
+                          ? [...current, key]
+                          : current.filter((value) => value !== key),
+                      );
+                    }}
+                  />
+                  <span>{label}</span>
+                </label>
               ))}
-            </select>
+            </div>
             <span className="arbs-pair-filter-hint">
               {pairOptions.size === 0
                 ? "No pairs available"
                 : selectedPairKeys.length === 0
                   ? "Showing all pairs"
-                  : "Ctrl/Cmd-click to select multiple"}
+                  : `${selectedPairKeys.length} pair${selectedPairKeys.length === 1 ? "" : "s"} selected`}
             </span>
             {selectedPairKeys.length > 0 && (
               <button
@@ -499,7 +494,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                 Clear
               </button>
             )}
-          </div>
+          </fieldset>
 
           {activeTab === "live" ? (
             liveRows.length === 0 ? (
