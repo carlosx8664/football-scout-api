@@ -27,9 +27,9 @@ INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim-msport','MSport',0,1);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim-betboro','BetBoro',2161.8,1);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim-boltbet','BoltBet',2762,1);
-INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-sportybet','SportyBet',250,0);
+INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-sportybet','SportyBet',247,0);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-msport','MSport',0,0);
-INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-betboro','BetBoro',250,0);
+INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-betboro','BetBoro',247,0);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('real-boltbet','BoltBet',0,0);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim-betpawa','BetPawa',0,1);
 INSERT INTO "wallets" ("id","bookie_name","balance","is_simulation") VALUES('sim-soccabet','Soccabet',0,1);
@@ -49,6 +49,9 @@ CREATE TABLE active_bets (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 , kickoff INTEGER, kind TEXT NOT NULL DEFAULT 'arb', is_free_bet INTEGER NOT NULL DEFAULT 0 CHECK (is_free_bet IN (0, 1)), bookie_a_selection TEXT, bookie_b_selection TEXT, sr_event_id TEXT);
 INSERT INTO "active_bets" ("id","event_name","bookie_a_name","bookie_a_odds","bookie_a_stake","bookie_b_name","bookie_b_odds","bookie_b_stake","profit_percent","is_simulation","created_at","kickoff","kind","is_free_bet","bookie_a_selection","bookie_b_selection","sr_event_id") VALUES('7932f076-7ded-438b-8e8b-fbda28dcc642','Charlton Athletic vs Sheffield United — Over/Under 3.5 Bookings','BetBoro',1.63,645,'SportyBet',2.95,355,4.72,1,'2026-11-05T17:26:57.568Z',1794063600000,'arb',0,'Over 3.5 Bookings','Under 3.5 Bookings','sr:match:72340016');
+INSERT INTO "active_bets" ("id","event_name","bookie_a_name","bookie_a_odds","bookie_a_stake","bookie_b_name","bookie_b_odds","bookie_b_stake","profit_percent","is_simulation","created_at","kickoff","kind","is_free_bet","bookie_a_selection","bookie_b_selection","sr_event_id") VALUES('9bf851ea-bea7-4c45-9c59-98d845f4a3d7','Muggy Acca - SportyBet','SportyBet',7.78,3,'SportyBet',1.01,0,0,0,'2026-11-06T15:33:14.546Z',NULL,'muggy',0,NULL,NULL,NULL);
+INSERT INTO "active_bets" ("id","event_name","bookie_a_name","bookie_a_odds","bookie_a_stake","bookie_b_name","bookie_b_odds","bookie_b_stake","profit_percent","is_simulation","created_at","kickoff","kind","is_free_bet","bookie_a_selection","bookie_b_selection","sr_event_id") VALUES('c932afe3-ca7e-4e4a-9814-b208d9ab1629','Muggy Acca - BetBoro','BetBoro',11.52,1.5,'BetBoro',1.01,0,0,0,'2026-11-06T15:44:30.865Z',NULL,'muggy',0,NULL,NULL,NULL);
+INSERT INTO "active_bets" ("id","event_name","bookie_a_name","bookie_a_odds","bookie_a_stake","bookie_b_name","bookie_b_odds","bookie_b_stake","profit_percent","is_simulation","created_at","kickoff","kind","is_free_bet","bookie_a_selection","bookie_b_selection","sr_event_id") VALUES('4fb97a58-c5b2-4cf4-ac52-33d9762dbb00','Muggy Acca - BetBoro','BetBoro',2.11,1.5,'BetBoro',1.01,0,0,0,'2026-11-06T15:44:44.958Z',NULL,'muggy',0,NULL,NULL,NULL);
 CREATE TABLE history (
   id TEXT PRIMARY KEY,
   event_name TEXT NOT NULL,

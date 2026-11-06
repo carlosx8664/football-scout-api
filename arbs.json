@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-11-06T15:04:02.345Z",
+  "generatedAt": "2026-11-06T16:19:14.138Z",
   "boostApplied": 1,
   "boostTarget": null,
   "stats": {
-    "matched": 1585,
-    "pairsChecked": 63120,
+    "matched": 1648,
+    "pairsChecked": 64972,
     "bookEvents": {
       "SportyBet": 1500,
-      "MSport": 1603,
-      "BetBoro": 1481,
-      "BoltBet": 300,
+      "MSport": 1689,
+      "BetBoro": 1557,
+      "BoltBet": 296,
       "BetPawa": 42,
-      "Soccabet": 11
+      "Soccabet": 12
     }
   },
   "arbs": [
@@ -240,44 +240,8 @@
           "url": "https://betboro.com.gh/pre-sports/1/region/31/competition/306/fixture/90874278"
         }
       ],
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 6.141
-    },
-    {
-      "eventId": "sr:match:66299800",
-      "home": "Orlando City SC",
-      "away": "New England Revolution",
-      "tournament": "MLS",
-      "kickoff": 1794085200000,
-      "market": "Over/Under 4.5 Bookings",
-      "profitPct": 4.289,
-      "totalStake": 100,
-      "legs": [
-        {
-          "bookmaker": "SportyBet",
-          "outcome": "Over 4.5 Bookings",
-          "odds": 2.75,
-          "stake": 37.92,
-          "url": "https://www.sportybet.com/gh/sport/football/MLS/Orlando_City_SC_vs_New_England_Revolution/sr:match:66299800",
-          "sportybet": {
-            "eventId": "sr:match:66299800",
-            "marketId": "139",
-            "outcomeId": "12",
-            "specifier": "total=4.5"
-          }
-        },
-        {
-          "bookmaker": "BetBoro",
-          "outcome": "Under 4.5 Bookings",
-          "odds": 1.68,
-          "stake": 62.08,
-          "url": "https://betboro.com.gh/pre-sports/1/region/36/competition/110/fixture/90840329"
-        }
-      ],
-      "needsRuleReview": true,
-      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T15:03:58.925Z",
-      "alertedProfitPct": 4.289
     },
     {
       "eventId": "sr:match:66299790",
@@ -312,44 +276,8 @@
       ],
       "needsRuleReview": true,
       "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 3.777
-    },
-    {
-      "eventId": "sr:match:66299810",
-      "home": "Minnesota United FC",
-      "away": "San Jose Earthquakes",
-      "tournament": "MLS",
-      "kickoff": 1794096000000,
-      "market": "Over/Under 4.5 Bookings",
-      "profitPct": 2.632,
-      "totalStake": 100,
-      "legs": [
-        {
-          "bookmaker": "SportyBet",
-          "outcome": "Over 4.5 Bookings",
-          "odds": 3,
-          "stake": 34.21,
-          "url": "https://www.sportybet.com/gh/sport/football/MLS/Minnesota_United_FC_vs_San_Jose_Earthquakes/sr:match:66299810",
-          "sportybet": {
-            "eventId": "sr:match:66299810",
-            "marketId": "139",
-            "outcomeId": "12",
-            "specifier": "total=4.5"
-          }
-        },
-        {
-          "bookmaker": "BetBoro",
-          "outcome": "Under 4.5 Bookings",
-          "odds": 1.56,
-          "stake": 65.79,
-          "url": "https://betboro.com.gh/pre-sports/1/region/36/competition/110/fixture/90846804"
-        }
-      ],
-      "needsRuleReview": true,
-      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T15:03:58.925Z",
-      "alertedProfitPct": 2.632
     },
     {
       "eventId": "sr:match:72723306",
@@ -376,7 +304,7 @@
           "url": "https://www.msport.com/gh/web/sports/Soccer/Super_Lig/Eyupspor_vs_Kocaelispor/sr:match:72723306"
         }
       ],
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 2.129
     },
     {
@@ -412,7 +340,7 @@
       ],
       "needsRuleReview": true,
       "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 2.124
     },
     {
@@ -440,27 +368,27 @@
           "url": "https://www.msport.com/gh/web/sports/Soccer/Super_Lig/Eyupspor_vs_Kocaelispor/sr:match:72723306"
         }
       ],
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 1.727
     },
     {
-      "eventId": "sr:match:72478702",
-      "home": "Valencia",
-      "away": "Real Madrid",
-      "tournament": "LaLiga",
-      "kickoff": 1794081600000,
+      "eventId": "sr:match:72897420",
+      "home": "Auckland FC",
+      "away": "Wellington Phoenix FC",
+      "tournament": "A-League",
+      "kickoff": 1794024000000,
       "market": "Over/Under 5.5 Bookings",
-      "profitPct": 1.663,
+      "profitPct": 0.443,
       "totalStake": 100,
       "legs": [
         {
           "bookmaker": "SportyBet",
           "outcome": "Over 5.5 Bookings",
-          "odds": 3.2,
-          "stake": 31.77,
-          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Valencia_vs_Real_Madrid/sr:match:72478702",
+          "odds": 3,
+          "stake": 33.48,
+          "url": "https://www.sportybet.com/gh/sport/football/A-League/Auckland_FC_vs_Wellington_Phoenix_FC/sr:match:72897420",
           "sportybet": {
-            "eventId": "sr:match:72478702",
+            "eventId": "sr:match:72897420",
             "marketId": "139",
             "outcomeId": "12",
             "specifier": "total=5.5"
@@ -469,45 +397,43 @@
         {
           "bookmaker": "BetBoro",
           "outcome": "Under 5.5 Bookings",
-          "odds": 1.49,
-          "stake": 68.23,
-          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/90891212"
+          "odds": 1.51,
+          "stake": 66.52,
+          "url": "https://betboro.com.gh/pre-sports/1/region/6/competition/380/fixture/94548786"
         }
       ],
       "needsRuleReview": true,
-      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T15:03:58.925Z",
-      "alertedProfitPct": 1.663
+      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting."
     },
     {
-      "eventId": "sr:match:72478702",
-      "home": "Valencia",
-      "away": "Real Madrid",
-      "tournament": "LaLiga",
-      "kickoff": 1794081600000,
-      "market": "Over/Under 4.5 Bookings",
-      "profitPct": 0.842,
+      "eventId": "sr:match:72055302",
+      "home": "Atlante FC",
+      "away": "Club Santos Laguna",
+      "tournament": "Liga MX",
+      "kickoff": 1794020400000,
+      "market": "Over/Under 3.5 Bookings",
+      "profitPct": 0.183,
       "totalStake": 100,
       "legs": [
         {
-          "bookmaker": "SportyBet",
-          "outcome": "Over 4.5 Bookings",
-          "odds": 2.1,
-          "stake": 48.02,
-          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Valencia_vs_Real_Madrid/sr:match:72478702",
-          "sportybet": {
-            "eventId": "sr:match:72478702",
-            "marketId": "139",
-            "outcomeId": "12",
-            "specifier": "total=4.5"
-          }
+          "bookmaker": "BetBoro",
+          "outcome": "Over 3.5 Bookings",
+          "odds": 1.56,
+          "stake": 64.22,
+          "url": "https://betboro.com.gh/pre-sports/1/region/80/competition/566/fixture/94618192"
         },
         {
-          "bookmaker": "BetBoro",
-          "outcome": "Under 4.5 Bookings",
-          "odds": 1.94,
-          "stake": 51.98,
-          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/90891212"
+          "bookmaker": "SportyBet",
+          "outcome": "Under 3.5 Bookings",
+          "odds": 2.8,
+          "stake": 35.78,
+          "url": "https://www.sportybet.com/gh/sport/football/Liga_MX/Atlante_FC_vs_Club_Santos_Laguna/sr:match:72055302",
+          "sportybet": {
+            "eventId": "sr:match:72055302",
+            "marketId": "139",
+            "outcomeId": "13",
+            "specifier": "total=3.5"
+          }
         }
       ],
       "needsRuleReview": true,
@@ -525,12 +451,12 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T14:04:07.321Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T15:33:57.540Z",
       "openProfitPct": 2.632,
       "peakProfitPct": 2.632,
       "profitPct": 2.632,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T15:33:57.540Z",
       "alertedProfitPct": 2.632,
       "legs": [
         {
@@ -592,6 +518,44 @@
       ]
     },
     {
+      "key": "sr:match:66299810|Over/Under 3.5 Bookings",
+      "eventId": "sr:match:66299810",
+      "home": "Minnesota United FC",
+      "away": "San Jose Earthquakes",
+      "tournament": "MLS",
+      "kickoff": 1794096000000,
+      "market": "Over/Under 3.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-11-06T15:49:04.274Z",
+      "lastSeenAt": "2026-11-06T15:49:04.274Z",
+      "openProfitPct": 0.438,
+      "peakProfitPct": 0.438,
+      "profitPct": 0.438,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 3.5 Bookings",
+          "stake": 51.24,
+          "url": "https://www.sportybet.com/gh/sport/football/MLS/Minnesota_United_FC_vs_San_Jose_Earthquakes/sr:match:66299810",
+          "openOdds": 1.96,
+          "lastOdds": 1.96,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 3.5 Bookings",
+          "stake": 48.76,
+          "url": "https://betboro.com.gh/pre-sports/1/region/36/competition/110/fixture/90846804",
+          "openOdds": 2.06,
+          "lastOdds": 2.06,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
       "key": "sr:match:66299796|Over/Under 4.5 Bookings",
       "eventId": "sr:match:66299796",
       "home": "CF Montreal",
@@ -601,12 +565,12 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T13:34:13.614Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 8.269,
       "peakProfitPct": 8.269,
       "profitPct": 2.124,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 2.124,
       "legs": [
         {
@@ -677,12 +641,12 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T13:34:13.614Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 3.777,
       "peakProfitPct": 3.777,
       "profitPct": 3.777,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 3.777,
       "legs": [
         {
@@ -791,27 +755,27 @@
       "market": "Over/Under 5.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T14:48:47.780Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T15:33:57.540Z",
       "openProfitPct": 1.663,
-      "peakProfitPct": 1.663,
-      "profitPct": 1.663,
+      "peakProfitPct": 3.599,
+      "profitPct": 3.599,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
-      "alertedProfitPct": 1.663,
+      "alertedAt": "2026-11-06T15:33:57.540Z",
+      "alertedProfitPct": 3.599,
       "legs": [
         {
           "bookmaker": "SportyBet",
           "outcome": "Over 5.5 Bookings",
-          "stake": 31.77,
+          "stake": 30.47,
           "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Valencia_vs_Real_Madrid/sr:match:72478702",
           "openOdds": 3.2,
-          "lastOdds": 3.2,
+          "lastOdds": 3.4,
           "finalOdds": null
         },
         {
           "bookmaker": "BetBoro",
           "outcome": "Under 5.5 Bookings",
-          "stake": 68.23,
+          "stake": 69.53,
           "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/90891212",
           "openOdds": 1.49,
           "lastOdds": 1.49,
@@ -829,30 +793,68 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T14:48:47.780Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T15:33:57.540Z",
       "openProfitPct": 0.842,
-      "peakProfitPct": 0.842,
-      "profitPct": 0.842,
+      "peakProfitPct": 3.092,
+      "profitPct": 3.092,
+      "finalProfitPct": null,
+      "alertedAt": "2026-11-06T15:33:57.540Z",
+      "alertedProfitPct": 3.092,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 4.5 Bookings",
+          "stake": 46.86,
+          "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Valencia_vs_Real_Madrid/sr:match:72478702",
+          "openOdds": 2.1,
+          "lastOdds": 2.2,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 4.5 Bookings",
+          "stake": 53.14,
+          "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/90891212",
+          "openOdds": 1.94,
+          "lastOdds": 1.94,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72478702|Over/Under 3.5 Bookings",
+      "eventId": "sr:match:72478702",
+      "home": "Valencia",
+      "away": "Real Madrid",
+      "tournament": "LaLiga",
+      "kickoff": 1794081600000,
+      "market": "Over/Under 3.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-11-06T15:18:45.043Z",
+      "lastSeenAt": "2026-11-06T15:33:57.540Z",
+      "openProfitPct": 0.98,
+      "peakProfitPct": 0.98,
+      "profitPct": 0.98,
       "finalProfitPct": null,
       "alertedAt": null,
       "alertedProfitPct": null,
       "legs": [
         {
           "bookmaker": "SportyBet",
-          "outcome": "Over 4.5 Bookings",
-          "stake": 48.02,
+          "outcome": "Over 3.5 Bookings",
+          "stake": 64.32,
           "url": "https://www.sportybet.com/gh/sport/football/LaLiga/Valencia_vs_Real_Madrid/sr:match:72478702",
-          "openOdds": 2.1,
-          "lastOdds": 2.1,
+          "openOdds": 1.57,
+          "lastOdds": 1.57,
           "finalOdds": null
         },
         {
           "bookmaker": "BetBoro",
-          "outcome": "Under 4.5 Bookings",
-          "stake": 51.98,
+          "outcome": "Under 3.5 Bookings",
+          "stake": 35.68,
           "url": "https://betboro.com.gh/pre-sports/1/region/16/competition/92/fixture/90891212",
-          "openOdds": 1.94,
-          "lastOdds": 1.94,
+          "openOdds": 2.83,
+          "lastOdds": 2.83,
           "finalOdds": null
         }
       ]
@@ -1133,7 +1135,7 @@
       "market": "Home Win vs Draw/Away (X2)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 21.487,
       "peakProfitPct": 21.487,
       "profitPct": 20,
@@ -1171,7 +1173,7 @@
       "market": "Away Win vs Home/Draw (1X)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 19.183,
       "peakProfitPct": 19.183,
       "profitPct": 18.544,
@@ -1209,12 +1211,12 @@
       "market": "DNB Away vs Home/Draw (1X)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 6.141,
       "peakProfitPct": 6.141,
       "profitPct": 6.141,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 6.141,
       "legs": [
         {
@@ -1247,7 +1249,7 @@
       "market": "Over/Under 3.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T11:19:02.580Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 12.775,
       "peakProfitPct": 12.775,
       "profitPct": 7.739,
@@ -1323,7 +1325,7 @@
       "market": "Over/Under 2.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T11:48:22.958Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 12.183,
       "peakProfitPct": 12.183,
       "profitPct": 7.541,
@@ -1361,12 +1363,12 @@
       "market": "Over/Under 1.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T12:32:37.932Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 2.129,
       "peakProfitPct": 2.129,
       "profitPct": 2.129,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 2.129,
       "legs": [
         {
@@ -1399,12 +1401,12 @@
       "market": "Both Teams to Score",
       "note": null,
       "firstSeenAt": "2026-11-06T12:32:37.932Z",
-      "lastSeenAt": "2026-11-06T15:03:58.925Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
       "openProfitPct": 1.727,
       "peakProfitPct": 1.727,
       "profitPct": 1.727,
       "finalProfitPct": null,
-      "alertedAt": "2026-11-06T15:03:58.925Z",
+      "alertedAt": "2026-11-06T16:19:10.611Z",
       "alertedProfitPct": 1.727,
       "legs": [
         {
@@ -1423,6 +1425,82 @@
           "url": "https://www.msport.com/gh/web/sports/Soccer/Super_Lig/Eyupspor_vs_Kocaelispor/sr:match:72723306",
           "openOdds": 2.26,
           "lastOdds": 2.26,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72897420|Over/Under 5.5 Bookings",
+      "eventId": "sr:match:72897420",
+      "home": "Auckland FC",
+      "away": "Wellington Phoenix FC",
+      "tournament": "A-League",
+      "kickoff": 1794024000000,
+      "market": "Over/Under 5.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "openProfitPct": 0.443,
+      "peakProfitPct": 0.443,
+      "profitPct": 0.443,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Over 5.5 Bookings",
+          "stake": 33.48,
+          "url": "https://www.sportybet.com/gh/sport/football/A-League/Auckland_FC_vs_Wellington_Phoenix_FC/sr:match:72897420",
+          "openOdds": 3,
+          "lastOdds": 3,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Under 5.5 Bookings",
+          "stake": 66.52,
+          "url": "https://betboro.com.gh/pre-sports/1/region/6/competition/380/fixture/94548786",
+          "openOdds": 1.51,
+          "lastOdds": 1.51,
+          "finalOdds": null
+        }
+      ]
+    },
+    {
+      "key": "sr:match:72055302|Over/Under 3.5 Bookings",
+      "eventId": "sr:match:72055302",
+      "home": "Atlante FC",
+      "away": "Club Santos Laguna",
+      "tournament": "Liga MX",
+      "kickoff": 1794020400000,
+      "market": "Over/Under 3.5 Bookings",
+      "note": null,
+      "firstSeenAt": "2026-11-06T15:18:45.043Z",
+      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "openProfitPct": 0.183,
+      "peakProfitPct": 0.183,
+      "profitPct": 0.183,
+      "finalProfitPct": null,
+      "alertedAt": null,
+      "alertedProfitPct": null,
+      "legs": [
+        {
+          "bookmaker": "BetBoro",
+          "outcome": "Over 3.5 Bookings",
+          "stake": 64.22,
+          "url": "https://betboro.com.gh/pre-sports/1/region/80/competition/566/fixture/94618192",
+          "openOdds": 1.56,
+          "lastOdds": 1.56,
+          "finalOdds": null
+        },
+        {
+          "bookmaker": "SportyBet",
+          "outcome": "Under 3.5 Bookings",
+          "stake": 35.78,
+          "url": "https://www.sportybet.com/gh/sport/football/Liga_MX/Atlante_FC_vs_Club_Santos_Laguna/sr:match:72055302",
+          "openOdds": 2.8,
+          "lastOdds": 2.8,
           "finalOdds": null
         }
       ]

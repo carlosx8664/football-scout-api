@@ -156,7 +156,8 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 ### Scripts — `scripts/`
 
 `fetch-odds.js` (SportyBet/MSport/BetBoro/BoltBet) · `fetch-betpawa.js` (Playwright + kickoff
-parsing) · `fetch-soccabet.js` (isd.js + socket) · `find-arbs.js` (scanner + history + Telegram +
+parsing) · `fetch-soccabet.js` (isd.js + socket) · `find-arbs.js` (scanner + explicit SportyBet
+Over/Under mapping + history + Telegram +
 push) · `build-match-feed.js` · `push-notify.js` (Web Push fan-out) · `generate-vapid-keys.js` ·
 plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `check-*.js`,
 `test-scroll.js`, `arb-scraper.js`, `parse-betslip.js`).

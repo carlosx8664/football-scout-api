@@ -417,7 +417,12 @@ function readSportyMarket(m) {
     if (odds === null || odds <= 1) continue;
 
     const desc = o.desc ?? o.description ?? '';
-    const side = pickSide(desc);
+    // SportyBet's match-goals market has stable outcome ids: 12 = Over, 13 = Under.
+    // Prefer those ids because the displayed outcome text/column can be reordered by the API.
+    const side =
+      id === '18'
+        ? (String(o.id) === '12' ? 'O' : String(o.id) === '13' ? 'U' : pickSide(desc))
+        : pickSide(desc);
     const oid = String(o.id);
     let key;
 
