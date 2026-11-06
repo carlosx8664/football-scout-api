@@ -5,7 +5,7 @@
     "from": "2026-11-06",
     "to": "2026-11-07"
   },
-  "generated_at": "2026-11-06T16:19:16.545Z",
+  "generated_at": "2026-11-06T16:34:03.152Z",
   "match_count": 92,
   "analysed_count": 0,
   "matches": [
@@ -51,7 +51,7 @@
         },
         {
           "value": "Draw",
-          "odd": "3.69"
+          "odd": "3.75"
         },
         {
           "value": "Away",
@@ -62,10 +62,10 @@
         "home": {
           "books": {
             "SportyBet": 2.51,
-            "MSport": 2.45,
+            "MSport": 2.39,
             "BetBoro": 2.28,
             "BoltBet": 2.37,
-            "BetPawa": 2.43
+            "BetPawa": 2.37
           },
           "best": 2.51,
           "bookmaker": "SportyBet"
@@ -73,21 +73,21 @@
         "draw": {
           "books": {
             "SportyBet": 3.67,
-            "MSport": 3.55,
-            "BetBoro": 3.31,
+            "MSport": 3.6,
+            "BetBoro": 3.36,
             "BoltBet": 3.56,
-            "BetPawa": 3.69
+            "BetPawa": 3.75
           },
-          "best": 3.69,
+          "best": 3.75,
           "bookmaker": "BetPawa"
         },
         "away": {
           "books": {
             "SportyBet": 2.78,
-            "MSport": 2.71,
-            "BetBoro": 2.69,
+            "MSport": 2.75,
+            "BetBoro": 2.66,
             "BoltBet": 2.88,
-            "BetPawa": 2.68
+            "BetPawa": 2.72
           },
           "best": 2.88,
           "bookmaker": "BoltBet"
@@ -463,7 +463,7 @@
           "books": {
             "SportyBet": 3.3,
             "MSport": 3.27,
-            "BetBoro": 3.17
+            "BetBoro": 3.12
           },
           "best": 3.3,
           "bookmaker": "SportyBet"
@@ -503,43 +503,43 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "2.27"
+          "odd": "2.31"
         },
         {
           "value": "Draw",
-          "odd": "3.80"
+          "odd": "3.82"
         },
         {
           "value": "Away",
-          "odd": "3.15"
+          "odd": "3.07"
         }
       ],
       "book_odds": {
         "home": {
           "books": {
-            "SportyBet": 2.27,
-            "MSport": 2.26,
-            "BetBoro": 2.11
+            "SportyBet": 2.31,
+            "MSport": 2.29,
+            "BetBoro": 2.13
           },
-          "best": 2.27,
+          "best": 2.31,
           "bookmaker": "SportyBet"
         },
         "draw": {
           "books": {
-            "SportyBet": 3.8,
-            "MSport": 3.76,
-            "BetBoro": 3.55
+            "SportyBet": 3.82,
+            "MSport": 3.78,
+            "BetBoro": 3.6
           },
-          "best": 3.8,
+          "best": 3.82,
           "bookmaker": "SportyBet"
         },
         "away": {
           "books": {
-            "SportyBet": 3.15,
-            "MSport": 3.12,
-            "BetBoro": 2.93
+            "SportyBet": 3.07,
+            "MSport": 3.04,
+            "BetBoro": 2.88
           },
-          "best": 3.15,
+          "best": 3.07,
           "bookmaker": "SportyBet"
         }
       },
@@ -659,7 +659,7 @@
         },
         {
           "value": "Away",
-          "odd": "3.94"
+          "odd": "3.80"
         }
       ],
       "book_odds": {
@@ -667,7 +667,7 @@
           "books": {
             "SportyBet": 1.93,
             "MSport": 1.92,
-            "BetBoro": 1.78
+            "BetBoro": 1.82
           },
           "best": 1.93,
           "bookmaker": "SportyBet"
@@ -676,7 +676,7 @@
           "books": {
             "SportyBet": 3.85,
             "MSport": 3.81,
-            "BetBoro": 3.6
+            "BetBoro": 3.65
           },
           "best": 3.85,
           "bookmaker": "SportyBet"
@@ -685,10 +685,10 @@
           "books": {
             "SportyBet": 3.8,
             "MSport": 3.76,
-            "BetBoro": 3.94
+            "BetBoro": 3.7
           },
-          "best": 3.94,
-          "bookmaker": "BetBoro"
+          "best": 3.8,
+          "bookmaker": "SportyBet"
         }
       },
       "ai_analysis": null
@@ -741,7 +741,7 @@
           "books": {
             "SportyBet": 1.71,
             "MSport": 1.7,
-            "BetBoro": 1.65
+            "BetBoro": 1.63
           },
           "best": 1.71,
           "bookmaker": "SportyBet"
@@ -750,7 +750,7 @@
           "books": {
             "SportyBet": 4.13,
             "MSport": 4.08,
-            "BetBoro": 3.7
+            "BetBoro": 3.84
           },
           "best": 4.13,
           "bookmaker": "SportyBet"
@@ -799,43 +799,43 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "1.89"
+          "odd": "1.96"
         },
         {
           "value": "Draw",
-          "odd": "3.56"
+          "odd": "3.45"
         },
         {
           "value": "Away",
-          "odd": "4.78"
+          "odd": "4.54"
         }
       ],
       "book_odds": {
         "home": {
           "books": {
-            "SportyBet": 1.89,
-            "MSport": 1.87,
+            "SportyBet": 1.96,
+            "MSport": 1.94,
             "BetBoro": 1.8
           },
-          "best": 1.89,
+          "best": 1.96,
           "bookmaker": "SportyBet"
         },
         "draw": {
           "books": {
-            "SportyBet": 3.56,
-            "MSport": 3.52,
-            "BetBoro": 3.36
+            "SportyBet": 3.45,
+            "MSport": 3.41,
+            "BetBoro": 3.31
           },
-          "best": 3.56,
+          "best": 3.45,
           "bookmaker": "SportyBet"
         },
         "away": {
           "books": {
-            "SportyBet": 4.78,
-            "MSport": 4.72,
+            "SportyBet": 4.54,
+            "MSport": 4.49,
             "BetBoro": 4.27
           },
-          "best": 4.78,
+          "best": 4.54,
           "bookmaker": "SportyBet"
         }
       },
@@ -947,43 +947,43 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "2.53"
+          "odd": "2.60"
         },
         {
           "value": "Draw",
-          "odd": "3.35"
+          "odd": "3.27"
         },
         {
           "value": "Away",
-          "odd": "2.97"
+          "odd": "2.94"
         }
       ],
       "book_odds": {
         "home": {
           "books": {
-            "SportyBet": 2.53,
-            "MSport": 2.47,
+            "SportyBet": 2.6,
+            "MSport": 2.53,
             "BetBoro": 2.42
           },
-          "best": 2.53,
+          "best": 2.6,
           "bookmaker": "SportyBet"
         },
         "draw": {
           "books": {
-            "SportyBet": 3.35,
-            "MSport": 3.25,
+            "SportyBet": 3.27,
+            "MSport": 3.17,
             "BetBoro": 3.07
           },
-          "best": 3.35,
+          "best": 3.27,
           "bookmaker": "SportyBet"
         },
         "away": {
           "books": {
-            "SportyBet": 2.97,
-            "MSport": 2.88,
+            "SportyBet": 2.94,
+            "MSport": 2.86,
             "BetBoro": 2.8
           },
-          "best": 2.97,
+          "best": 2.94,
           "bookmaker": "SportyBet"
         }
       },
@@ -1342,7 +1342,7 @@
           "books": {
             "SportyBet": 3.34,
             "MSport": 3.34,
-            "BetBoro": 3.07
+            "BetBoro": 3.12
           },
           "best": 3.34,
           "bookmaker": "SportyBet"
@@ -1628,7 +1628,7 @@
         "home": {
           "books": {
             "SportyBet": 2.79,
-            "MSport": 2.77,
+            "MSport": 2.76,
             "BetBoro": 2.64
           },
           "best": 2.79,
@@ -1637,7 +1637,7 @@
         "draw": {
           "books": {
             "SportyBet": 3.74,
-            "MSport": 3.7,
+            "MSport": 3.73,
             "BetBoro": 3.46
           },
           "best": 3.74,
@@ -1646,7 +1646,7 @@
         "away": {
           "books": {
             "SportyBet": 2.53,
-            "MSport": 2.51,
+            "MSport": 2.5,
             "BetBoro": 2.35
           },
           "best": 2.53,
@@ -1765,11 +1765,11 @@
         },
         {
           "value": "Draw",
-          "odd": "6.40"
+          "odd": "6.36"
         },
         {
           "value": "Away",
-          "odd": "8.61"
+          "odd": "8.63"
         }
       ],
       "book_odds": {
@@ -1777,27 +1777,27 @@
           "books": {
             "SportyBet": 1.34,
             "MSport": 1.33,
-            "BetBoro": 1.28
+            "BetBoro": 1.29
           },
           "best": 1.34,
           "bookmaker": "SportyBet"
         },
         "draw": {
           "books": {
-            "SportyBet": 6.4,
-            "MSport": 6.27,
+            "SportyBet": 6.36,
+            "MSport": 6.23,
             "BetBoro": 5.47
           },
-          "best": 6.4,
+          "best": 6.36,
           "bookmaker": "SportyBet"
         },
         "away": {
           "books": {
-            "SportyBet": 8.61,
-            "MSport": 8.43,
-            "BetBoro": 7.68
+            "SportyBet": 8.63,
+            "MSport": 8.46,
+            "BetBoro": 7.39
           },
-          "best": 8.61,
+          "best": 8.63,
           "bookmaker": "SportyBet"
         }
       },
@@ -6521,11 +6521,11 @@
       "odds": [
         {
           "value": "Home",
-          "odd": "9.78"
+          "odd": "9.74"
         },
         {
           "value": "Draw",
-          "odd": "6.59"
+          "odd": "6.55"
         },
         {
           "value": "Away",
@@ -6535,20 +6535,20 @@
       "book_odds": {
         "home": {
           "books": {
-            "SportyBet": 9.78,
-            "MSport": 9.57,
+            "SportyBet": 9.74,
+            "MSport": 9.52,
             "BetBoro": 8.4
           },
-          "best": 9.78,
+          "best": 9.74,
           "bookmaker": "SportyBet"
         },
         "draw": {
           "books": {
-            "SportyBet": 6.59,
-            "MSport": 6.46,
+            "SportyBet": 6.55,
+            "MSport": 6.42,
             "BetBoro": 5.66
           },
-          "best": 6.59,
+          "best": 6.55,
           "bookmaker": "SportyBet"
         },
         "away": {

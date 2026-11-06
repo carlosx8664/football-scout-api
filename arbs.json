@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-11-06T16:19:14.138Z",
+  "generatedAt": "2026-11-06T16:34:00.578Z",
   "boostApplied": 1,
   "boostTarget": null,
   "stats": {
-    "matched": 1648,
-    "pairsChecked": 64972,
+    "matched": 1661,
+    "pairsChecked": 65226,
     "bookEvents": {
       "SportyBet": 1500,
-      "MSport": 1689,
-      "BetBoro": 1557,
-      "BoltBet": 296,
+      "MSport": 1708,
+      "BetBoro": 1569,
+      "BoltBet": 288,
       "BetPawa": 42,
-      "Soccabet": 12
+      "Soccabet": 11
     }
   },
   "arbs": [
@@ -239,9 +239,7 @@
           "stake": 57.37,
           "url": "https://betboro.com.gh/pre-sports/1/region/31/competition/306/fixture/90874278"
         }
-      ],
-      "alertedAt": "2026-11-06T16:19:10.611Z",
-      "alertedProfitPct": 6.141
+      ]
     },
     {
       "eventId": "sr:match:66299790",
@@ -275,9 +273,7 @@
         }
       ],
       "needsRuleReview": true,
-      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T16:19:10.611Z",
-      "alertedProfitPct": 3.777
+      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting."
     },
     {
       "eventId": "sr:match:72723306",
@@ -303,9 +299,7 @@
           "stake": 23.21,
           "url": "https://www.msport.com/gh/web/sports/Soccer/Super_Lig/Eyupspor_vs_Kocaelispor/sr:match:72723306"
         }
-      ],
-      "alertedAt": "2026-11-06T16:19:10.611Z",
-      "alertedProfitPct": 2.129
+      ]
     },
     {
       "eventId": "sr:match:66299796",
@@ -339,9 +333,7 @@
         }
       ],
       "needsRuleReview": true,
-      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting.",
-      "alertedAt": "2026-11-06T16:19:10.611Z",
-      "alertedProfitPct": 2.124
+      "warning": "Verify settlement data provider (e.g., Opta vs Sportradar) before betting."
     },
     {
       "eventId": "sr:match:72723306",
@@ -367,9 +359,7 @@
           "stake": 45.01,
           "url": "https://www.msport.com/gh/web/sports/Soccer/Super_Lig/Eyupspor_vs_Kocaelispor/sr:match:72723306"
         }
-      ],
-      "alertedAt": "2026-11-06T16:19:10.611Z",
-      "alertedProfitPct": 1.727
+      ]
     },
     {
       "eventId": "sr:match:72897420",
@@ -565,7 +555,7 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T13:34:13.614Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 8.269,
       "peakProfitPct": 8.269,
       "profitPct": 2.124,
@@ -641,7 +631,7 @@
       "market": "Over/Under 4.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T13:34:13.614Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 3.777,
       "peakProfitPct": 3.777,
       "profitPct": 3.777,
@@ -1135,7 +1125,7 @@
       "market": "Home Win vs Draw/Away (X2)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 21.487,
       "peakProfitPct": 21.487,
       "profitPct": 20,
@@ -1173,7 +1163,7 @@
       "market": "Away Win vs Home/Draw (1X)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 19.183,
       "peakProfitPct": 19.183,
       "profitPct": 18.544,
@@ -1211,7 +1201,7 @@
       "market": "DNB Away vs Home/Draw (1X)",
       "note": null,
       "firstSeenAt": "2026-11-06T11:03:48.729Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 6.141,
       "peakProfitPct": 6.141,
       "profitPct": 6.141,
@@ -1249,7 +1239,7 @@
       "market": "Over/Under 3.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T11:19:02.580Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 12.775,
       "peakProfitPct": 12.775,
       "profitPct": 7.739,
@@ -1325,7 +1315,7 @@
       "market": "Over/Under 2.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T11:48:22.958Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 12.183,
       "peakProfitPct": 12.183,
       "profitPct": 7.541,
@@ -1363,7 +1353,7 @@
       "market": "Over/Under 1.5 Goals",
       "note": null,
       "firstSeenAt": "2026-11-06T12:32:37.932Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 2.129,
       "peakProfitPct": 2.129,
       "profitPct": 2.129,
@@ -1401,7 +1391,7 @@
       "market": "Both Teams to Score",
       "note": null,
       "firstSeenAt": "2026-11-06T12:32:37.932Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 1.727,
       "peakProfitPct": 1.727,
       "profitPct": 1.727,
@@ -1439,7 +1429,7 @@
       "market": "Over/Under 5.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T16:19:10.611Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 0.443,
       "peakProfitPct": 0.443,
       "profitPct": 0.443,
@@ -1477,7 +1467,7 @@
       "market": "Over/Under 3.5 Bookings",
       "note": null,
       "firstSeenAt": "2026-11-06T15:18:45.043Z",
-      "lastSeenAt": "2026-11-06T16:19:10.611Z",
+      "lastSeenAt": "2026-11-06T16:34:00.573Z",
       "openProfitPct": 0.183,
       "peakProfitPct": 0.183,
       "profitPct": 0.183,

@@ -399,6 +399,18 @@ function pickSide(desc) {
   return null;
 }
 
+function pickSportyTotalSide(outcome) {
+  const desc = String(outcome?.desc ?? outcome?.description ?? '').trim().toLowerCase();
+  if (/^over(?:\s|$)/.test(desc)) return 'O';
+  if (/^under(?:\s|$)/.test(desc)) return 'U';
+
+  // Keep the IDs as a fallback for responses that omit the outcome description.
+  const id = String(outcome?.id ?? '');
+  if (id === '12') return 'O';
+  if (id === '13') return 'U';
+  return null;
+}
+
 // ============================================================================
 // SportyBet Parser
 // ============================================================================
@@ -417,12 +429,9 @@ function readSportyMarket(m) {
     if (odds === null || odds <= 1) continue;
 
     const desc = o.desc ?? o.description ?? '';
-    // SportyBet's match-goals market has stable outcome ids: 12 = Over, 13 = Under.
-    // Prefer those ids because the displayed outcome text/column can be reordered by the API.
-    const side =
-      id === '18'
-        ? (String(o.id) === '12' ? 'O' : String(o.id) === '13' ? 'U' : pickSide(desc))
-        : pickSide(desc);
+    // The API can reorder outcome rows, so use the explicit Over/Under description, never its
+    // array position. IDs are only a fallback when a response omits the description.
+    const side = id === '18' ? (pickSportyTotalSide(o) ?? pickSide(desc)) : pickSide(desc);
     const oid = String(o.id);
     let key;
 
