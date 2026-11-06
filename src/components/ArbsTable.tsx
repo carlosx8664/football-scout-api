@@ -477,8 +477,9 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                     type="checkbox"
                     checked={selectedPairKeys.includes(key)}
                     onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setSelectedPairKeys((current) =>
-                        event.currentTarget.checked
+                        checked
                           ? [...current, key]
                           : current.filter((value) => value !== key),
                       );
