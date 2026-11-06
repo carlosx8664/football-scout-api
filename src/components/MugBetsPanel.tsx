@@ -218,8 +218,8 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             <span>Stake (daily {formatAmount(plan.microMug)})</span>
             <input
               type="number"
-              min="1"
-              step="1"
+              min="0.01"
+              step="0.01"
               value={muggy.stake}
               onChange={(event) => setMuggy((c) => ({ ...c, stake: event.target.value }))}
               required
@@ -275,8 +275,8 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             <span>Stake (free)</span>
             <input
               type="number"
-              min="1"
-              step="1"
+              min="0.01"
+              step="0.01"
               value={free.stake}
               onChange={(event) => updateFree({ stake: event.target.value })}
               required
