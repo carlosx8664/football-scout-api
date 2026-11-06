@@ -448,32 +448,48 @@ async function fetchAllBetBoro(competitionIds) {
 // ---------------------------------------------------------------------------
 // liveFixtureBook → flat markets (v5 — adds total_tackles & total_throw_ins)
 // ---------------------------------------------------------------------------
+// One key per BetBoro market family. These ids used to share a key (`6`+`18`, `1153`+`166`,
+// `1165`+`139`), so two different markets could fill the same line slot and whichever the payload
+// listed first won. Each family now has its own bucket: nothing is merged, nothing is guessed.
 const BETBORO_FLAT_KEY_MAP = {
   '1':   { key: 'match_result',        kind: 'result' },
   '2':   { key: 'double_chance',       kind: 'result' },
   '7':   { key: 'both_teams_to_score', kind: 'btts'   },
-  '6':   { key: 'total_goals',         kind: 'ou'     },
-  '18':  { key: 'total_goals',         kind: 'ou'     },
 
-  '1153': { key: 'total_corners',         kind: 'ou' },
-  '166':  { key: 'total_corners',         kind: 'ou' },
-  '1165': { key: 'total_cards',           kind: 'ou' },
-  '139':  { key: 'total_cards',           kind: 'ou' },
+  '6':    { key: 'total_goals',       kind: 'ou' },
+  '18':   { key: 'total_goals_alt',   kind: 'ou' },
+  '1153': { key: 'total_corners',     kind: 'ou' },
+  '166':  { key: 'total_corners_alt', kind: 'ou' },
+  '1165': { key: 'total_cards',       kind: 'ou' },
+  '139':  { key: 'total_cards_alt',   kind: 'ou' },
 
   '1189': { key: 'total_shots',           kind: 'ou' },
   '1162': { key: 'total_shots_on_target', kind: 'ou' },
-
   '1244': { key: 'total_tackles',         kind: 'ou' },
   '1243': { key: 'total_throw_ins',       kind: 'ou' },
 };
 
+/**
+ * BetBoro's own Over/Under label -> column slot. There is deliberately no positional fallback:
+ * an unlabelled row is rejected rather than guessed, because that guess is what silently flips
+ * Over and Under.
+ */
 function parseBetBoroOuSide(odd) {
-  const n = String(odd?.name ?? odd?.name_short ?? '').toLowerCase().trim();
-  if (n.startsWith('over'))  return '0';
-  if (n.startsWith('under')) return '1';
-  if (n.startsWith('yes'))   return '0';
-  if (n.startsWith('no'))    return '1';
+  const n = String(odd?.name ?? odd?.name_short ?? '').trim().toLowerCase();
+  if (/^over\b/.test(n))  return '0';
+  if (/^under\b/.test(n)) return '1';
   return null;
+}
+
+/** True when a market node carries explicit outcome labels ("Over 2.5", "Under 2.5", ...). */
+function hasOutcomeLabels(node) {
+  if (!node || typeof node !== 'object') return false;
+  return Object.values(node).some(
+    (columns) =>
+      columns &&
+      typeof columns === 'object' &&
+      Object.values(columns).some((outcome) => String(outcome?.name ?? '').trim() !== ''),
+  );
 }
 
 function parseBetBoroResultSlot(odd) {
@@ -512,33 +528,55 @@ function flattenLiveFixtureBook(payload) {
     const spec = BETBORO_FLAT_KEY_MAP[extId];
     if (!spec) continue;
 
-    const odds = market.odds ?? {};
+    // A second market for an id we already flattened would be an ambiguous duplicate, so skip it
+    // instead of letting list order decide which price survives.
+    if (out[spec.key]) continue;
 
-    if (spec.kind === 'result' || spec.kind === 'btts') {
-      const bucket = out[spec.key] = out[spec.key] ?? {};
-      for (const odd of Object.values(odds)) {
-        if (!odd || odd.status !== 'available') continue;
+    const odds = market.odds ?? {};
+    const bucket = {};
+    /** Slots claimed twice: dropped entirely rather than picking one of the two prices. */
+    const poisoned = new Set();
+
+    for (const odd of Object.values(odds)) {
+      if (!odd || odd.status !== 'available') continue;
+
+      if (spec.kind === 'result' || spec.kind === 'btts') {
         const slot = parseBetBoroResultSlot(odd);
         if (slot == null) continue;
-        if (bucket[slot]) continue;
+        if (bucket[slot] || poisoned.has(slot)) {
+          delete bucket[slot];
+          poisoned.add(slot);
+          continue;
+        }
         bucket[slot] = { price: String(odd.price), status: 'available' };
+        continue;
       }
-      continue;
+
+      const line = extractLineFromOdd(odd);
+      if (!line || !line.endsWith('.5')) continue;
+
+      const side = parseBetBoroOuSide(odd);
+      if (side == null) continue;
+
+      // `sort` and the label must name the same line; a mismatch means the row is untrustworthy.
+      const labelLine = String(odd?.name ?? odd?.name_short ?? '').match(/(\d+(?:\.\d+)?)/);
+      if (labelLine && parseFloat(labelLine[1]) !== parseFloat(line)) continue;
+
+      bucket[line] = bucket[line] ?? {};
+      if (bucket[line][side] || poisoned.has(line)) {
+        delete bucket[line];
+        poisoned.add(line);
+        continue;
+      }
+      bucket[line][side] = {
+        price: String(odd.price),
+        status: 'available',
+        name: String(odd?.name ?? odd?.name_short ?? ''),
+      };
     }
 
-    if (spec.kind === 'ou') {
-      const bucket = out[spec.key] = out[spec.key] ?? {};
-      for (const odd of Object.values(odds)) {
-        if (!odd || odd.status !== 'available') continue;
-        const line = extractLineFromOdd(odd);
-        if (!line || !line.endsWith('.5')) continue;
-        const side = parseBetBoroOuSide(odd);
-        if (side == null) continue;
-        bucket[line] = bucket[line] ?? {};
-        if (bucket[line][side]) continue;
-        bucket[line][side] = { price: String(odd.price), status: 'available' };
-      }
-    }
+    // Never write an empty bucket: an empty object would replace real REST data downstream.
+    if (Object.keys(bucket).length > 0) out[spec.key] = bucket;
   }
 
   return out;
@@ -810,6 +848,10 @@ async function run() {
           if (!payload) continue;
           const flat = flattenLiveFixtureBook(payload);
           for (const [k, v] of Object.entries(flat)) {
+            const existing = f.markets[k];
+            // Never replace a labelled REST market with an unlabelled WS bucket: the labels are the
+            // only thing that lets find-arbs prove Over/Under are the right way round.
+            if (hasOutcomeLabels(existing) && !hasOutcomeLabels(v)) continue;
             f.markets[k] = v;
             keyCounts[k] = (keyCounts[k] || 0) + 1;
           }

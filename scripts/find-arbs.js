@@ -702,6 +702,26 @@ const betBoroPrice = (node) => {
   return p !== null && p > 1 ? p : null;
 };
 
+/**
+ * One Over/Under column, refusing a price whose own BetBoro label contradicts the slot it sits in.
+ * The label is the only proof of which side a column is, so a mismatched column is dropped instead
+ * of being trusted positionally.
+ */
+const betBoroOuPrice = (columns, side) => {
+  const outcome = columns?.[side];
+  const price = betBoroPrice(outcome);
+  if (price === null) return null;
+  const label = String(outcome?.name ?? '').trim().toLowerCase();
+  if (!label) return price;
+  return label.startsWith(side === '0' ? 'over' : 'under') ? price : null;
+};
+
+/**
+ * A BetBoro market family. `*_alt` is a distinct family that used to be aliased onto the same key,
+ * so it is only read when the canonical family is absent — never merged into it.
+ */
+const betBoroFamily = (markets, key) => markets?.[key] ?? markets?.[`${key}_alt`] ?? {};
+
 function loadBetBoro(file) {
   if (!fs.existsSync(file)) return { events: new Map(), typeCounts: {} };
   const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -732,52 +752,52 @@ function loadBetBoro(file) {
     add('BTTS:Y', betBoroPrice(btts['0']));
     add('BTTS:N', betBoroPrice(btts['1']));
 
-    for (const [line, node] of Object.entries(f.markets?.total_goals ?? {})) {
+    for (const [line, node] of Object.entries(betBoroFamily(f.markets, 'total_goals'))) {
       if (!line.endsWith('.5')) continue;
-      add(`OU:${line}:O`, betBoroPrice(node?.['0']));
-      add(`OU:${line}:U`, betBoroPrice(node?.['1']));
+      add(`OU:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`OU:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_corners` (if present in overview_markets)
-    for (const [line, node] of Object.entries(f.markets?.total_corners ?? {})) {
+    for (const [line, node] of Object.entries(betBoroFamily(f.markets, 'total_corners'))) {
       if (!line.endsWith('.5')) continue;
-      add(`CORN:${line}:O`, betBoroPrice(node?.['0']));
-      add(`CORN:${line}:U`, betBoroPrice(node?.['1']));
+      add(`CORN:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`CORN:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_cards` (if present in overview_markets)
-    for (const [line, node] of Object.entries(f.markets?.total_cards ?? {})) {
+    for (const [line, node] of Object.entries(betBoroFamily(f.markets, 'total_cards'))) {
       if (!line.endsWith('.5')) continue;
-      add(`BOOK:${line}:O`, betBoroPrice(node?.['0']));
-      add(`BOOK:${line}:U`, betBoroPrice(node?.['1']));
+      add(`BOOK:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`BOOK:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_tackles`
     for (const [line, node] of Object.entries(f.markets?.total_tackles ?? {})) {
       if (!line.endsWith('.5')) continue;
-      add(`TACKLE:${line}:O`, betBoroPrice(node?.['0']));
-      add(`TACKLE:${line}:U`, betBoroPrice(node?.['1']));
+      add(`TACKLE:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`TACKLE:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_throw_ins`
     for (const [line, node] of Object.entries(f.markets?.total_throw_ins ?? {})) {
       if (!line.endsWith('.5')) continue;
-      add(`THROW:${line}:O`, betBoroPrice(node?.['0']));
-      add(`THROW:${line}:U`, betBoroPrice(node?.['1']));
+      add(`THROW:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`THROW:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_shots` (if present in overview_markets)
     for (const [line, node] of Object.entries(f.markets?.total_shots ?? {})) {
       if (!line.endsWith('.5')) continue;
-      add(`SHOTS:${line}:O`, betBoroPrice(node?.['0']));
-      add(`SHOTS:${line}:U`, betBoroPrice(node?.['1']));
+      add(`SHOTS:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`SHOTS:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     // BetBoro's `total_shots_on_target` (if present in overview_markets)
     for (const [line, node] of Object.entries(f.markets?.total_shots_on_target ?? {})) {
       if (!line.endsWith('.5')) continue;
-      add(`SOT:${line}:O`, betBoroPrice(node?.['0']));
-      add(`SOT:${line}:U`, betBoroPrice(node?.['1']));
+      add(`SOT:${line}:O`, betBoroOuPrice(node, '0'));
+      add(`SOT:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
     events.set(f.eventId, {
@@ -1325,6 +1345,8 @@ async function main() {
     const pairs = [...FIXED_PAIRS];
     
     for (const line of ouLines) pairs.push({ a: `OU:${line}:O`, b: `OU:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Goals` });
+    // Bookings settle differently across books (SportyBet counts a red card as two bookings, BetBoro
+    // counts a card), so these stay tagged for manual review instead of being suppressed.
     for (const line of bookLines) pairs.push({ a: `BOOK:${line}:O`, b: `BOOK:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Bookings`, needsRuleReview: true });
     for (const line of cornLines) pairs.push({ a: `CORN:${line}:O`, b: `CORN:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Corners`, needsRuleReview: true });
     for (const line of tackleLines) pairs.push({ a: `TACKLE:${line}:O`, b: `TACKLE:${line}:U`, scen: ['O', 'U'], market: `Over/Under ${line} Tackles`, needsRuleReview: true });
