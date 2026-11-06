@@ -209,7 +209,7 @@ function arbKey(arb: ArbOpportunity, legs: ArbLeg[]): string {
   return `${base}|${arb.market}|${legPart}`;
 }
 
-function bookmakerPairKey(legs: ArbLeg[]): string | null {
+function bookmakerPairKey(legs: Array<{ bookmaker: string }>): string | null {
   if (legs.length !== LEGS_PER_MATCH) return null;
   return legs
     .map((leg) => leg.bookmaker.trim().toLowerCase())
@@ -217,7 +217,7 @@ function bookmakerPairKey(legs: ArbLeg[]): string | null {
     .join("|");
 }
 
-function bookmakerPairLabel(legs: ArbLeg[]): string | null {
+function bookmakerPairLabel(legs: Array<{ bookmaker: string }>): string | null {
   if (legs.length !== LEGS_PER_MATCH) return null;
   return legs
     .map((leg) => leg.bookmaker.trim())
@@ -391,7 +391,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     if (key && label) pairOptions.set(key, label);
   }
 
-  const matchesSelectedPair = (legs: ArbLeg[]): boolean => {
+  const matchesSelectedPair = (legs: Array<{ bookmaker: string }>): boolean => {
     const key = bookmakerPairKey(legs);
     return selectedPairKeys.length === 0 || (key !== null && selectedPairKeys.includes(key));
   };
