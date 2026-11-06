@@ -38,7 +38,7 @@ const LEGS_PER_MATCH = 2;
 const PAST_LIMIT = 50;
 /** 90 minutes plus half-time and stoppage; used to label a kicked-off match. */
 const MATCH_DURATION_MS = 120 * 60_000;
-const REFRESH_MS = 5 * 60_000;
+const REFRESH_MS = 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
 const HIGH_PROFIT_PCT = 10;
 const ROUNDING_STEPS = [5, 10, 20, 50, 100, 200];
@@ -326,8 +326,11 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
 
   useEffect(() => {
     const controller = new AbortController();
+    let inFlight = false;
 
     const load = async () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
       try {
         // KV-backed feed first (fresh every 15 min), static file as fallback.
         const payload = await fetchArbsJson(controller.signal);
@@ -342,15 +345,22 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
         console.warn("Could not read arbs.json; showing empty state.", error);
         // A failed refresh keeps the last good data on screen.
         setFeed((previous) => previous ?? EMPTY_FEED);
+      } finally {
+        inFlight = false;
       }
     };
 
     void load();
     const timer = setInterval(() => void load(), REFRESH_MS);
+    const onVisibilityChange = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       controller.abort();
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
