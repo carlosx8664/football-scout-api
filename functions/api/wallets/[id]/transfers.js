@@ -98,10 +98,21 @@ export async function onRequestPost({ request, env, params }) {
         .bind(delta, id, mode),
       db
         .prepare(
-          `INSERT INTO wallet_transfers (id, wallet_id, bookie_name, kind, amount, is_simulation)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO wallet_transfers
+             (id, wallet_id, bookie_name, kind, transfer_type, amount, is_simulation)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(crypto.randomUUID(), id, wallet.bookie_name, kind, amount, mode),
+        .bind(
+          crypto.randomUUID(),
+          id,
+          wallet.bookie_name,
+          kind,
+          // Internal shuffling: cash to Momo is not a profit take, and neither adds to the
+          // external totals that the cash-flow cards show.
+          kind === "deposit" ? "TRANSFER_TO_BOOKIE" : "TRANSFER_TO_MOMO",
+          amount,
+          mode,
+        ),
     ]);
 
     // The money comes out of the Momo pot on a top-up and lands back in it on a withdrawal, on

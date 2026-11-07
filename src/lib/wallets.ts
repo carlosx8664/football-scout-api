@@ -185,7 +185,8 @@ export async function refreshWallets(
 
 /**
  * Takes profit out of the bookie wallets. Each allocation is one bookie's draw; the API caps it at
- * `balance - locked`, at the total profit and at the bankroll floor, and logs a `PROFIT_TAKE`.
+ * `balance - locked`, at the total profit and at the bankroll floor, and logs a
+ * `PROFIT_WITHDRAWAL`.
  */
 export async function cashOutWeeklyProfits(
   simulation: boolean,

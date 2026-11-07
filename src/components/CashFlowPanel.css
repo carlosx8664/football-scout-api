@@ -170,8 +170,14 @@
   font-weight: 600;
   color: var(--color-neutral-6);
 }
-.cashflow-kind.PROFIT_TAKE { background: #eef2ff; color: #3730a3; }
+.cashflow-kind.PROFIT_WITHDRAWAL { background: #eef2ff; color: #3730a3; }
 .cashflow-kind.CAPITAL_INJECTION { background: #e8f7ee; color: #15803d; }
+/* Internal shuffling between a bookie and Momo: neutral, because no money leaves the system. */
+.cashflow-kind.TRANSFER_TO_MOMO,
+.cashflow-kind.TRANSFER_TO_BOOKIE {
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+}
 
 .cashflow-modal-backdrop {
   position: fixed;

@@ -188,7 +188,7 @@ Other scripts: `npm run build`, `npm run lint`, `npm run deploy`.
 | `GET /api/push/key` | VAPID public key for Web Push subscriptions; 503 until `VAPID_PUBLIC_KEY` is set |
 | `POST /api/push/subscribe` | Stores one browser's push subscription in KV (`push-sub:<fingerprint>`), tagged with the origin it was created on |
 | `POST /api/push/unsubscribe` | Drops a subscription by endpoint |
-| `POST /api/wallets/cash-out` | Profit take: `allocations: [{ walletId, amount }]` plus `bankroll`, each capped at `balance − locked` and the total at total profit; logs `PROFIT_TAKE` withdrawals |
+| `POST /api/wallets/cash-out` | Profit withdrawal: `allocations: [{ walletId, amount }]` plus `bankroll`, each capped at `balance − locked` and the total at total profit; logs `PROFIT_WITHDRAWAL` |
 | `GET /api/mug-bets` | Mug bets for one mode (open first) plus lifetime totals |
 | `POST /api/mug-bets` | Logs a mug bet and debits the stake from that bookie |
 | `POST /api/mug-bets/:id/settle` | `{ won }` ? a win credits `stake ? odds` back to the bookie, a loss changes nothing |
@@ -552,7 +552,7 @@ that is not sitting in a bookie account.
   plan appear, each showing `Available to Withdraw = balance − locked` where `locked` is the cash
   still at risk in that bookie's active bets. The total cannot exceed the mode's total profit
   (`SUM(history.net_profit)`), and the cash left in the wallets may never fall below the bankroll.
-  Each draw is logged as a `PROFIT_TAKE` withdrawal; the money leaves the system, so `cash_reserve`
+  Each draw is logged as a `PROFIT_WITHDRAWAL`; the money leaves the system, so `cash_reserve`
   and the bankroll plan are untouched.
 - **Mug bets** live in `mug_bets`, separate from `history` so arb profit stays a pure measure of
   the arbitrage book. Logging one debits the stake; settling a win credits `stake ? odds` back.

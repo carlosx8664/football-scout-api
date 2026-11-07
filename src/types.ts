@@ -195,7 +195,12 @@ export interface WalletTransfer {
   walletId: string | null;
   bookie: string;
   kind: "deposit" | "withdrawal";
-  type: "BOOKIE_TRANSFER" | "CAPITAL_INJECTION" | "PROFIT_TAKE";
+  type:
+    | "BOOKIE_TRANSFER"
+    | "CAPITAL_INJECTION"
+    | "PROFIT_WITHDRAWAL"
+    | "TRANSFER_TO_MOMO"
+    | "TRANSFER_TO_BOOKIE";
   amount: number;
   createdAt: string;
 }

@@ -27,7 +27,7 @@ const cents = (value) => Math.round(Number(value) * 100);
  *   gut the float the plan is sized against.
  *
  * The money leaves the system (it is profit banked elsewhere), so the Momo reserve and the
- * bankroll plan are untouched. Each draw is logged as a `PROFIT_TAKE` withdrawal in the cash-flow
+ * bankroll plan are untouched. Each draw is logged as a `PROFIT_WITHDRAWAL` in the cash-flow
  * ledger, which is what keeps the ledger and the wallet balances in step.
  */
 export async function onRequestPost({ request, env }) {
@@ -113,7 +113,7 @@ export async function onRequestPost({ request, env }) {
     const taken = await db
       .prepare(
         `SELECT COALESCE(SUM(amount), 0) AS total FROM wallet_transfers
-          WHERE is_simulation = ? AND transfer_type = 'PROFIT_TAKE'`,
+          WHERE is_simulation = ? AND transfer_type = 'PROFIT_WITHDRAWAL'`,
       )
       .bind(mode)
       .first();
@@ -157,7 +157,7 @@ export async function onRequestPost({ request, env }) {
           .prepare(
             `INSERT INTO wallet_transfers
                (id, wallet_id, bookie_name, kind, transfer_type, amount, is_simulation)
-             VALUES (?, ?, ?, 'withdrawal', 'PROFIT_TAKE', ?, ?)`,
+             VALUES (?, ?, ?, 'withdrawal', 'PROFIT_WITHDRAWAL', ?, ?)`,
           )
           .bind(crypto.randomUUID(), entry.id, entry.bookie, entry.amount, mode),
       );

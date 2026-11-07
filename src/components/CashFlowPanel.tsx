@@ -290,11 +290,15 @@ const CashFlowPanel = ({
                 <span className={`cashflow-kind ${transfer.kind} ${transfer.type}`}>
                   {transfer.type === "CAPITAL_INJECTION"
                     ? "Capital injection"
-                    : transfer.type === "PROFIT_TAKE"
-                      ? "Profit take"
-                      : transfer.kind === "deposit"
-                        ? "Deposit"
-                        : "Withdrawal"}
+                    : transfer.type === "PROFIT_WITHDRAWAL"
+                      ? "Profit withdrawal"
+                      : transfer.type === "TRANSFER_TO_MOMO"
+                        ? "To MOMO"
+                        : transfer.type === "TRANSFER_TO_BOOKIE"
+                          ? "To bookie"
+                          : transfer.kind === "deposit"
+                            ? "Deposit"
+                            : "Withdrawal"}
                 </span>
                 <span className="cashflow-bookie">{transfer.bookie}</span>
                 <span className="cashflow-amount">
