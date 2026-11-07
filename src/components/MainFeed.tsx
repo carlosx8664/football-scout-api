@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import type { LiveMatch, Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import { indexLiveMatches, liveLabel, scoreParts, useLiveScores } from "../lib/liveScores";
@@ -12,6 +11,8 @@ interface MainFeedProps {
   selectedLeagueName: string;
   date: string;
   now: number;
+  /** Notifies the app which fixture's row is expanded, so the rail can show its league table. */
+  onSelectMatch?: (match: Match | null) => void;
 }
 
 const TABS: Array<{ id: FeedTab; label: string }> = [
@@ -156,17 +157,13 @@ const OddsPanel = ({ match }: { match: Match }) => {
           <span className="odds-empty">Over/Under odds are not available for this fixture.</span>
         )}
       </div>
-
-      <Link to={`/match/${match.fixture.id}`} className="score-detail-link">
-        View AI Details ➜
-      </Link>
     </div>
   );
 };
 
-const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => {
+const MainFeed = ({ matches, selectedLeagueName, date, now, onSelectMatch }: MainFeedProps) => {
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
-  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { payload: liveScores } = useLiveScores();
   const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
@@ -199,18 +196,24 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
     return [...byLeague.values()];
   }, [visibleMatches]);
 
-  const toggleRow = (id: number) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  // Drop the selection when the expanded fixture leaves the list (tab or league change).
+  useEffect(() => {
+    if (expandedId === null) return;
+    if (visibleMatches.some((match) => match.fixture.id === expandedId)) return;
+    setExpandedId(null);
+    onSelectMatch?.(null);
+  }, [expandedId, visibleMatches, onSelectMatch]);
+
+  const toggleRow = (match: Match) => {
+    const next = expandedId === match.fixture.id ? null : match.fixture.id;
+    setExpandedId(next);
+    onSelectMatch?.(next === null ? null : match);
   };
 
   const changeTab = (tab: FeedTab) => {
     setActiveTab(tab);
-    setExpanded(new Set());
+    setExpandedId(null);
+    onSelectMatch?.(null);
   };
 
   return (
@@ -255,14 +258,14 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
               <div className="league-rows">
                 {group.matches.map((match) => {
                   const row = describeMatch(match, liveById, anchor);
-                  const isOpen = expanded.has(match.fixture.id);
+                  const isOpen = expandedId === match.fixture.id;
 
                   return (
                     <div className="score-item" key={match.fixture.id}>
                       <button
                         type="button"
                         className={`score-row ${row.kind}${isOpen ? " open" : ""}`}
-                        onClick={() => toggleRow(match.fixture.id)}
+                        onClick={() => toggleRow(match)}
                         aria-expanded={isOpen}
                       >
                         <span className="score-status">{row.status}</span>

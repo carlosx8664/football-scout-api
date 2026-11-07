@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { formatKickoff } from "../lib/format";
 import { bookQuotes, sortedQuotes } from "../lib/odds";
 import type { Match } from "../types";
@@ -9,8 +8,8 @@ import "./RightSidebar.css";
 interface RightSidebarProps {
   matches: Match[];
   date: string;
-  /** When a match page is open, the sidebar shows that league's table instead of top picks. */
-  focusMatch?: Match | null;
+  /** Fixture expanded in the feed; its league table sits above Top Picks. */
+  selectedMatch?: Match | null;
 }
 
 const OUTCOMES = [
@@ -118,15 +117,7 @@ function bestValue(match: Match): TopPick | null {
   return pick;
 }
 
-const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) => {
-  if (focusMatch) {
-    return (
-      <aside className="right-sidebar">
-        <LeagueTable match={focusMatch} />
-      </aside>
-    );
-  }
-
+const RightSidebar = ({ matches, date, selectedMatch = null }: RightSidebarProps) => {
   const now = Date.now();
   const topPicks = matches
     .filter(
@@ -145,6 +136,8 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
   return (
     <aside className="right-sidebar">
       <div className="right-sidebar-stack">
+        {selectedMatch ? <LeagueTable match={selectedMatch} /> : null}
+
         <section className="top-picks-container">
           <h3>🔥 Top Picks</h3>
           <p className="top-picks-subtitle">Prices beating the market consensus</p>
@@ -166,9 +159,6 @@ const RightSidebar = ({ matches, date, focusMatch = null }: RightSidebarProps) =
                         +{(pick.edge * 100).toFixed(1)}% at {pick.bookmaker}
                       </span>
                     </span>
-                    <Link className="top-pick-link" to={`/match/${pick.match.fixture.id}`}>
-                      View details
-                    </Link>
                   </div>
                   <div className="top-pick-fair">
                     fair {pick.fairOdds.toFixed(2)} · {pick.books} books

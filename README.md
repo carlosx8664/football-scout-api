@@ -64,10 +64,10 @@ scripts/fetch-soccabet.js      Playwright + socket capture of Soccabet (isd.js) 
 scripts/find-arbs.js           Cross-bookie arbitrage scanner
 scripts/build-match-feed.js    Merges bookmaker dumps into public/matches.json
 src/App.tsx                    Route switch, feed loading, upcoming + league filters
-src/components/                Header, Sidebar, MainFeed, RightSidebar, MatchDetail, WalletsPanel (+ CSS)
+src/components/                Header, Sidebar, MainFeed, RightSidebar, LeagueTable, WalletsPanel (+ CSS)
 src/lib/                       Fetch helper, formatting, wallet API client, simulation mode
 src/types.ts                   Snapshot payload types
-public/_redirects              Serves the SPA for /match/:id deep links
+public/_redirects              Serves the SPA for client-side routes
 ```
 
 ## One-time setup
@@ -476,9 +476,9 @@ cd ../.. && npm run worker:deploy
 ## Routes
 
 - `/` — fixture grid with **Today's Matches** / **Tomorrow's Matches** tabs and a league filter.
-  Today hides matches that have already kicked off; tomorrow shows the full slate. The right
-  sidebar carries **Top Picks** and the **Bet Builder** (betslip screenshot → matches).
-- `/match/:id` — AI detail page (client-side route, served via `public/_redirects`)
+  Today hides matches that have already kicked off; tomorrow shows the full slate. Expanding a
+  fixture opens its odds and shows that league's standings above **Top Picks** in the right
+  sidebar, which also carries the **Bet Builder** (betslip screenshot → matches).
 - `/arbs` — live + past arbitrage tables. Each live arb has a **Ledger** checkbox that opens the
   **Log Arb** modal: the computed stakes are pre-filled and can be rounded by hand, and "Save to
   Ledger" inserts them into `active_bets` with `is_simulation` set from the current mode.

@@ -92,7 +92,7 @@ function addDays(date, days) {
   return value.toISOString().slice(0, 10);
 }
 
-/** Stable numeric id so `/match/:id` links keep working across rebuilds. */
+/** Stable numeric id so fixture ids stay consistent across rebuilds. */
 function fixtureId(key) {
   return Number.parseInt(createHash("sha1").update(key).digest("hex").slice(0, 8), 16);
 }

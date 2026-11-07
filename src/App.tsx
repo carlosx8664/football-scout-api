@@ -5,7 +5,6 @@ import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MainFeed from "./components/MainFeed";
-import MatchDetail from "./components/MatchDetail";
 import RightSidebar from "./components/RightSidebar";
 import Sidebar from "./components/Sidebar";
 import SimulationBanner from "./components/SimulationBanner";
@@ -13,17 +12,11 @@ import WalletsDashboard from "./components/WalletsDashboard";
 import WalletsHistory from "./components/WalletsHistory";
 import { fetchSnapshot } from "./lib/api";
 import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
-import type { SnapshotData } from "./types";
+import type { Match, SnapshotData } from "./types";
 
-const MATCH_ROUTE = /^\/match\/(\d+)\/?$/;
 const ARBS_ROUTE = /^\/arbs\/?$/;
 const WALLETS_ROUTE = /^\/wallets\/?$/;
 const WALLETS_HISTORY_ROUTE = /^\/wallets\/history\/?$/;
-
-function currentMatchId(pathname: string): number | null {
-  const result = MATCH_ROUTE.exec(pathname);
-  return result ? Number(result[1]) : null;
-}
 
 /** Header + the simulation banner shared by every route. */
 const Shell = ({ children }: { children: ReactNode }) => (
@@ -42,19 +35,21 @@ function App() {
   const [selectedLeague, setSelectedLeague] = useState(0);
   // Kept in state so the upcoming filter is pure and refreshes as kickoffs pass.
   const [now, setNow] = useState(() => Date.now());
+  // Fixture expanded in the feed; drives the league table in the right rail.
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const dataRef = useRef<SnapshotData | null>(null);
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const matchId = currentMatchId(pathname);
   const isArbs = ARBS_ROUTE.test(pathname);
   const isWallets = WALLETS_ROUTE.test(pathname);
   const isWalletsHistory = WALLETS_HISTORY_ROUTE.test(pathname);
 
-  // On a match page (or the arbs page) there is no feed to filter, so picking a league
+  // On the arbs or wallets pages there is no feed to filter, so picking a league
   // has to take the user back to the home feed first.
   const selectLeague = useCallback(
     (id: number) => {
       setSelectedLeague(id);
+      setSelectedMatch(null);
       if (pathname !== "/") navigate("/");
     },
     [navigate, pathname],
@@ -110,10 +105,6 @@ function App() {
     !data || selectedLeague === 0
       ? (data?.matches ?? [])
       : data.matches.filter((match) => match.league.id === selectedLeague);
-  const focusedMatch =
-    data && matchId !== null
-      ? (data.matches.find((match) => match.fixture.id === matchId) ?? null)
-      : null;
 
   let content: ReactNode;
 
@@ -154,20 +145,17 @@ function App() {
         <div className="app-body">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
 
-          {matchId !== null ? (
-            <MatchDetail match={focusedMatch} date={data.date} />
-          ) : (
-            <MainFeed
-              matches={filteredMatches}
-              selectedLeagueName={
-                selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
-              }
-              date={data.date}
-              now={now}
-            />
-          )}
+          <MainFeed
+            matches={filteredMatches}
+            selectedLeagueName={
+              selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
+            }
+            date={data.date}
+            now={now}
+            onSelectMatch={setSelectedMatch}
+          />
 
-          <RightSidebar matches={data.matches} date={data.date} focusMatch={focusedMatch} />
+          <RightSidebar matches={data.matches} date={data.date} selectedMatch={selectedMatch} />
         </div>
       </Shell>
     );

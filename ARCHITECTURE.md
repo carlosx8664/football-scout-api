@@ -58,7 +58,7 @@ from real data by an `is_simulation` flag on every table.
 │ Cloudflare Pages                                                    │
 │                                                                     │
 │  React SPA (src/)  ──fetch──→  Pages Functions (functions/api/)      │
-│      /arbs, /wallets, /match/:id            │                       │
+│      /arbs, /wallets                        │                       │
 │                                             ├─→ KV (feeds, caches)  │
 │                                             ├─→ D1 (wallets,        │
 │                                             │      active_bets,     │
@@ -88,7 +88,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | File / folder | Role |
 | --- | --- |
 | `main.tsx` | Provider stack: `SimulationProvider → BankrollProvider → NotificationProvider → App` |
-| `App.tsx` | Route switch (`/`, `/arbs`, `/wallets`, `/match/:id`), snapshot loading, league filter |
+| `App.tsx` | Route switch (`/`, `/arbs`, `/wallets`), snapshot loading, league filter |
 | `types.ts` | All shared payload/record types (matches, arbs, wallets, bets, history, mug bets, push) |
 | `lib/api.ts` | Match/arb feed fetchers with fallbacks; SportyBet share-code POST |
 | `lib/bets.ts` | Log arb, fetch active bets, settle, cancel |
@@ -113,7 +113,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
 | `components/PushToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |
-| `components/Sidebar.tsx`, `MainFeed.tsx`, `MatchDetail.tsx`, `RightSidebar.tsx`, `LeagueTable.tsx`, `BetBuilder.tsx`, `BestArbBadge.tsx`, `RecycleCooldown.tsx`, `Toast.tsx` | Feed, detail, standings, betslip OCR, misc |
+| `components/Sidebar.tsx`, `MainFeed.tsx`, `RightSidebar.tsx`, `LeagueTable.tsx`, `BetBuilder.tsx`, `BestArbBadge.tsx`, `RecycleCooldown.tsx`, `Toast.tsx` | Feed, standings, betslip OCR, misc |
 | `components/LoadingOverlay.tsx` | Full-screen solid overlay (`message` prop) shown on first boot; fades in ≤120ms and stays static under `prefers-reduced-motion` |
 | `styles/base.css` | Design tokens |
 

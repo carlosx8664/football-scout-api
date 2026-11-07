@@ -257,17 +257,6 @@
   color: #9ca3af;
 }
 
-.score-detail-link {
-  margin-left: auto;
-  align-self: center;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--color-brand);
-  text-decoration: none;
-}
-
-.score-detail-link:hover { text-decoration: underline; }
-
 @media (max-width: 900px) {
   .feed-top-header {
     flex-wrap: wrap;
@@ -289,5 +278,4 @@
   .score-team-name { font-size: 0.78rem; }
   .score-logo { width: 16px; height: 16px; }
   .score-detail { flex-direction: column; }
-  .score-detail-link { margin-left: 0; }
 }

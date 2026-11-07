@@ -3,8 +3,6 @@
   border: 1px solid var(--color-neutral-4);
   border-radius: 12px;
   padding: 20px;
-  position: sticky;
-  top: 100px;
   min-width: 0;
 }
 
@@ -132,10 +130,8 @@
 }
 
 @media (max-width: 900px) {
-  /* Once the rail sits below the feed, a sticky table only gets in the way. */
+  /* Once the rail sits below the feed, tighten the card padding. */
   .league-table-container {
-    position: static;
-    top: auto;
     padding: 16px;
   }
 }

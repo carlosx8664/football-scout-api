@@ -69,14 +69,6 @@
   color: var(--color-neutral-6);
   font-size: 0.68rem;
 }
-.top-pick-link {
-  color: var(--color-brand-4);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-.top-pick-link:hover {
-  text-decoration: underline;
-}
 .top-picks-empty {
   padding-top: 12px;
   border-top: 1px solid var(--color-neutral-3);
