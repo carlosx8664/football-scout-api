@@ -516,7 +516,7 @@ and records `net_profit = payout − both stakes` in `history`, so the wallet mo
 bet's life (both debits at placement, payout at settlement) equals the recorded profit exactly.
 
 **Bankroll sizing.** The Bankroll Plan panel stores the total bankroll and a risk profile in
-`localStorage` (`oddtor:bankroll-plan`). The stake per arb is derived from those two — never
+`localStorage` (`oddtor:bankroll-plan:sim` and `oddtor:bankroll-plan:real`). The stake per arb is derived from those two — never
 typed in — as `bankroll × profile %` (Conservative 1%, Balanced 2%, Confident 3%,
 Aggressive 5%), so the bankroll and the stake can never disagree. From that it derives the target
 per bookie (`bankroll ÷ wallet count`), the minimum float (`2 × stake`, enough to cover both

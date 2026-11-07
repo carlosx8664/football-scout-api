@@ -174,9 +174,9 @@ export function readStoredBankroll(simulation = true): BankrollSettings {
   if (typeof window === "undefined") return fallback;
 
   try {
-    const raw =
-      window.localStorage.getItem(bankrollStorageKey(simulation)) ??
-      window.localStorage.getItem(BANKROLL_STORAGE_KEY);
+    // Each mode has its own namespace. Do not fall back to the legacy shared key: doing so
+    // makes an unset simulation plan inherit the real plan (or vice versa).
+    const raw = window.localStorage.getItem(bankrollStorageKey(simulation));
     if (!raw) return fallback;
 
     const parsed = JSON.parse(raw) as {
