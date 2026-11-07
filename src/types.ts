@@ -224,6 +224,12 @@ export interface WalletsPayload {
   /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
   dailyProfit: number;
   cashFlow: CashFlowSummary;
+  /** Whether trading has started for this mode, so the bankroll can no longer be edited. */
+  activity: {
+    activeBets: number;
+    settledHistory: number;
+    started: boolean;
+  };
   /** Bookies with money in play; hints skip them until the stakes settle. */
   pendingSettlement: {
     windowHours: number;

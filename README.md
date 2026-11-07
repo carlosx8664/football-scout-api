@@ -483,8 +483,10 @@ cd ../.. && npm run worker:deploy
   **Log Arb** modal: the computed stakes are pre-filled and can be rounded by hand, and "Save to
   Ledger" inserts them into `active_bets` with `is_simulation` set from the current mode.
 - `/wallets` — **Bankroll Plan** (set your bankroll and per-arb stake; targets, float warnings and
-  the deposit/withdraw rhythm update everywhere on the page, and **Start afresh** wipes the mode's
-  bets/history/cash-flow and re-opens every wallet at the plan's per-bookie balance), then
+  the deposit/withdraw rhythm update everywhere on the page. The bankroll field locks as static
+  text once the cycle has an active bet or settled history, and **Reset** asks for the bankroll to
+  start with, wipes the mode's bets/history/cash-flow/mug bets and re-opens every wallet at the new
+  plan's per-bookie balance), then
   **My Wallets**: D1 balances for the current mode, click-to-edit deposits/withdrawals, available
   liquidity (cash in the wallets — stakes are debited when a bet is logged), total profit (SUM of
   `history` net profit). Wallets are provisioned automatically for
@@ -515,12 +517,14 @@ the bookie accounts. Settling only credits the winning bookie with `winning stak
 and records `net_profit = payout − both stakes` in `history`, so the wallet movement across a
 bet's life (both debits at placement, payout at settlement) equals the recorded profit exactly.
 
-**Bankroll sizing.** The Bankroll Plan panel stores the total bankroll and a risk profile in
-`localStorage` (`oddtor:bankroll-plan:sim` and `oddtor:bankroll-plan:real`). The stake per arb is derived from those two — never
-typed in — as `bankroll × profile %` (Conservative 1%, Balanced 2%, Confident 3%,
-Aggressive 5%), so the bankroll and the stake can never disagree. From that it derives the target
-per bookie (`bankroll ÷ wallet count`), the minimum float (`2 × stake`, enough to cover both
-legs of one arb), how many arbs the bankroll can fund, and a 2–5 arbs/day profit estimate.
+**Bankroll sizing.** The Bankroll Plan panel stores the bankroll and the stake per arb in
+`localStorage`, one independent key per mode (`oddtor:bankroll-plan:sim` and
+`oddtor:bankroll-plan:real`), so switching modes never carries a plan across. The bankroll input
+is editable only until the current cycle has an active bet or settled history; after that it is
+shown as static text and only **Reset** (or a MOMO deposit) changes it. From the bankroll and
+stake it derives the target per bookie (`bankroll ÷ wallet count`), the minimum float
+(`2 × stake`, enough to cover both legs of one arb), the daily/weekend mug tax, how many arbs the
+bankroll can fund, and a 2–5 arbs/day profit estimate.
 The Arbs page reads the same stake as its Total Stake default, so both pages always show the same
 position size.
 The plan keeps the exact per-bookie target (e.g. 1,666.67) but tells the user what to actually
@@ -537,13 +541,13 @@ Bookies with an unsettled bet placed in the last 4 hours
 withdrawal ledger. `cash_reserve` holds one row per mode: the mobile-money wallet, i.e. bankroll
 that is not sitting in a bookie account.
 
-- **Start afresh** rounds each wallet's opening deposit DOWN to a round 100
+- **Reset** rounds each wallet's opening deposit DOWN to a round 100
   (`openingBalanceFor`), so 10,000 across 6 bookies becomes 6 × 1,600 = 9,600 with the remaining
   400 seeded into `cash_reserve` as Momo cash. The exact per-bookie target (1,666.67) is still
   shown — only the deposit is rounded.
 - **Momo** is real cash only: `cash_reserve`, i.e. what withdrawals moved out of the bookies plus
-  the unallocated leftover from Start afresh, minus top-ups. Nothing is derived from the plan on
-  the client any more.
+  the unallocated leftover from Reset, minus top-ups. **Deposit to MOMO** adds external capital to
+  both `cash_reserve` and the bankroll, logging a `CAPITAL_INJECTION` row in `wallet_transfers`.
 - **Withdraw Weekly Profits** keeps `baseTarget` (the plan's opening deposit) in every bookie and
   sweeps the excess into `cash_reserve`, rounded down to whole 50s. A 1,750 balance against a
   1,650 base withdraws 100. The sweep deliberately skips the manual buttons' 50?500 cap and

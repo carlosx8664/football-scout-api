@@ -148,28 +148,35 @@ const WalletsDashboard = () => {
     [applyPayload, enabled, setSettings, settings],
   );
 
-  /** Start afresh: wipe this mode's ledger and re-open every selected wallet at one balance. */
-  const handleStartAfresh = useCallback(
-    async (openingBalance: number) => {
+  /** Reset: wipe this mode's ledger and re-open every selected wallet from a new bankroll. */
+  const handleReset = useCallback(
+    async (bankroll: number) => {
+      const bookies = selectedBookies(settings);
+      const splitReady = hasSplit(settings);
+      const perWallet = splitReady
+        ? computePlan({ ...settings, bankroll }, bookies.length).perWallet
+        : 0;
       // Only the selected bookies are funded; everything else in the ledger is zeroed. Cash the
       // rounded deposits leave behind is seeded into the Momo reserve so it stays spendable.
-      const unallocated = plan.splitReady
-        ? unallocatedFor(settings.bankroll, plan.perWallet, plan.count)
-        : 0;
+      const unallocated = splitReady ? unallocatedFor(bankroll, perWallet, bookies.length) : 0;
+      const stakeRatio = settings.bankroll > 0 ? settings.stake / settings.bankroll : 0.2;
+      const stake = Math.round(bankroll * stakeRatio * 100) / 100;
+
       const next = await refreshWallets(
         enabled,
-        openingBalance,
+        openingBalanceFor(perWallet),
         "mode",
-        selectedBookies(settings),
+        bookies,
         unallocated,
       );
+      setSettings({ ...settings, bankroll, stake });
       applyPayload(next);
       setRefreshToken((current) => current + 1);
       setToast(
-        `Fresh start: ${selectedBookies(settings).length} selected wallets reset to ${formatAmount(openingBalance)} each.`,
+        `Reset: ${bookies.length} selected wallets opened at ${formatAmount(openingBalanceFor(perWallet))} each for a ${formatAmount(bankroll)} bankroll.`,
       );
     },
-    [applyPayload, enabled, settings, plan.splitReady, plan.perWallet, plan.count],
+    [applyPayload, enabled, setSettings, settings],
   );
 
   /** Per-bookie base the weekly sweep leaves behind: the plan's rounded opening deposit. */
@@ -222,7 +229,8 @@ const WalletsDashboard = () => {
           payload={payload}
           simulation={enabled}
           momo={momoBalance}
-          onStartAfresh={handleStartAfresh}
+          locked={payload?.activity.started ?? false}
+          onReset={handleReset}
           onDeposit={handleCapitalInjection}
         />
         <WalletsPanel

@@ -113,6 +113,22 @@
 }
 .bankroll-stat strong { font-size: 0.95rem; font-weight: 800; }
 .bankroll-stat-hint { font-size: 0.68rem; color: var(--color-neutral-6); }
+
+/* Bankroll is fixed once the cycle has trading: read it, do not type it. */
+.bankroll-static {
+  padding: 9px 12px;
+  border: 1px dashed var(--color-neutral-4);
+  border-radius: 9px;
+  background: var(--color-neutral-2);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-neutral-7);
+}
+.bankroll-locked-note {
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
 .bankroll-deposit {
   margin-top: 6px;
   padding: 6px 10px;

@@ -101,7 +101,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/ArbsTable.tsx` | Live + past arb tables, bookmaker-pair filtering, stake scaling/rounding, Ledger checkbox → log arb |
 | `components/LogArbModal.tsx` | Pre-filled editable stakes, per-bookie available balance, save to `active_bets` |
 | `components/WalletsDashboard.tsx` | `/wallets` layout + single owner of `GET /api/wallets`; wires all wallet panels |
-| `components/BankrollPlan.tsx` | Editable bankroll/stake plan split across the selected bookies, per-bookie target, Momo card (plan leftover + net transfers), float warning, **Start afresh** |
+| `components/BankrollPlan.tsx` | Bankroll/stake plan split across the selected bookies, per-bookie target, Momo card (plan leftover + net transfers) with **Deposit to MOMO**, float warning, **Reset** (bankroll locks once the cycle has an active bet or settled history) |
 | `components/WalletsPanel.tsx` | Live plan split per bookie (bankroll ÷ selected bookies, floored to 100; 0 when unselected), actual-balance portfolio/available cards, selection locked while an arb is in play, Top up / Withdraw prompts validated against Momo |
 | `components/RebalancingHints.tsx` | Per-bookie gauges for the selected bookies: name, % of the plan target, progress bar (red well below target, amber near, green at/above) and live balance |
 | `components/ActiveBetsLedger.tsx` | Right column: 2 bets per page, Settle + Remove |

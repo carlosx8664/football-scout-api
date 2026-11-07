@@ -240,10 +240,12 @@ export async function walletPayload(db, simulation) {  const mode = modeValue(si
         `SELECT
            COALESCE(SUM(net_profit), 0) AS total_profit,
            COALESCE(SUM(CASE WHEN date(settled_at) = date('now') THEN net_profit ELSE 0 END), 0)
-             AS daily_profit
+             AS daily_profit,
+           COUNT(*) AS settled_count,
+           (SELECT COUNT(*) FROM active_bets WHERE is_simulation = ?) AS active_count
            FROM history WHERE is_simulation = ?`,
       )
-      .bind(mode)
+      .bind(mode, mode)
       .first(),
     db
       .prepare(
@@ -270,6 +272,12 @@ export async function walletPayload(db, simulation) {  const mode = modeValue(si
     totalProfit: round2(Number(history?.total_profit ?? 0)),
     /** Realised profit settled today (UTC) — drives the "take a break" alert. */
     dailyProfit: round2(Number(history?.daily_profit ?? 0)),
+    activity: {
+      activeBets: Number(history?.active_count ?? 0),
+      settledHistory: Number(history?.settled_count ?? 0),
+      started:
+        Number(history?.active_count ?? 0) > 0 || Number(history?.settled_count ?? 0) > 0,
+    },
     cashFlow: {
       count: Number(transfers?.count ?? 0),
       deposited: round2(Number(transfers?.deposited ?? 0)),

@@ -20,8 +20,11 @@ interface BankrollPlanProps {
   simulation: boolean;
   /** Momo cash reserve: the plan leftover seeded by Start afresh, plus withdrawals, minus top-ups. */
   momo: number;
+  /** True once this mode has an active bet or settled history, so the bankroll is fixed. */
+  locked: boolean;
   /** Wipes the ledger and re-opens every wallet at `openingBalance`. */
-  onStartAfresh: (openingBalance: number) => Promise<void>;
+  onReset: (bankroll: number) => Promise<void>;
+  /** Adds external capital to the Momo reserve and the bankroll. */
   onDeposit: (amount: number) => Promise<void>;
 }
 
@@ -36,7 +39,14 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
  * bookies selected in My Wallets. The values are shared page-wide within the active mode and
  * persisted separately for real and simulation data.
  */
-const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: BankrollPlanProps) => {
+const BankrollPlan = ({
+  payload,
+  simulation,
+  momo,
+  locked,
+  onReset,
+  onDeposit,
+}: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();
   const [draft, setDraft] = useState({
     bankroll: String(settings.bankroll),
@@ -71,10 +81,15 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: B
     // NEW LOGIC: If the user changes the stake, automatically scale the bankroll.
     // We use a 5x multiplier so that the stake is always exactly 20% of the bankroll.
     if (field === "stake") {
+      if (locked) {
+        // Bankroll is fixed for this cycle, so a stake change must not resize it.
+        setSettings({ ...settings, stake: value });
+        return;
+      }
       const calculatedBankroll = value * 5;
       setDraft((current) => ({ ...current, bankroll: String(calculatedBankroll) }));
       setSettings({ ...settings, bankroll: calculatedBankroll, stake: value });
-    } else {
+    } else if (!locked) {
       // If they change the bankroll directly, just update the bankroll.
       setSettings({ ...settings, [field]: value });
     }
@@ -85,26 +100,29 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: B
   const openingBalance = openingBalanceFor(perWallet);
   const unallocated = unallocatedFor(plan.bankroll, perWallet, splitReady ? bookies.length : 0);
 
-  const startAfresh = async () => {
-    const confirmed = window.confirm(
-      `Start afresh in ${simulation ? "simulation" : "real"} mode?\n\n` +
-        "This deletes:\n" +
+  const reset = async () => {
+    const raw = window.prompt(
+      `How much bankroll do you want to start with in ${simulation ? "simulation" : "real"} mode?\n\n` +
+        "Reset deletes:\n" +
         "• every active bet\n" +
         "• the whole settled history\n" +
         "• every deposit/withdrawal record\n" +
         "• every mug bet\n\n" +
-        `Then the ${bookies.length} selected bookie${bookies.length === 1 ? "" : "s"} ` +
-        `${bookies.length === 1 ? "is" : "are"} set to ${formatAmount(openingBalance)} each` +
-        (unallocated > 0 ? `, leaving ${formatAmount(unallocated)} as unallocated cash` : "") +
-        ", every unselected bookie is set to 0, and the page reloads from a clean slate. " +
         "This cannot be undone.",
+      formatAmount(plan.bankroll),
     );
-    if (!confirmed) return;
+    if (raw === null) return;
+
+    const amount = Math.round(Number(raw.replace(/,/g, "")) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setRefreshError("Enter a bankroll greater than 0.");
+      return;
+    }
 
     setRefreshing(true);
     setRefreshError(null);
     try {
-      await onStartAfresh(openingBalance);
+      await onReset(amount);
     } catch (err) {
       setRefreshError((err as Error).message);
     } finally {
@@ -128,23 +146,36 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: B
       </header>
 
       <div className="bankroll-inputs">
-        <label className="bankroll-field">
+        <div className="bankroll-field">
           <span>
             Bankroll
             <Tip label="Bankroll">
               Total capital you keep across the bookie wallets, split across the bookies selected
-              in My Wallets.
+              in My Wallets. It locks once the cycle has an active bet or settled history.
             </Tip>
           </span>
-          <input
-            type="number"
-            min="0"
-            step="100"
-            inputMode="numeric"
-            value={draft.bankroll}
-            onChange={(event) => commitField("bankroll", event.target.value)}
-          />
-        </label>
+          {locked ? (
+            <div className="bankroll-static">{formatAmount(plan.bankroll)}</div>
+          ) : (
+            <input
+              type="number"
+              min="0"
+              step="100"
+              inputMode="numeric"
+              value={draft.bankroll}
+              onChange={(event) => commitField("bankroll", event.target.value)}
+            />
+          )}
+          {locked && (
+            <span className="bankroll-locked-note">
+              Locked: this cycle already has {payload?.activity.activeBets ?? 0} active bet
+              {(payload?.activity.activeBets ?? 0) === 1 ? "" : "s"} and{" "}
+              {payload?.activity.settledHistory ?? 0} settled bet
+              {(payload?.activity.settledHistory ?? 0) === 1 ? "" : "s"}. Use Reset to start a new
+              cycle.
+            </span>
+          )}
+        </div>
 
         <label className="bankroll-field">
           <span>
@@ -346,22 +377,23 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: B
 
       <div className="bankroll-danger">
         <div>
-          <strong>Start afresh</strong>
+          <strong>Reset</strong>
           <p>
-            Clears active bets, settled history, cash-flow rows and mug bets for the{" "}
-            {simulation ? "simulation" : "real"} ledger, then sets the {bookies.length} selected{" "}
-            bookie{bookies.length === 1 ? "" : "s"} to {formatAmount(openingBalance)} each
-            {unallocated > 0 && ` and leaves ${formatAmount(unallocated)} unallocated`}. Unselected
-            bookies are set to 0.
+            Asks for the bankroll to start with, then clears active bets, settled history,
+            cash-flow rows and mug bets for the {simulation ? "simulation" : "real"} ledger. The{" "}
+            {bookies.length} selected bookie{bookies.length === 1 ? "" : "s"}{" "}
+            {bookies.length === 1 ? "is" : "are"} opened at {formatAmount(openingBalance)} each
+            {unallocated > 0 && `, leaving ${formatAmount(unallocated)} unallocated`}; unselected
+            bookies are set to 0. Stake, float and mug tax are recalculated from the new bankroll.
           </p>
         </div>
         <button
           type="button"
           className="bankroll-refresh"
-          onClick={() => void startAfresh()}
+          onClick={() => void reset()}
           disabled={refreshing || !splitReady}
         >
-          {refreshing ? "Refreshing…" : "Start afresh"}
+          {refreshing ? "Resetting…" : "Reset"}
         </button>
       </div>
 
