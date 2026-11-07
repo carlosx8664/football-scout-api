@@ -298,11 +298,11 @@ Behaviour:
 - `?refresh=1` bypasses the cache read (the UI's **Refresh** button uses it), and the cache key
   carries a version prefix so prompt changes invalidate old notes.
 
-### League table on match pages
+### League table for the expanded fixture
 
 `GET /api/standings?league=&home=&away=&season=` ([functions/api/standings.js](functions/api/standings.js))
-serves the competition table behind the right sidebar when a match page is open (the home page
-keeps showing Top Picks).
+serves the competition table in the right sidebar when a fixture row is expanded. The table sits
+above **Top Picks** and disappears when the row is collapsed.
 
 - Source: [football-data.org](https://www.football-data.org/) v4. Register for a free token and
   set `FOOTBALL_DATA_ORG_TOKEN` (`.dev.vars` locally, Pages secret in production).

@@ -16,7 +16,7 @@ const Sidebar = ({ selectedLeague, setSelectedLeague }: SidebarProps) => {
             onClick={() => setSelectedLeague(0)}
             style={{ fontWeight: 700 }}
           >
-            <span>Top Matches Today</span>
+            <span>Home</span>
           </button>
         </div>
 

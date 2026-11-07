@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { leagueName } from "../shared/leagues.js";
 import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
 import LoadingOverlay from "./components/LoadingOverlay";
@@ -147,9 +146,6 @@ function App() {
 
           <MainFeed
             matches={filteredMatches}
-            selectedLeagueName={
-              selectedLeague === 0 ? "Today's Matches" : leagueName(selectedLeague)
-            }
             date={data.date}
             now={now}
             onSelectMatch={setSelectedMatch}

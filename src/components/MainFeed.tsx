@@ -8,7 +8,6 @@ import "./MainFeed.css";
 
 interface MainFeedProps {
   matches: Match[];
-  selectedLeagueName: string;
   date: string;
   now: number;
   /** Notifies the app which fixture's row is expanded, so the rail can show its league table. */
@@ -161,7 +160,7 @@ const OddsPanel = ({ match }: { match: Match }) => {
   );
 };
 
-const MainFeed = ({ matches, selectedLeagueName, date, now, onSelectMatch }: MainFeedProps) => {
+const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -169,6 +168,8 @@ const MainFeed = ({ matches, selectedLeagueName, date, now, onSelectMatch }: Mai
   const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
   const anchor = { now, serverNow: liveScores?.serverNow ?? 0 };
+
+  const currentTabLabel = TABS.find((tab) => tab.id === activeTab)?.label ?? "Today's Matches";
 
   const counts: Record<FeedTab, number> = {
     live: matchesForTab(matches, "live", now, liveEventIds).length,
@@ -219,7 +220,7 @@ const MainFeed = ({ matches, selectedLeagueName, date, now, onSelectMatch }: Mai
   return (
     <main className="main-feed">
       <div className="feed-top-header">
-        <h1 className="page-title">{selectedLeagueName}</h1>
+        <h2 className="page-title">{currentTabLabel}</h2>
         <span className="feed-date-badge">{date}</span>
       </div>
 
