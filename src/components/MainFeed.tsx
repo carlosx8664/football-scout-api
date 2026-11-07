@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import type { Match } from "../types";
+import type { LiveMatch, Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import { indexLiveMatches, liveLabel, scoreParts, useLiveScores } from "../lib/liveScores";
 import { matchesForTab, type FeedTab } from "../lib/schedule";
@@ -20,31 +20,198 @@ const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: "tomorrow", label: "Tomorrow's Matches" },
 ];
 
-const PAGE_SIZE = 8;
+/** A fixture at or past this age (and absent from the live feed) is treated as finished. */
+const MATCH_DURATION_MS = 120 * 60 * 1000;
+
+/** Country shown in the league heading, keyed by API-Football league id. */
+const LEAGUE_COUNTRY: Record<number, string> = {
+  39: "England",
+  40: "England",
+  45: "England",
+  48: "England",
+  135: "Italy",
+  78: "Germany",
+  140: "Spain",
+  61: "France",
+  71: "Brazil",
+  94: "Portugal",
+  203: "Turkey",
+  119: "Denmark",
+  144: "Belgium",
+  88: "Netherlands",
+  2: "Europe",
+  3: "Europe",
+  848: "Europe",
+  1: "World",
+  10: "World",
+};
+
+const leagueHeading = (league: Match["league"]): string => {
+  const country = LEAGUE_COUNTRY[league.id];
+  return country ? `${country.toUpperCase()}: ${league.name}` : league.name;
+};
+
+interface RowState {
+  kind: "scheduled" | "live" | "finished";
+  status: string;
+  score: string;
+}
+
+/** Final/current goals from the snapshot, formatted as "1 - 0"; blank when unknown. */
+function goalsScore(match: Match): string {
+  const home = match.goals?.home;
+  const away = match.goals?.away;
+  return home == null || away == null ? "" : `${home} - ${away}`;
+}
+
+/** Turns "67'" into "67'", a minute past 90 into "90+3'", and leaves HT/FT untouched. */
+function liveClock(match: LiveMatch, anchor: { now: number; serverNow: number }): string {
+  const label = liveLabel(match, anchor);
+  const minute = /^(\d+)'$/.exec(label);
+  if (!minute) return label || "Live";
+
+  const value = Number(minute[1]);
+  return value > 90 ? `90+${value - 90}'` : `${value}'`;
+}
+
+function describeMatch(
+  match: Match,
+  liveById: Map<string, LiveMatch>,
+  anchor: { now: number; serverNow: number },
+): RowState {
+  const live = match.sr_id ? liveById.get(match.sr_id) : undefined;
+
+  // The live feed always wins when it knows the fixture.
+  if (live) {
+    const ended = live.status === 4 || live.matchStatus === "Ended";
+    const parts = scoreParts(live.score);
+
+    if (ended) {
+      return {
+        kind: "finished",
+        status: "Finished",
+        score: parts ? `${parts.home} - ${parts.away}` : goalsScore(match),
+      };
+    }
+
+    return {
+      kind: "live",
+      status: liveClock(live, anchor),
+      score: parts ? `${parts.home} - ${parts.away}` : "0 - 0",
+    };
+  }
+
+  // No live entry: a kickoff well in the past is finished, otherwise it is still upcoming.
+  const kickoff = new Date(match.fixture.date).getTime();
+  if (kickoff + MATCH_DURATION_MS < anchor.now) {
+    return { kind: "finished", status: "Finished", score: goalsScore(match) };
+  }
+
+  return {
+    kind: "scheduled",
+    status: formatKickoff(match.fixture.date).time,
+    score: "",
+  };
+}
+
+const OddsPanel = ({ match }: { match: Match }) => {
+  const prices = matchWinnerPrices(match.odds);
+  const totals = (match.odds ?? []).filter((entry) => /^(over|under)\b/i.test(entry.value));
+
+  return (
+    <div className="score-detail">
+      <div className="odds-market">
+        <span className="odds-market-title">1X2</span>
+        <div className="odds-market-row">
+          <div className="odds-cell">
+            <span className="odds-cell-label">1</span>
+            <strong>{prices.home}</strong>
+            <BookBreakdown price={match.book_odds?.home} />
+          </div>
+          <div className="odds-cell">
+            <span className="odds-cell-label">X</span>
+            <strong>{prices.draw}</strong>
+            <BookBreakdown price={match.book_odds?.draw} />
+          </div>
+          <div className="odds-cell">
+            <span className="odds-cell-label">2</span>
+            <strong>{prices.away}</strong>
+            <BookBreakdown price={match.book_odds?.away} />
+          </div>
+        </div>
+      </div>
+
+      <div className="odds-market">
+        <span className="odds-market-title">Over / Under</span>
+        {totals.length > 0 ? (
+          <div className="odds-market-row">
+            {totals.map((entry) => (
+              <div className="odds-cell" key={entry.value}>
+                <span className="odds-cell-label">{entry.value}</span>
+                <strong>{entry.odd}</strong>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="odds-empty">Over/Under odds are not available for this fixture.</span>
+        )}
+      </div>
+
+      <Link to={`/match/${match.fixture.id}`} className="score-detail-link">
+        View AI Details ➜
+      </Link>
+    </div>
+  );
+};
 
 const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => {
   const [activeTab, setActiveTab] = useState<FeedTab>("today");
-  const [page, setPage] = useState(1);
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
 
   const { payload: liveScores } = useLiveScores();
   const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
+  const anchor = { now, serverNow: liveScores?.serverNow ?? 0 };
 
   const counts: Record<FeedTab, number> = {
     live: matchesForTab(matches, "live", now, liveEventIds).length,
     today: matchesForTab(matches, "today", now, liveEventIds).length,
     tomorrow: matchesForTab(matches, "tomorrow", now, liveEventIds).length,
   };
-  const tabs = TABS;
-  const currentTab = activeTab;
-  const visibleMatches = matchesForTab(matches, currentTab, now, liveEventIds);
 
-  const pageCount = Math.max(1, Math.ceil(visibleMatches.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const pageMatches = visibleMatches.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+  const visibleMatches = useMemo(
+    () => matchesForTab(matches, activeTab, now, liveEventIds),
+    [matches, activeTab, now, liveEventIds],
   );
+
+  const groups = useMemo(() => {
+    const byLeague = new Map<number, { league: Match["league"]; matches: Match[] }>();
+    for (const match of visibleMatches) {
+      const group = byLeague.get(match.league.id);
+      if (group) group.matches.push(match);
+      else byLeague.set(match.league.id, { league: match.league, matches: [match] });
+    }
+    for (const group of byLeague.values()) {
+      group.matches.sort(
+        (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
+      );
+    }
+    return [...byLeague.values()];
+  }, [visibleMatches]);
+
+  const toggleRow = (id: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const changeTab = (tab: FeedTab) => {
+    setActiveTab(tab);
+    setExpanded(new Set());
+  };
 
   return (
     <main className="main-feed">
@@ -54,17 +221,14 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
       </div>
 
       <div className="match-tabs" role="tablist" aria-label="Match days">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             role="tab"
-            aria-selected={currentTab === tab.id}
-            className={`match-tab${currentTab === tab.id ? " active" : ""}`}
-            onClick={() => {
-              setActiveTab(tab.id);
-              setPage(1);
-            }}
+            aria-selected={activeTab === tab.id}
+            className={`match-tab${activeTab === tab.id ? " active" : ""}`}
+            onClick={() => changeTab(tab.id)}
           >
             {tab.label}
             <span className="tab-count">{counts[tab.id]}</span>
@@ -72,104 +236,63 @@ const MainFeed = ({ matches, selectedLeagueName, date, now }: MainFeedProps) => 
         ))}
       </div>
 
-      <div className="match-card-grid">
-        {visibleMatches.length === 0 ? (
-          <div className="empty-state">
-            {currentTab === "live"
-              ? "No live matches right now for this league."
-              : currentTab === "today"
-                ? "No more matches today for this league."
-                : "No matches tomorrow for this league."}
-          </div>
-        ) : (
-          pageMatches.map((match) => {
-            const prices = matchWinnerPrices(match.odds);
-            const kickoff = formatKickoff(match.fixture.date);
-            // A live entry replaces the kickoff time with the clock and the "-" with the score.
-            const live = match.sr_id ? liveById.get(match.sr_id) : undefined;
-            const clock = live
-              ? liveLabel(live, { now, serverNow: liveScores?.serverNow ?? 0 })
-              : "";
-            const score = live ? scoreParts(live.score) : null;
+      {groups.length === 0 ? (
+        <div className="empty-state">
+          {activeTab === "live"
+            ? "No live matches right now for this league."
+            : activeTab === "today"
+              ? "No more matches today for this league."
+              : "No matches tomorrow for this league."}
+        </div>
+      ) : (
+        <div className="score-table">
+          {groups.map((group) => (
+            <section className="league-group" key={group.league.id}>
+              <header className="league-group-header">
+                <span className="league-group-title">{leagueHeading(group.league)}</span>
+              </header>
 
-            return (
-              <div key={match.fixture.id} className="new-match-card">
-                {!match.odds && <div className="hot-badge hot-badge-muted">Awaiting odds</div>}
+              <div className="league-rows">
+                {group.matches.map((match) => {
+                  const row = describeMatch(match, liveById, anchor);
+                  const isOpen = expanded.has(match.fixture.id);
 
-                <div className={`card-league-date${clock ? " is-live" : ""}`}>
-                  <span>{kickoff.date}</span>
-                  <span>{clock || kickoff.time}</span>
-                </div>
-                <div className="card-league-name">{match.league.name}</div>
+                  return (
+                    <div className="score-item" key={match.fixture.id}>
+                      <button
+                        type="button"
+                        className={`score-row ${row.kind}${isOpen ? " open" : ""}`}
+                        onClick={() => toggleRow(match.fixture.id)}
+                        aria-expanded={isOpen}
+                      >
+                        <span className="score-status">{row.status}</span>
 
-                <div className="card-teams-row">
-                  <div className="card-team">
-                    {match.teams.home.logo && <img src={match.teams.home.logo} alt="" />}
-                    <span>{match.teams.home.name}</span>
-                  </div>
-                  {score ? (
-                    <span className="card-live-score">
-                      {score.home} - {score.away}
-                    </span>
-                  ) : (
-                    <span className="card-vs">-</span>
-                  )}
-                  <div className="card-team">
-                    {match.teams.away.logo && <img src={match.teams.away.logo} alt="" />}
-                    <span>{match.teams.away.name}</span>
-                  </div>
-                </div>
+                        <span className="score-fixture">
+                          <span className="score-team home">
+                            <span className="score-team-name">{match.teams.home.name}</span>
+                            {match.teams.home.logo ? (
+                              <img className="score-logo" src={match.teams.home.logo} alt="" loading="lazy" />
+                            ) : null}
+                          </span>
+                          <span className="score-team away">
+                            {match.teams.away.logo ? (
+                              <img className="score-logo" src={match.teams.away.logo} alt="" loading="lazy" />
+                            ) : null}
+                            <span className="score-team-name">{match.teams.away.name}</span>
+                          </span>
+                        </span>
 
-                <div className="card-prediction-box">
-                  <span className="prediction-title">Match Winner Odds</span>
-                  <div className="card-odds-row">
-                    <div className="card-odd">
-                      <span className="odd-label">1</span>
-                      <span className="odd-value">{prices.home}</span>
-                      <BookBreakdown price={match.book_odds?.home} />
+                        <span className="score-value">{row.score}</span>
+                      </button>
+
+                      {isOpen ? <OddsPanel match={match} /> : null}
                     </div>
-                    <div className="card-odd">
-                      <span className="odd-label">X</span>
-                      <span className="odd-value">{prices.draw}</span>
-                      <BookBreakdown price={match.book_odds?.draw} />
-                    </div>
-                    <div className="card-odd">
-                      <span className="odd-label">2</span>
-                      <span className="odd-value">{prices.away}</span>
-                      <BookBreakdown price={match.book_odds?.away} />
-                    </div>
-                  </div>
-                </div>
-
-                <Link to={`/match/${match.fixture.id}`} className="details-btn">
-                  View AI Details ➜
-                </Link>
+                  );
+                })}
               </div>
-            );
-          })
-        )}
-      </div>
-
-      {pageCount > 1 && (
-        <nav className="match-pagination" aria-label="Match pages">
-          <button
-            type="button"
-            onClick={() => setPage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            ← Prev
-          </button>
-          <span className="page-status">
-            Page {currentPage} of {pageCount}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPage(currentPage + 1)}
-            disabled={currentPage === pageCount}
-          >
-            Next →
-          </button>
-        </nav>
+            </section>
+          ))}
+        </div>
       )}
     </main>
   );
