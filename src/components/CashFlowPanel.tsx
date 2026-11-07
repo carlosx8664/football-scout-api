@@ -9,10 +9,6 @@ interface CashFlowPanelProps {
   refreshToken: number;
   /** Lifetime totals already returned by GET /api/wallets, so the cards paint immediately. */
   summary: { count: number; deposited: number; withdrawn: number; net: number } | null;
-  /** Opening deposits the current plan implies (per-bookie split × selected bookies). */
-  planDeposits: number;
-  /** Number of bookies the bankroll is split across, 0 when no split is possible yet. */
-  planCount: number;
   wallets: Wallet[];
   /** Bookies ticked in the Bankroll Plan: only these can give up profit. */
   planBookies: string[];
@@ -37,13 +33,14 @@ const when = (iso: string) =>
     minute: "2-digit",
   });
 
+/** Movements shown per page in the ledger list. */
+const PAGE_SIZE = 8;
+
 /** Deposit/withdrawal ledger: how much went in, how much came out, and the recent movements. */
 const CashFlowPanel = ({
   simulation,
   refreshToken,
   summary,
-  planDeposits,
-  planCount,
   wallets,
   planBookies,
   locked,
@@ -59,6 +56,7 @@ const CashFlowPanel = ({
   const [busy, setBusy] = useState(false);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
   const key = simulation ? "sim" : "real";
 
@@ -75,6 +73,9 @@ const CashFlowPanel = ({
         setProblem({ key, message: err.message });
       });
 
+    // A fresh ledger starts on page 1, so a new movement is never hidden behind a pager.
+    setPage(0);
+
     return () => controller.abort();
   }, [simulation, refreshToken, key]);
 
@@ -83,6 +84,9 @@ const CashFlowPanel = ({
   const loading = payload === null && error === null;
   const totals = payload?.totals ?? summary;
   const transfers = payload?.transfers ?? [];
+  const pageCount = Math.max(1, Math.ceil(transfers.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const visible = transfers.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   // Only the bookies the plan is split across can release profit, in plan order.
   const rows = planBookies
@@ -175,16 +179,6 @@ const CashFlowPanel = ({
             <span>Total withdrawn</span>
             <strong>{formatAmount(totals.withdrawn)}</strong>
           </div>
-          {planCount > 0 && (
-            <div className="cashflow-stat plan">
-              <span>Planned deposits</span>
-              <strong>{formatAmount(planDeposits)}</strong>
-              <span className="cashflow-stat-hint">
-                {planCount} bookie{planCount === 1 ? "" : "s"} ×{" "}
-                {formatAmount(planDeposits / planCount)}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
@@ -289,27 +283,51 @@ const CashFlowPanel = ({
           Hints, or set a balance directly in My Wallets.
         </p>
       ) : (
-        <ul className="cashflow-list">
-          {transfers.map((transfer) => (
-            <li className="cashflow-row" key={transfer.id}>
-              <span className={`cashflow-kind ${transfer.kind} ${transfer.type}`}>
-                {transfer.type === "CAPITAL_INJECTION"
-                  ? "Capital injection"
-                  : transfer.type === "PROFIT_TAKE"
-                    ? "Profit take"
-                    : transfer.kind === "deposit"
-                      ? "Deposit"
-                      : "Withdrawal"}
+        <>
+          <ul className="cashflow-list">
+            {visible.map((transfer) => (
+              <li className="cashflow-row" key={transfer.id}>
+                <span className={`cashflow-kind ${transfer.kind} ${transfer.type}`}>
+                  {transfer.type === "CAPITAL_INJECTION"
+                    ? "Capital injection"
+                    : transfer.type === "PROFIT_TAKE"
+                      ? "Profit take"
+                      : transfer.kind === "deposit"
+                        ? "Deposit"
+                        : "Withdrawal"}
+                </span>
+                <span className="cashflow-bookie">{transfer.bookie}</span>
+                <span className="cashflow-amount">
+                  {transfer.kind === "deposit" ? "+" : "−"}
+                  {formatAmount(transfer.amount)}
+                </span>
+                <span className="cashflow-when">{when(transfer.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+
+          {pageCount > 1 && (
+            <div className="cashflow-pager">
+              <button
+                type="button"
+                onClick={() => setPage(safePage - 1)}
+                disabled={safePage === 0}
+              >
+                Prev
+              </button>
+              <span>
+                Page {safePage + 1} of {pageCount}
               </span>
-              <span className="cashflow-bookie">{transfer.bookie}</span>
-              <span className="cashflow-amount">
-                {transfer.kind === "deposit" ? "+" : "−"}
-                {formatAmount(transfer.amount)}
-              </span>
-              <span className="cashflow-when">{when(transfer.createdAt)}</span>
-            </li>
-          ))}
-        </ul>
+              <button
+                type="button"
+                onClick={() => setPage(safePage + 1)}
+                disabled={safePage >= pageCount - 1}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

@@ -39,8 +39,10 @@ export async function onRequestGet({ request, env }) {
         .prepare(
           `SELECT
              COUNT(*) AS count,
-             COALESCE(SUM(CASE WHEN kind = 'deposit' THEN amount ELSE 0 END), 0) AS deposited,
-             COALESCE(SUM(CASE WHEN kind = 'withdrawal' THEN amount ELSE 0 END), 0) AS withdrawn
+             COALESCE(SUM(CASE WHEN kind = 'deposit' OR transfer_type = 'CAPITAL_INJECTION'
+                               THEN amount ELSE 0 END), 0) AS deposited,
+             COALESCE(SUM(CASE WHEN kind = 'withdrawal' OR transfer_type = 'PROFIT_TAKE'
+                               THEN amount ELSE 0 END), 0) AS withdrawn
            FROM wallet_transfers WHERE is_simulation = ?`,
         )
         .bind(mode)

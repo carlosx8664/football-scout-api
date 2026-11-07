@@ -246,8 +246,6 @@ const WalletsDashboard = () => {
           simulation={enabled}
           refreshToken={refreshToken}
           summary={payload?.cashFlow ?? null}
-          planDeposits={plan.deposits}
-          planCount={plan.count}
           wallets={payload?.wallets ?? []}
           planBookies={plan.bookies}
           locked={payload?.locked ?? []}

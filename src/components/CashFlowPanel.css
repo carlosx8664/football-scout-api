@@ -268,3 +268,34 @@
   cursor: pointer;
 }
 .cashflow-cancel:hover { color: var(--color-neutral-7); border-color: var(--color-brand); }
+
+/* Ledger pager: eight movements a page keeps the sidebar list scannable. */
+.cashflow-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-neutral-3);
+}
+.cashflow-pager span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+}
+.cashflow-pager button {
+  padding: 4px 10px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-neutral-6);
+  cursor: pointer;
+}
+.cashflow-pager button:hover:not(:disabled) {
+  color: var(--color-neutral-7);
+  border-color: var(--color-brand);
+}
+.cashflow-pager button:disabled { opacity: 0.5; cursor: default; }
