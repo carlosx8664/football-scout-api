@@ -1,7 +1,9 @@
+/* The scanner column is the scroll region for both the live and past tables. */
 .arbs-view {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-height: 0;
 }
 
 .arbs-view-title {

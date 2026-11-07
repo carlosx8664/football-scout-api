@@ -57,6 +57,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .app-body {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 340px;
+  /* minmax(0, 1fr) stops the row growing past the viewport, which would clip tall content
+     instead of letting a column scroll. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 32px;
   width: 100%;
   max-width: var(--max-width-desktop);
@@ -67,16 +70,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   overflow: hidden;
 }
 
-/* Left rail, feed, and right rail each own their scroll, with the bar hidden. */
+/* Every column scrolls on its own; the page itself never scrolls. */
 .app-body > * {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* Only the three dashboard columns hide their scrollbar; full-width pages keep theirs. */
+.app-body > .left-sidebar,
+.app-body > .main-feed,
+.app-body > .right-sidebar {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.app-body > *::-webkit-scrollbar {
+.app-body > .left-sidebar::-webkit-scrollbar,
+.app-body > .main-feed::-webkit-scrollbar,
+.app-body > .right-sidebar::-webkit-scrollbar {
   display: none;
   width: 0;
 }
