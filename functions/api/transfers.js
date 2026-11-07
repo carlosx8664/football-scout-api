@@ -27,7 +27,7 @@ export async function onRequestGet({ request, env }) {
     const [rows, totals] = await Promise.all([
       db
         .prepare(
-          `SELECT id, wallet_id, bookie_name, kind, amount, created_at
+          `          SELECT id, wallet_id, bookie_name, kind, transfer_type, amount, created_at
              FROM wallet_transfers
             WHERE is_simulation = ?
             ORDER BY created_at DESC
@@ -57,6 +57,7 @@ export async function onRequestGet({ request, env }) {
         walletId: row.wallet_id,
         bookie: row.bookie_name,
         kind: row.kind,
+        type: row.transfer_type ?? "BOOKIE_TRANSFER",
         amount: round2(Number(row.amount)),
         createdAt: row.created_at,
       })),

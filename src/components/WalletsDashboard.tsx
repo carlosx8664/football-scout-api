@@ -11,6 +11,7 @@ import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 import {
   cashOutWeeklyProfits,
+  createCapitalInjection,
   createTransfer,
   fetchWallets,
   formatAmount,
@@ -32,7 +33,7 @@ import WalletsPanel from "./WalletsPanel";
  */
 const WalletsDashboard = () => {
   const { enabled } = useSimulation();
-  const { settings } = useBankroll();
+  const { settings, setSettings } = useBankroll();
   const { refresh: refreshNotifications } = useNotifications();
   const [refreshToken, setRefreshToken] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -133,6 +134,20 @@ const WalletsDashboard = () => {
     [applyPayload, enabled, momoBalance],
   );
 
+  const handleCapitalInjection = useCallback(
+    async (amount: number) => {
+      const next = await createCapitalInjection(amount, enabled);
+      const bankroll = Math.round((settings.bankroll + amount) * 100) / 100;
+      const stakeRatio = settings.bankroll > 0 ? settings.stake / settings.bankroll : 0;
+      const stake = Math.round(bankroll * stakeRatio * 100) / 100;
+      setSettings({ ...settings, bankroll, stake });
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+      setToast(`Deposited ${formatAmount(amount)} to MOMO. Bankroll is now ${formatAmount(bankroll)}.`);
+    },
+    [applyPayload, enabled, setSettings, settings],
+  );
+
   /** Start afresh: wipe this mode's ledger and re-open every selected wallet at one balance. */
   const handleStartAfresh = useCallback(
     async (openingBalance: number) => {
@@ -208,6 +223,7 @@ const WalletsDashboard = () => {
           simulation={enabled}
           momo={momoBalance}
           onStartAfresh={handleStartAfresh}
+          onDeposit={handleCapitalInjection}
         />
         <WalletsPanel
           payload={payload}

@@ -98,6 +98,27 @@ export async function createTransfer(
   return payload;
 }
 
+export async function createCapitalInjection(
+  amount: number,
+  simulation: boolean,
+): Promise<WalletsPayload> {
+  const response = await fetch("/api/wallets/capital-injection", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, simulation }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (WalletsPayload & { error?: string })
+    | null;
+
+  if (!response.ok || !payload?.wallets) {
+    throw new Error(payload?.error ?? `Could not record the deposit (HTTP ${response.status}).`);
+  }
+
+  return payload;
+}
+
 export async function fetchTransfers(
   simulation: boolean,
   signal?: AbortSignal,

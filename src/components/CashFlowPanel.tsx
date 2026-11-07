@@ -134,7 +134,11 @@ const CashFlowPanel = ({
           {transfers.map((transfer) => (
             <li className="cashflow-row" key={transfer.id}>
               <span className={`cashflow-kind ${transfer.kind}`}>
-                {transfer.kind === "deposit" ? "Deposit" : "Withdrawal"}
+                {transfer.type === "CAPITAL_INJECTION"
+                  ? "Capital injection"
+                  : transfer.kind === "deposit"
+                    ? "Deposit"
+                    : "Withdrawal"}
               </span>
               <span className="cashflow-bookie">{transfer.bookie}</span>
               <span className="cashflow-amount">

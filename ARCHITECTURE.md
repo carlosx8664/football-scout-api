@@ -177,6 +177,7 @@ plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `c
 | `0010_active_bets_selection.sql` | `active_bets.bookie_a_selection` / `bookie_b_selection` — the side each leg holds |
 | `0011_history_logged_at.sql` | `history.logged_at` — when the bet was placed, so the daily mug gate never counts a late settlement as today's mug bet |
 | `0012_history_kickoff.sql` | `history.kickoff` — the match kickoff, so History groups daily profit by match day rather than settlement day |
+| `0014_capital_injections.sql` | `wallet_transfers.transfer_type` — distinguishes MOMO capital injections from bookie transfers without changing `history` |
 
 ### Worker — `workers/dispatch-trigger/`
 

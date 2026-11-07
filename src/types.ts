@@ -192,9 +192,10 @@ export interface CashFlowSummary {
 /** One deposit or withdrawal. */
 export interface WalletTransfer {
   id: string;
-  walletId: string;
+  walletId: string | null;
   bookie: string;
   kind: "deposit" | "withdrawal";
+  type: "BOOKIE_TRANSFER" | "CAPITAL_INJECTION";
   amount: number;
   createdAt: string;
 }

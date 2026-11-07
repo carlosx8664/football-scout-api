@@ -22,6 +22,7 @@ interface BankrollPlanProps {
   momo: number;
   /** Wipes the ledger and re-opens every wallet at `openingBalance`. */
   onStartAfresh: (openingBalance: number) => Promise<void>;
+  onDeposit: (amount: number) => Promise<void>;
 }
 
 const Tip = ({ label, children }: { label: string; children: string }) => (
@@ -35,7 +36,7 @@ const Tip = ({ label, children }: { label: string; children: string }) => (
  * bookies selected in My Wallets. The values are shared page-wide within the active mode and
  * persisted separately for real and simulation data.
  */
-const BankrollPlan = ({ payload, simulation, momo, onStartAfresh }: BankrollPlanProps) => {
+const BankrollPlan = ({ payload, simulation, momo, onStartAfresh, onDeposit }: BankrollPlanProps) => {
   const { settings, setSettings } = useBankroll();
   const [draft, setDraft] = useState({
     bankroll: String(settings.bankroll),
@@ -43,6 +44,10 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh }: BankrollPlan
   });
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositing, setDepositing] = useState(false);
+  const [depositError, setDepositError] = useState<string | null>(null);
 
   // Keep the inputs in step when another panel changes the plan.
   useEffect(() => {
@@ -267,8 +272,69 @@ const BankrollPlan = ({ payload, simulation, momo, onStartAfresh }: BankrollPlan
           </span>
           <strong>{formatAmount(momo)}</strong>
           <span className="bankroll-stat-hint">cash reserve</span>
+          <button
+            type="button"
+            className="bankroll-deposit"
+            onClick={() => {
+              setDepositAmount("");
+              setDepositError(null);
+              setDepositOpen(true);
+            }}
+          >
+            Deposit to MOMO
+          </button>
         </div>
       </div>
+
+      {depositOpen && (
+        <div className="bankroll-modal-backdrop" role="presentation">
+          <div className="bankroll-modal" role="dialog" aria-modal="true" aria-labelledby="deposit-title">
+            <h3 id="deposit-title">Deposit to MOMO</h3>
+            <form
+              onSubmit={async (event) => {
+                event.preventDefault();
+                const amount = Math.round(Number(depositAmount.replace(/,/g, "")) * 100) / 100;
+                if (!Number.isFinite(amount) || amount <= 0) {
+                  setDepositError("Enter an amount greater than 0.");
+                  return;
+                }
+                setDepositing(true);
+                setDepositError(null);
+                try {
+                  await onDeposit(amount);
+                  setDepositOpen(false);
+                } catch (err) {
+                  setDepositError((err as Error).message);
+                } finally {
+                  setDepositing(false);
+                }
+              }}
+            >
+              <label className="bankroll-field">
+                <span>Amount to deposit (GHS)</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  inputMode="decimal"
+                  autoFocus
+                  value={depositAmount}
+                  onChange={(event) => setDepositAmount(event.target.value)}
+                />
+              </label>
+              {depositError && <p className="bankroll-modal-error" role="alert">{depositError}</p>}
+              <div className="bankroll-modal-actions">
+                <button type="button" className="bankroll-modal-cancel" onClick={() => setDepositOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="bankroll-deposit" disabled={depositing}>
+                  {depositing ? "Depositing…" : "Deposit"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {wallets.length > 0 && plan.minFloat > 0 && cash < plan.minFloat && (
         <p className="bankroll-warning" role="alert">
