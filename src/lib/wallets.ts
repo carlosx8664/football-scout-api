@@ -184,17 +184,18 @@ export async function refreshWallets(
 }
 
 /**
- * Withdraws every bookie's profit above `baseTarget` into the mobile-money wallet, rounding down
- * to whole 50s. A 1,750 balance against a 1,650 base withdraws 100 and leaves exactly 1,650.
+ * Takes profit out of the bookie wallets. Each allocation is one bookie's draw; the API caps it at
+ * `balance - locked`, at the total profit and at the bankroll floor, and logs a `PROFIT_TAKE`.
  */
 export async function cashOutWeeklyProfits(
   simulation: boolean,
-  baseTarget: number,
+  allocations: Array<{ walletId: string; amount: number }>,
+  bankroll = 0,
 ): Promise<CashOutResult> {
   const response = await fetch("/api/wallets/cash-out", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ simulation, baseTarget }),
+    body: JSON.stringify({ simulation, allocations, bankroll }),
   });
 
   const payload = (await response.json().catch(() => null)) as

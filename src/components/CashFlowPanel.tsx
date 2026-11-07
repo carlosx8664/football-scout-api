@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { fetchTransfers, formatAmount } from "../lib/wallets";
-import type { TransfersPayload } from "../types";
+import type { TransfersPayload, Wallet } from "../types";
 import "./CashFlowPanel.css";
 
 interface CashFlowPanelProps {
@@ -13,9 +13,20 @@ interface CashFlowPanelProps {
   planDeposits: number;
   /** Number of bookies the bankroll is split across, 0 when no split is possible yet. */
   planCount: number;
-  /** Per-bookie balance the weekly sweep leaves behind; 0 disables the button. */
-  baseTarget: number;
-  onCashOut: () => Promise<void>;
+  wallets: Wallet[];
+  /** Bookies ticked in the Bankroll Plan: only these can give up profit. */
+  planBookies: string[];
+  /** Cash locked in unsettled bets, per bookie. */
+  locked: Array<{ bookie: string; locked: number }>;
+  /** SUM(net_profit) for the mode. */
+  totalProfit: number;
+  /** Profit already taken out, which comes off the withdrawable cap. */
+  profitTaken: number;
+  /** Cash across the wallets right now, before any take. */
+  cashInWallets: number;
+  /** Portfolio floor: the take may never drop the wallets below this. */
+  bankroll: number;
+  onWithdraw: (allocations: Array<{ walletId: string; amount: number }>) => Promise<void>;
 }
 
 const when = (iso: string) =>
@@ -33,12 +44,21 @@ const CashFlowPanel = ({
   summary,
   planDeposits,
   planCount,
-  baseTarget,
-  onCashOut,
+  wallets,
+  planBookies,
+  locked,
+  totalProfit,
+  profitTaken,
+  cashInWallets,
+  bankroll,
+  onWithdraw,
 }: CashFlowPanelProps) => {
   const [result, setResult] = useState<{ key: string; payload: TransfersPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
-  const [cashingOut, setCashingOut] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
 
   const key = simulation ? "sim" : "real";
 
@@ -63,6 +83,70 @@ const CashFlowPanel = ({
   const loading = payload === null && error === null;
   const totals = payload?.totals ?? summary;
   const transfers = payload?.transfers ?? [];
+
+  // Only the bookies the plan is split across can release profit, in plan order.
+  const rows = planBookies
+    .map((name) => wallets.find((wallet) => wallet.name.toLowerCase() === name.toLowerCase()))
+    .filter((wallet): wallet is Wallet => Boolean(wallet))
+    .map((wallet) => {
+      const lockedAmount =
+        locked.find((entry) => entry.bookie.toLowerCase() === wallet.name.toLowerCase())?.locked ??
+        0;
+      return {
+        wallet,
+        available: Math.max(0, Math.round((wallet.balance - lockedAmount) * 100) / 100),
+      };
+    });
+
+  const amountFor = (walletId: string) => {
+    const value = Math.round(Number((amounts[walletId] ?? "").replace(/,/g, "")) * 100) / 100;
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  };
+  const requested = rows.reduce((sum, row) => sum + amountFor(row.wallet.id), 0);
+  const total = Math.round(requested * 100) / 100;
+  const portfolioAfter = Math.round((cashInWallets - total) * 100) / 100;
+  // Profit already banked is not on offer again.
+  const withdrawable = Math.max(0, Math.round((totalProfit - profitTaken) * 100) / 100);
+
+  const overAvailable = rows.find((row) => amountFor(row.wallet.id) > row.available + 0.0001);
+  const guardError = overAvailable
+    ? `${overAvailable.wallet.name} can only release ${formatAmount(overAvailable.available)}.`
+    : total > withdrawable + 0.0001
+      ? `The total cannot exceed your available profit of ${formatAmount(withdrawable)}.`
+      : portfolioAfter < bankroll
+        ? `This would leave ${formatAmount(portfolioAfter)} in the wallets, below the ${formatAmount(bankroll)} bankroll.`
+        : null;
+
+  const closeModal = () => {
+    setOpen(false);
+    setAmounts({});
+    setFormError(null);
+  };
+
+  const submit = async () => {
+    const allocations = rows
+      .map((row) => ({ walletId: row.wallet.id, amount: amountFor(row.wallet.id) }))
+      .filter((entry) => entry.amount > 0);
+    if (allocations.length === 0) {
+      setFormError("Enter an amount for at least one bookie.");
+      return;
+    }
+    if (guardError) {
+      setFormError(guardError);
+      return;
+    }
+
+    setBusy(true);
+    setFormError(null);
+    try {
+      await onWithdraw(allocations);
+      closeModal();
+    } catch (err) {
+      setFormError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <section className="cashflow-panel">
@@ -108,19 +192,94 @@ const CashFlowPanel = ({
         <button
           type="button"
           className="cashflow-cashout"
-          onClick={async () => {
-            setCashingOut(true);
-            try {
-              await onCashOut();
-            } finally {
-              setCashingOut(false);
-            }
+          onClick={() => {
+            setAmounts({});
+            setFormError(null);
+            setOpen(true);
           }}
-          disabled={cashingOut || baseTarget <= 0}
+          disabled={withdrawable <= 0 || rows.length === 0}
+          title={
+            withdrawable <= 0
+              ? "No profit to withdraw yet."
+              : "Take profit out of the selected bookie wallets."
+          }
         >
-          {cashingOut ? "Withdrawing…" : "Withdraw Weekly Profits"}
+          Withdraw Weekly Profits
         </button>
+        {withdrawable <= 0 && (
+          <small className="cashflow-hint">
+            Nothing to withdraw: available profit is {formatAmount(withdrawable)}.
+          </small>
+        )}
       </div>
+
+      {open && (
+        <div className="cashflow-modal-backdrop" role="presentation">
+          <div
+            className="cashflow-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profit-take-title"
+          >
+            <h3 id="profit-take-title">Withdraw Weekly Profits</h3>
+            <p className="cashflow-modal-copy">
+              Total profit available: <strong>{formatAmount(withdrawable)}</strong>. A bookie can
+              only release cash that is not locked in an active bet.
+            </p>
+
+            <ul className="cashflow-take-list">
+              {rows.map(({ wallet, available }) => (
+                <li className="cashflow-take-row" key={wallet.id}>
+                  <div className="cashflow-take-copy">
+                    <strong>{wallet.name}</strong>
+                    <span>Available to Withdraw: GHS {formatAmount(available)}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={amounts[wallet.id] ?? ""}
+                    onChange={(event) =>
+                      setAmounts((current) => ({ ...current, [wallet.id]: event.target.value }))
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+
+            <div className="cashflow-take-total">
+              <span>Total withdrawal</span>
+              <strong>{formatAmount(total)}</strong>
+            </div>
+            <p className="cashflow-modal-hint">
+              Wallets after withdrawal: {formatAmount(portfolioAfter)} · Bankroll floor:{" "}
+              {formatAmount(bankroll)}
+            </p>
+
+            {(formError ?? guardError) && (
+              <p className="cashflow-error" role="alert">
+                {formError ?? guardError}
+              </p>
+            )}
+
+            <div className="cashflow-modal-actions">
+              <button type="button" className="cashflow-cancel" onClick={closeModal}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="cashflow-cashout"
+                onClick={() => void submit()}
+                disabled={busy || total <= 0 || Boolean(guardError)}
+              >
+                {busy ? "Withdrawing…" : "Confirm withdrawal"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="cashflow-empty">Loading cash flow…</p>
@@ -133,12 +292,14 @@ const CashFlowPanel = ({
         <ul className="cashflow-list">
           {transfers.map((transfer) => (
             <li className="cashflow-row" key={transfer.id}>
-              <span className={`cashflow-kind ${transfer.kind}`}>
+              <span className={`cashflow-kind ${transfer.kind} ${transfer.type}`}>
                 {transfer.type === "CAPITAL_INJECTION"
                   ? "Capital injection"
-                  : transfer.kind === "deposit"
-                    ? "Deposit"
-                    : "Withdrawal"}
+                  : transfer.type === "PROFIT_TAKE"
+                    ? "Profit take"
+                    : transfer.kind === "deposit"
+                      ? "Deposit"
+                      : "Withdrawal"}
               </span>
               <span className="cashflow-bookie">{transfer.bookie}</span>
               <span className="cashflow-amount">

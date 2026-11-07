@@ -131,7 +131,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `wallets/[id].js` | `PATCH` balance · `DELETE` (not used by UI) |
 | `wallets/[id]/transfers.js` | `POST` — deposit/withdrawal with no amount cap and no rate limit (top-up limited by the Momo reserve, withdrawal by the balance); moves the Momo reserve the other way |
 | `wallets/refresh.js` | `POST` — **Start afresh**: wipes bets/history/cash-flow, funds only the selected bookies (logging their opening deposits), zeroes the rest, seeds the Momo reserve with the unallocated leftover |
-| `wallets/cash-out.js` | `POST` — weekly profit sweep to base target (bypasses per-move caps) |
+| `wallets/cash-out.js` | `POST` — profit take: per-bookie amounts capped at `balance − locked`, at total profit and at the bankroll floor, logged as `PROFIT_TAKE` |
 | `wallets/recycle.js` | `POST` — move capital bookie → bookie (one withdrawal + one deposit, atomic) |
 | `transfers.js` | `GET` — cash-flow ledger + totals |
 | `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; **an arb is refused until both of its bookies have a muggy acca logged today**) |
@@ -179,6 +179,7 @@ plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `c
 | `0012_history_kickoff.sql` | `history.kickoff` — the match kickoff, so History groups daily profit by match day rather than settlement day |
 | `0014_capital_injections.sql` | `wallet_transfers.transfer_type` — distinguishes MOMO capital injections from bookie transfers without changing `history` |
 | `0015_bet_sport.sql` | `active_bets.sport` / `history.sport` — `football` or `horse-racing`, carried into History at settlement |
+| `0016_profit_take.sql` | `wallet_transfers.transfer_type` gains `PROFIT_TAKE` (table rebuilt to widen the CHECK) |
 
 ### Worker — `workers/dispatch-trigger/`
 

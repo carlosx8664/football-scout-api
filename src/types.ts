@@ -195,7 +195,7 @@ export interface WalletTransfer {
   walletId: string | null;
   bookie: string;
   kind: "deposit" | "withdrawal";
-  type: "BOOKIE_TRANSFER" | "CAPITAL_INJECTION";
+  type: "BOOKIE_TRANSFER" | "CAPITAL_INJECTION" | "PROFIT_TAKE";
   amount: number;
   createdAt: string;
 }
@@ -224,6 +224,8 @@ export interface WalletsPayload {
   /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
   dailyProfit: number;
   cashFlow: CashFlowSummary;
+  /** Profit already withdrawn via profit takes; `totalProfit - profitTaken` is withdrawable. */
+  profitTaken: number;
   /** Whether trading has started for this mode, so the bankroll can no longer be edited. */
   activity: {
     activeBets: number;
@@ -235,6 +237,8 @@ export interface WalletsPayload {
     windowHours: number;
     bookies: string[];
   };
+  /** Cash locked in unsettled bets per bookie, so a profit take only releases the free part. */
+  locked: Array<{ bookie: string; locked: number }>;
 }
 
 /** One mug bet: a small single on a real match, kept to keep the account looking human. */
@@ -265,12 +269,13 @@ export interface MugBetsPayload {
   totals: MugTotals;
 }
 
-/** Result of POST /api/wallets/cash-out. */
+/** Result of POST /api/wallets/cash-out (a profit take out of the bookie wallets). */
 export interface CashOutResult extends WalletsPayload {
   cashOut: {
     total: number;
     bookies: Array<{ bookie: string; amount: number }>;
-    reserve: number;
+    /** Cash left in the wallets after the take, which the bankroll guard keeps in bounds. */
+    portfolio: number;
   };
 }
 

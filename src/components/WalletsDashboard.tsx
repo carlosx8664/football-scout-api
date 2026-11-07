@@ -111,6 +111,7 @@ const WalletsDashboard = () => {
     const perWallet = splitReady ? computePlan(settings, bookies.length).perWallet : 0;
     return {
       count: bookies.length,
+      bookies,
       splitReady,
       perWallet,
       deposits: perWallet * bookies.length,
@@ -179,30 +180,19 @@ const WalletsDashboard = () => {
     [applyPayload, enabled, setSettings, settings],
   );
 
-  /** Per-bookie base the weekly sweep leaves behind: the plan's rounded opening deposit. */
-  const baseTarget = (() => {
-    if (!hasSplit(settings)) return 0;
-    const bookies = selectedBookies(settings).length;
-    return openingBalanceFor(computePlan(settings, bookies).perWallet);
-  })();
-
-  /** Withdraw weekly profits from every bookie into the mobile-money wallet. */
-  const handleCashOut = useCallback(async () => {
-    if (!hasSplit(settings)) {
-      setToast("Select at least two bookies in My Wallets before cashing out.");
-      return;
-    }
-
-    const next = await cashOutWeeklyProfits(enabled, baseTarget);
-    applyPayload(next);
-    setRefreshToken((current) => current + 1);
-
-    if (next.cashOut.total > 0) {
-      setToast(`Cashed out ${formatAmount(next.cashOut.total)} from ${next.cashOut.bookies.length} bookies.`);
-    } else {
-      setToast(`No profits to withdraw above ${formatAmount(baseTarget)} per bookie.`);
-    }
-  }, [applyPayload, baseTarget, enabled, settings]);
+  /** Takes profit out of the chosen bookies; the API enforces the locked/profit/bankroll caps. */
+  const handleProfitTake = useCallback(
+    async (allocations: Array<{ walletId: string; amount: number }>) => {
+      const next = await cashOutWeeklyProfits(enabled, allocations, settings.bankroll);
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+      setToast(
+        `Took ${formatAmount(next.cashOut.total)} of profit out of ` +
+          `${next.cashOut.bookies.length} bookie${next.cashOut.bookies.length === 1 ? "" : "s"}.`,
+      );
+    },
+    [applyPayload, enabled, settings.bankroll],
+  );
 
   /** Mug-bet writes return the fresh wallet payload, so balances repaint immediately. */
   const handleMugBetChange = useCallback(
@@ -258,8 +248,14 @@ const WalletsDashboard = () => {
           summary={payload?.cashFlow ?? null}
           planDeposits={plan.deposits}
           planCount={plan.count}
-          baseTarget={baseTarget}
-          onCashOut={handleCashOut}
+          wallets={payload?.wallets ?? []}
+          planBookies={plan.bookies}
+          locked={payload?.locked ?? []}
+          totalProfit={payload?.totalProfit ?? 0}
+          profitTaken={payload?.profitTaken ?? 0}
+          cashInWallets={payload?.liquidity.totalBalance ?? 0}
+          bankroll={settings.bankroll}
+          onWithdraw={handleProfitTake}
         />
         <MugBetsPanel
           simulation={enabled}

@@ -211,6 +211,34 @@ export async function loadCashReserve(db, simulation) {
   return round2(Number(row?.balance ?? 0));
 }
 
+/**
+ * Cash locked in unsettled bets, per bookie. A withdrawal can only take what is left after this,
+ * so a stake still at risk is never swept out of the wallet. A free bet's leg A was never debited,
+ * so it locks nothing.
+ */
+export async function loadLockedByBookie(db, simulation) {
+  const mode = modeValue(simulation);
+
+  const { results } = await db
+    .prepare(
+      `SELECT bookie, COALESCE(SUM(stake), 0) AS locked FROM (
+         SELECT bookie_a_name AS bookie,
+                CASE WHEN is_free_bet = 1 THEN 0 ELSE COALESCE(bookie_a_stake, 0) END AS stake
+           FROM active_bets WHERE is_simulation = ?
+         UNION ALL
+         SELECT bookie_b_name AS bookie, COALESCE(bookie_b_stake, 0) AS stake
+           FROM active_bets WHERE is_simulation = ?
+       )
+       GROUP BY bookie`,
+    )
+    .bind(mode, mode)
+    .all();
+
+  return (results ?? [])
+    .filter((row) => row.bookie)
+    .map((row) => ({ bookie: row.bookie, locked: round2(Number(row.locked ?? 0)) }));
+}
+
 /** Overwrites the reserve for one mode and returns the stored value. */
 export async function setCashReserve(db, simulation, balance) {
   const value = Math.max(0, round2(Number(balance) || 0));
@@ -230,9 +258,10 @@ export async function setCashReserve(db, simulation, balance) {
 }
 
 /** Response body shared by GET /api/wallets, PATCH /api/wallets/:id and POST /api/wallets/reset. */
-export async function walletPayload(db, simulation) {  const mode = modeValue(simulation);
+export async function walletPayload(db, simulation) {
+  const mode = modeValue(simulation);
 
-  const [wallets, liquidity, history, transfers, pending, cashReserve] = await Promise.all([
+  const [wallets, liquidity, history, transfers, pending, cashReserve, locked] = await Promise.all([
     loadWallets(db, simulation),
     loadLiquidity(db, simulation),
     db
@@ -253,6 +282,8 @@ export async function walletPayload(db, simulation) {  const mode = modeValue(si
            COUNT(*) AS count,
            COALESCE(SUM(CASE WHEN kind = 'deposit' THEN amount ELSE 0 END), 0) AS deposited,
            COALESCE(SUM(CASE WHEN kind = 'withdrawal' THEN amount ELSE 0 END), 0) AS withdrawn,
+           COALESCE(SUM(CASE WHEN transfer_type = 'PROFIT_TAKE' THEN amount ELSE 0 END), 0)
+             AS profit_taken,
            COUNT(DISTINCT bookie_name) AS bookies
          FROM wallet_transfers WHERE is_simulation = ?`,
       )
@@ -260,6 +291,7 @@ export async function walletPayload(db, simulation) {  const mode = modeValue(si
       .first(),
     loadPendingSettlement(db, simulation),
     loadCashReserve(db, simulation),
+    loadLockedByBookie(db, simulation),
   ]);
 
   return {
@@ -285,10 +317,14 @@ export async function walletPayload(db, simulation) {  const mode = modeValue(si
       net: round2(Number(transfers?.deposited ?? 0) - Number(transfers?.withdrawn ?? 0)),
       bookies: Number(transfers?.bookies ?? 0),
     },
+    /** Profit already taken out, so the withdrawable profit is `totalProfit - profitTaken`. */
+    profitTaken: round2(Number(transfers?.profit_taken ?? 0)),
     /** Bookies whose cash is in play right now — rebalancing ignores them until it settles. */
     pendingSettlement: {
       windowHours: PENDING_SETTLEMENT_HOURS,
       bookies: pending,
     },
+    /** Cash locked in unsettled bets per bookie; only `balance - locked` can be withdrawn. */
+    locked,
   };
 }
