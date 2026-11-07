@@ -238,6 +238,20 @@
   vertical-align: middle;
 }
 
+/* Sport badge beside the event name, so mug bets read as football or horse racing at a glance. */
+.history-sport {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.6rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.history-sport.horse-racing { background: var(--color-teal-2); color: var(--color-teal-4); }
+
 /* Mug bets sit beside the arb ledger, never inside its totals. */
 .history-mug {
   margin-top: 16px;

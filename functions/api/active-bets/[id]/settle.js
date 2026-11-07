@@ -244,8 +244,8 @@ export async function onRequestPost({ request, env, params }) {
           `INSERT INTO history (
              id, event_name, winning_bookie, net_profit, is_simulation, settlement_type,
              bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake, kind,
-             is_free_bet, logged_at, kickoff
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             is_free_bet, logged_at, kickoff, sport
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           historyId,
@@ -266,6 +266,8 @@ export async function onRequestPost({ request, env, params }) {
           bet.created_at ?? null,
           // The match's kickoff, so History groups the profit under the day it was played.
           bet.kickoff ?? null,
+          // Carried over so History can badge the sport the bet was logged under.
+          bet.sport ?? "football",
         ),      db
         .prepare("DELETE FROM active_bets WHERE id = ? AND is_simulation = ?")
         .bind(id, mode),

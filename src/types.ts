@@ -302,6 +302,8 @@ export interface LogArbInput {
   /** The `active_bets` table stores exactly two legs (bookie A and bookie B). */
   legs: [LogArbLegInput, LogArbLegInput];
   simulation: boolean;
+  /** Which sport the bet belongs to; only mug bets pick it in the UI. */
+  sport?: BetSport;
   /** Epoch milliseconds, taken from the arb feed so the card shows the match start. */
   kickoff?: number;
   /** Sportradar fixture id, so live scores can be matched back to this bet. */
@@ -312,6 +314,9 @@ export interface LogArbInput {
 
 /** Which form logged an `active_bets` row. */
 export type BetKind = "arb" | "muggy" | "free";
+
+/** Sport a ledger row belongs to; mug bets choose it, everything else is football. */
+export type BetSport = "football" | "horse-racing";
 
 export interface LogArbResult {
   id: string;
@@ -342,6 +347,8 @@ export interface ActiveBetRecord {
   eventName: string;
   /** 'arb' from the Arbs page, 'muggy' for a muggy acca, 'free' for a free bet. */
   kind: BetKind;
+  /** Sport badge shown beside the event name. */
+  sport: BetSport;
   /** Free bet: leg A is the free stake (never debited) and leg B is the real hedge. */
   isFreeBet: boolean;
   legA: ActiveBetLegRecord;
@@ -473,6 +480,8 @@ export interface HistoryEntry {
   eventName: string;
   /** `muggy` rows are single-leg mug bets, so they show no Bookie A / Bookie B. */
   kind: BetKind;
+  /** Sport badge shown beside the event name. */
+  sport: BetSport;
   winningBookie: string | null;
   /** Null only for rows settled before `history` stored leg details. */
   bookieAName: string | null;

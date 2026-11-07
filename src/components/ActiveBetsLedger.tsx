@@ -178,7 +178,14 @@ const ActiveBetsLedger = ({
             {visible.map((bet) => (
               <li className="active-bet-card" key={bet.id}>
                 <div className="active-bet-top">
-                  <span className="active-bet-event">{bet.eventName}</span>
+                  <span className="active-bet-event">
+                    {bet.eventName}
+                    {bet.kind !== "arb" && (
+                      <span className={`active-bet-sport ${bet.sport ?? "football"}`}>
+                        {bet.sport === "horse-racing" ? "🐎 Horse Racing" : "⚽ Football"}
+                      </span>
+                    )}
+                  </span>
                   {bet.kind === "arb" ? (
                     <span
                       className={`active-bet-profit${bet.profitPercent < 0 ? " negative" : ""}`}

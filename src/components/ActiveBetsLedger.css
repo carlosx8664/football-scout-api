@@ -117,6 +117,21 @@
 }
 .active-bet-kind.muggy { background: var(--color-yellow-weak); color: #7a5c00; }
 .active-bet-kind.free { background: var(--color-teal-2); color: var(--color-teal-4); }
+/* Sport badge: mug bets are the only rows with a non-football sport to tell apart. */
+.active-bet-sport {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.active-bet-sport.horse-racing { background: var(--color-teal-2); color: var(--color-teal-4); }
 .active-bet-when { font-size: 0.66rem; color: var(--color-neutral-6); }
 
 .active-bet-legs {

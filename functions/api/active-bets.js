@@ -12,6 +12,7 @@ import {
 const MAX_STAKE = 1_000_000;
 /** Which form logged the row: a two-leg arb, a muggy acca or a free bet. */
 const KINDS = new Set(["arb", "muggy", "free"]);
+const SPORTS = new Set(["football", "horse-racing"]);
 /** A local calendar day is at most 25h once a DST shift is accounted for. */
 const MAX_DAY_MS = 27 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -40,6 +41,7 @@ function toActiveBet(row) {
     id: row.id,
     eventName: row.event_name,
     kind: row.kind ?? "arb",
+    sport: row.sport ?? "football",
     /** A free bet's stake is never debited; only its hedge leg is real cash. */
     isFreeBet: Number(row.is_free_bet) === 1,
     legA: {
@@ -74,7 +76,7 @@ export async function onRequestGet({ request, env }) {
   try {
     const { results } = await db
       .prepare(
-        `SELECT id, event_name, kind, is_free_bet,
+        `SELECT id, event_name, kind, sport, is_free_bet,
                 bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
                 bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
                 profit_percent, is_simulation, created_at, kickoff, sr_event_id
@@ -118,6 +120,9 @@ export async function onRequestPost({ request, env }) {
   if (!KINDS.has(kind)) {
     return json({ error: '`kind` must be "arb", "muggy" or "free".' }, 400);
   }
+
+  // Only mug bets carry a sport in the UI; anything unknown (or missing) is football.
+  const sport = SPORTS.has(body?.sport) ? body.sport : "football";
 
   const eventName = typeof body?.eventName === "string" ? body.eventName.trim() : "";
   if (!eventName || eventName.length > 200) {
@@ -317,8 +322,8 @@ export async function onRequestPost({ request, env }) {
              id, event_name, kind, is_free_bet,
              bookie_a_name, bookie_a_selection, bookie_a_odds, bookie_a_stake,
              bookie_b_name, bookie_b_selection, bookie_b_odds, bookie_b_stake,
-             profit_percent, is_simulation, kickoff, sr_event_id
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             profit_percent, is_simulation, kickoff, sr_event_id, sport
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -337,6 +342,7 @@ export async function onRequestPost({ request, env }) {
           modeValue(simulation),
           kickoffValue,
           srEventId,
+          sport,
         ),
     ]);
 
@@ -345,6 +351,7 @@ export async function onRequestPost({ request, env }) {
         id,
         eventName,
         kind,
+        sport,
         isFreeBet: freeBet,
         profitPercent,
         totalStake: freeBet ? legB.stake : total,

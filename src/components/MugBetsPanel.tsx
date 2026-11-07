@@ -2,7 +2,7 @@ import { useState } from "react";
 import { computePlan, useBankroll } from "../lib/bankroll";
 import { logArb } from "../lib/bets";
 import { formatAmount } from "../lib/wallets";
-import type { Wallet, WalletsPayload } from "../types";
+import type { BetSport, Wallet, WalletsPayload } from "../types";
 import "./MugBetsPanel.css";
 
 type Tab = "muggy" | "free";
@@ -40,7 +40,12 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
 
   const firstBookie = wallets[0]?.name ?? "";
   const defaultStake = String(Math.max(1, Math.round(plan.microMug)));
-  const [muggy, setMuggy] = useState({ bookie: "", stake: defaultStake, odds: "1.30" });
+  const [muggy, setMuggy] = useState({
+    bookie: "",
+    sport: "football" as BetSport,
+    stake: defaultStake,
+    odds: "1.30",
+  });
   const [free, setFree] = useState({
     bookie: "",
     stake: defaultStake,
@@ -48,6 +53,10 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
     hedgeBookie: "",
     hedgeStake: hedgeStakeFor(defaultStake, "1.30", "1.30"),
     hedgeOdds: "1.30",
+    /** Free-bet leg outcome, e.g. "Home Win". */
+    selection: "",
+    /** Hedge leg outcome, e.g. "X2". */
+    hedgeSelection: "",
   });
   /** True until the user types their own hedge stake, which switches the auto-fill off. */
   const [hedgeAuto, setHedgeAuto] = useState(true);
@@ -108,6 +117,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
         eventName: `Muggy Acca - ${muggyBookie}`,
         kind: "muggy",
         simulation,
+        sport: muggy.sport,
         // One funded leg; the second is the ledger's required slot, carrying no stake.
         legs: [
           { name: muggyBookie, odds, stake },
@@ -144,8 +154,13 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
         kind: "free",
         simulation,
         legs: [
-          { name: freeBookie, odds: oddsValue, stake: stakeValue },
-          { name: hedgeBookie || freeBookie, odds: hedgeOddsValue, stake: hedgeStakeValue },
+          { name: freeBookie, odds: oddsValue, stake: stakeValue, selection: free.selection || null },
+          {
+            name: hedgeBookie || freeBookie,
+            odds: hedgeOddsValue,
+            stake: hedgeStakeValue,
+            selection: free.hedgeSelection || null,
+          },
         ],
       });
       setNotice(
@@ -214,6 +229,19 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             </select>
           </label>
 
+          <label className="mugbets-field-wide">
+            <span>Sport</span>
+            <select
+              value={muggy.sport}
+              onChange={(event) =>
+                setMuggy((c) => ({ ...c, sport: event.target.value as BetSport }))
+              }
+            >
+              <option value="football">⚽ Football</option>
+              <option value="horse-racing">🐎 Horse Racing</option>
+            </select>
+          </label>
+
           <label>
             <span>Stake (daily {formatAmount(plan.microMug)})</span>
             <input
@@ -245,7 +273,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
       ) : (
         <form className="mugbets-form" onSubmit={submitFree}>
           <label className="mugbets-field-wide">
-            <span>Bookie</span>
+            <span>Free Bet Bookie</span>
             <select
               value={freeBookie}
               onChange={(event) => updateFree({ bookie: event.target.value })}
@@ -259,32 +287,48 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             </select>
           </label>
 
-          <label>
-            <span>Odds</span>
-            <input
-              type="number"
-              min="1.01"
-              step="0.01"
-              value={free.odds}
-              onChange={(event) => updateFree({ odds: event.target.value })}
-              required
-            />
-          </label>
-
-          <label>
-            <span>Stake (free)</span>
-            <input
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={free.stake}
-              onChange={(event) => updateFree({ stake: event.target.value })}
-              required
-            />
-          </label>
+          <div className="mugbets-leg">
+            <div className="mugbets-leg-head">
+              <span className="mugbets-leg-title">Free Bet Leg</span>
+              <strong>{freeBookie}</strong>
+            </div>
+            <div className="mugbets-leg-fields">
+              <label>
+                <span>Odds</span>
+                <input
+                  type="number"
+                  min="1.01"
+                  step="0.01"
+                  value={free.odds}
+                  onChange={(event) => updateFree({ odds: event.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                <span>Stake (free)</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={free.stake}
+                  onChange={(event) => updateFree({ stake: event.target.value })}
+                  required
+                />
+              </label>
+              <label className="mugbets-field-wide">
+                <span>Free bet outcome</span>
+                <input
+                  type="text"
+                  value={free.selection}
+                  onChange={(event) => updateFree({ selection: event.target.value })}
+                  placeholder="e.g. Home Win"
+                />
+              </label>
+            </div>
+          </div>
 
           <fieldset className="mugbets-hedge">
-            <legend>Hedge details</legend>
+            <legend>Hedge Leg · {hedgeBookie}</legend>
             <label className="mugbets-field-wide">
               <span>Hedge Bookie</span>
               <select
@@ -344,7 +388,22 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
                 placeholder="0"
               />
             </label>
+            <label className="mugbets-field-wide">
+              <span>Hedge outcome</span>
+              <input
+                type="text"
+                value={free.hedgeSelection}
+                onChange={(event) => updateFree({ hedgeSelection: event.target.value })}
+                placeholder="e.g. X2"
+              />
+            </label>
           </fieldset>
+
+          <p className="mugbets-leg-note mugbets-field-wide">
+            {free.selection || "Free bet"} (Free) vs {free.hedgeSelection || "Hedge"} (Hedge)
+            {freeBookie ? ` — ${freeBookie}` : ""}
+            {hedgeBookie ? ` / ${hedgeBookie}` : ""}
+          </p>
 
           <div className="mugbets-profit mugbets-field-wide">
             <div className="mugbets-profit-head">
@@ -352,7 +411,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
               <strong>{formatAmount(expectedProfit)}</strong>
             </div>
             <small>
-              Free bet wins {formatAmount(profitIfFreeWins)} · Hedge wins{" "}
+              Free bet leg wins {formatAmount(profitIfFreeWins)} · Hedge leg wins{" "}
               {formatAmount(profitIfHedgeWins)}
             </small>
           </div>

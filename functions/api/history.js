@@ -39,6 +39,7 @@ function toEntry(row) {
     id: row.id,
     eventName: row.event_name,
     kind: row.kind ?? "arb",
+    sport: row.sport ?? "football",
     winningBookie: row.winning_bookie,
     bookieAName: row.bookie_a_name ?? null,
     bookieBName: row.bookie_b_name ?? null,
@@ -87,6 +88,7 @@ export async function onRequestGet({ request, env }) {
       db
         .prepare(
           `SELECT id, event_name, winning_bookie, net_profit, settled_at, settlement_type, kind,
+                  sport,
                   bookie_a_name, bookie_a_stake, bookie_b_name, bookie_b_stake, total_stake,
                   ${MATCH_TIME_MS} AS kickoff_ms
              FROM history

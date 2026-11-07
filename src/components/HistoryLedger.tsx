@@ -234,6 +234,11 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                       </td>
                       <td className="history-event">
                         {entry.eventName}
+                        {entry.kind !== "arb" && (
+                          <span className={`history-sport ${entry.sport ?? "football"}`}>
+                            {entry.sport === "horse-racing" ? "🐎 Horse Racing" : "⚽ Football"}
+                          </span>
+                        )}
                         {entry.settlementType !== "win" ? (
                           <span className="history-tag">
                             {entry.settlementType === "void"

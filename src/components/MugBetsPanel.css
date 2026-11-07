@@ -91,6 +91,7 @@
 .mugbets-hedge legend {
   display: flex;
   align-items: center;
+  gap: 6px;
   padding: 0 6px;
   font-size: 0.7rem;
   font-weight: 700;
@@ -103,6 +104,46 @@
 .mugbets-hedge select { width: 100%; box-sizing: border-box; }
 
 .mugbets-field-wide { grid-column: 1 / -1; }
+
+/* Free bet leg: its own bordered block so the free leg and the hedge leg never blur together. */
+.mugbets-leg {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+}
+.mugbets-leg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mugbets-leg-title {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-brand-4);
+}
+.mugbets-leg-head strong { font-size: 0.8rem; }
+.mugbets-leg-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.mugbets-leg-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.mugbets-leg-note {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
 
 .mugbets-auto {
   margin-left: 6px;

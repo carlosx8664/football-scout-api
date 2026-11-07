@@ -109,7 +109,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/CashFlowPanel.tsx` | Deposit/withdrawal ledger (incl. each bookie's opening deposit) with deposited/withdrawn totals and the live planned-deposit figure |
 | `components/WalletsHistory.tsx` | `/wallets/history` page: settled history full width, no right sidebar |
 | `components/HistoryLedger.tsx` | Settled arbs grouped by day, date filter, weekly outlay, Void/Cash-Out badges |
-| `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, daily stake, odds) and **Free Bet** (bookie, match, stake, odds + hedge bookie/stake/odds) with a live **Possible Win** (stake × odds) for the free stake and the hedge — both log to `active_bets` |
+| `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, sport — football or horse racing, daily stake, odds) and **Free Bet** (free-bet leg with odds/stake/outcome, hedge leg with bookie/odds/stake/outcome, plus an outcome note like "Home Win (Free) vs X2 (Hedge)") — both log to `active_bets` |
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
 | `components/PushToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |
@@ -178,6 +178,7 @@ plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `c
 | `0011_history_logged_at.sql` | `history.logged_at` — when the bet was placed, so the daily mug gate never counts a late settlement as today's mug bet |
 | `0012_history_kickoff.sql` | `history.kickoff` — the match kickoff, so History groups daily profit by match day rather than settlement day |
 | `0014_capital_injections.sql` | `wallet_transfers.transfer_type` — distinguishes MOMO capital injections from bookie transfers without changing `history` |
+| `0015_bet_sport.sql` | `active_bets.sport` / `history.sport` — `football` or `horse-racing`, carried into History at settlement |
 
 ### Worker — `workers/dispatch-trigger/`
 
