@@ -1,13 +1,5 @@
 import { createContext, useContext } from "react";
 import type { ArbOpportunity, WalletsPayload } from "../types";
-import { formatGhs } from "./wallets";
-
-/** Cash share of the portfolio that triggers a withdrawal nudge. */
-export const WITHDRAW_ALERT_PCT = 35;
-/** Cash share of the portfolio that triggers a top-up nudge. */
-export const TOPUP_ALERT_PCT = 15;
-/** Today's realised profit that suggests taking a break. */
-export const DAILY_PROFIT_GOAL = 100;
 
 /** Same alert is suppressed for this long... */
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
@@ -20,17 +12,9 @@ const ARB_PROFIT_SIGNIFICANCE_PCT = 1;
 /** An arb stays "sent" for this long unless its profit improves materially. */
 const ARB_DEDUPE_MS = 12 * 60 * 60 * 1000;
 
-/** A top-up nudge at most once a day, so repeat alerts never look like bot traffic. */
-const TOPUP_DEDUPE_MS = 24 * 60 * 60 * 1000;
-/** Top-up alerts only fire once the shortfall has persisted this long... */
-export const TOPUP_COOLDOWN_MS = 4 * 60 * 60 * 1000;
-/** ...and never before this local hour (i.e. it lands "the next morning" at the earliest). */
-export const TOPUP_MORNING_HOUR = 8;
-
 const MAX_NOTIFICATIONS = 50;
 const STORAGE_PREFIX = "oddtor:notifications";
 const SEEN_PREFIX = "oddtor:notifications-seen";
-const LOW_PREFIX = "oddtor:notifications-low";
 
 export type AlertTone = "critical" | "warning" | "good" | "info";
 
@@ -43,26 +27,22 @@ export interface AppNotification {
   read: boolean;
 }
 
-/** One suggestion produced from a wallets payload, before de-duplication. */
+/** One suggestion produced from the arb feed, before de-duplication. */
 export interface Alert {
-  /** Stable identity used for de-duplication, e.g. "withdraw:BoltBet". */
+  /** Stable identity used for de-duplication, e.g. "arb:sr:match:123|1X2|…". */
   key: string;
   tone: AlertTone;
   message: string;
-  /** Share (percentage points), cash amount, or arb profit the alert was based on. */
+  /** The arb profit percentage the alert was based on. */
   metric: number;
   unit: "share" | "cash" | "profit";
 }
 
 export type SeenAlerts = Record<string, { sentAt: number; metric: number }>;
 
-/** First time each bookie was observed below the top-up threshold. */
-export type LowBalances = Record<string, number>;
-
 export interface AlertContext {
   now: number;
-  lowSince: LowBalances;
-  /** Live opportunities from the arbitrage feed; each one also lands in the inbox. */
+  /** Live opportunities from the arbitrage feed; each one lands in the inbox. */
   arbs?: ArbOpportunity[];
 }
 
@@ -86,53 +66,9 @@ function arbLegLine(arb: ArbOpportunity): string {
     .join(" · ");
 }
 
-/**
- * Turns the current wallets payload and live arbs into suggestions.
- *
- * The portfolio is cash + staked: stakes are debited at log time, so a large pending arb must
- * not make every bookie look under-funded.
- */
-export function buildAlerts(payload: WalletsPayload, context: AlertContext): Alert[] {
-  const { now, lowSince, arbs = [] } = context;
-  const cash = payload.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
-  const portfolio = cash + payload.liquidity.staked;
+/** Turns live arbs into suggestions. New arbitrage opportunities are the only alert source. */
+export function buildAlerts({ now, arbs = [] }: AlertContext): Alert[] {
   const alerts: Alert[] = [];
-
-  if (portfolio > 0) {
-    for (const wallet of payload.wallets) {
-      const share = (wallet.balance / portfolio) * 100;
-
-      if (share > WITHDRAW_ALERT_PCT) {
-        alerts.push({
-          key: `withdraw:${wallet.name}`,
-          tone: "warning",
-          unit: "share",
-          metric: share,
-          message:
-            `🔴 Withdraw from ${wallet.name}: Balance is too high (${share.toFixed(1)}%). ` +
-            "Move funds to mobile money or another bookie.",
-        });
-      } else if (share < TOPUP_ALERT_PCT) {
-        // Cool down: a fresh shortfall (usually from just logging a bet) must not ping at once.
-        // Wait until it has lasted four hours and the local clock is past the morning cutoff.
-        const since = lowSince[wallet.name] ?? now;
-        const cooledDown = now - since >= TOPUP_COOLDOWN_MS;
-        const morning = new Date(now).getHours() >= TOPUP_MORNING_HOUR;
-
-        if (cooledDown && morning) {
-          alerts.push({
-            key: `topup:${wallet.name}`,
-            tone: "warning",
-            unit: "cash",
-            metric: wallet.balance,
-            message:
-              `🟡 Consider topping up ${wallet.name} today. ` +
-              `Current balance is ${formatGhs(wallet.balance)}.`,
-          });
-        }
-      }
-    }
-  }
 
   for (const arb of arbs) {
     const profitPct = Number(arb.profitPct);
@@ -152,19 +88,6 @@ export function buildAlerts(payload: WalletsPayload, context: AlertContext): Ale
     });
   }
 
-  const dailyProfit = payload.dailyProfit ?? 0;
-  if (dailyProfit > DAILY_PROFIT_GOAL) {
-    alerts.push({
-      key: "daily-goal",
-      tone: "info",
-      unit: "cash",
-      metric: dailyProfit,
-      message:
-        `🎯 Daily Goal Reached: You've made ${formatGhs(dailyProfit)} today. Consider stopping ` +
-        "to protect your accounts from over-betting.",
-    });
-  }
-
   return alerts;
 }
 
@@ -179,7 +102,6 @@ function isSignificant(alert: Alert, previous: { metric: number }): boolean {
 }
 
 function dedupeWindowMs(alert: Alert): number {
-  if (alert.key.startsWith("topup:")) return TOPUP_DEDUPE_MS;
   if (alert.key.startsWith("arb:")) return ARB_DEDUPE_MS;
   return DEDUPE_WINDOW_MS;
 }
@@ -192,31 +114,6 @@ export function dueAlerts(alerts: Alert[], seen: SeenAlerts, now = Date.now()): 
     if (now - previous.sentAt >= dedupeWindowMs(alert)) return true;
     return isSignificant(alert, previous);
   });
-}
-
-/**
- * Refreshes the "below 15%" clock for every bookie, dropping the ones that recovered.
- * A bookie seen low for the first time starts its cool-down at `now`.
- */
-export function trackLowBalances(
-  payload: WalletsPayload,
-  previous: LowBalances,
-  now = Date.now(),
-): LowBalances {
-  const cash = payload.wallets.reduce((sum, wallet) => sum + wallet.balance, 0);
-  const portfolio = cash + payload.liquidity.staked;
-  const next: LowBalances = {};
-
-  if (portfolio <= 0) return next;
-
-  for (const wallet of payload.wallets) {
-    const share = (wallet.balance / portfolio) * 100;
-    if (share < TOPUP_ALERT_PCT) {
-      next[wallet.name] = previous[wallet.name] ?? now;
-    }
-  }
-
-  return next;
 }
 
 export function limitNotifications(items: AppNotification[]): AppNotification[] {
@@ -273,14 +170,6 @@ export function saveSeen(simulation: boolean, seen: SeenAlerts) {
   writeJson(`${SEEN_PREFIX}:${simulation ? "sim" : "real"}`, seen);
 }
 
-export function loadLowBalances(simulation: boolean): LowBalances {
-  return readJson<LowBalances>(`${LOW_PREFIX}:${simulation ? "sim" : "real"}`, {});
-}
-
-export function saveLowBalances(simulation: boolean, low: LowBalances) {
-  writeJson(`${LOW_PREFIX}:${simulation ? "sim" : "real"}`, low);
-}
-
 export function relativeTime(timestamp: number, now = Date.now()): string {
   const minutes = Math.max(0, Math.round((now - timestamp) / 60_000));
   if (minutes < 1) return "just now";
@@ -302,6 +191,8 @@ export interface NotificationStore {
   unreadCount: number;
   error: string | null;
   markAllRead: () => void;
+  /** Empties the inbox for the current mode, so the unread badge drops to zero. */
+  clearAll: () => void;
   dismiss: (id: string) => void;
   /** Re-evaluates alerts; pass a payload you already fetched to avoid an extra request. */
   refresh: (payload?: WalletsPayload) => void;

@@ -226,7 +226,7 @@ export interface WalletsPayload {
   cashReserve: number;
   /** SUM(net_profit) over `history` for the same mode. */
   totalProfit: number;
-  /** SUM(net_profit) settled today (UTC), used by the daily-goal alert. */
+  /** SUM(net_profit) settled today (UTC). */
   dailyProfit: number;
   cashFlow: CashFlowSummary;
   /** Profit already withdrawn via profit takes; `totalProfit - profitTaken` is withdrawable. */

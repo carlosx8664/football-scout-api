@@ -560,22 +560,13 @@ that is not sitting in a bookie account.
 
 **Notifications.** The bell in the header (`NotificationBell` + `NotificationProvider`) keeps an
 inbox per mode, persisted in `localStorage` and pruned to the current day on load (anything from
-an earlier day is deleted). Alerts are rebuilt from `GET /api/wallets` plus the
-arbitrage feed on mount, on mode switch, and whenever a payload arrives from a wallet edit, reset,
-logged arb or settlement; `buildAlerts` in `src/lib/notifications.ts` applies the rules:
+an earlier day is deleted). Alerts come from the arbitrage feed alone: `buildAlerts` in
+`src/lib/notifications.ts` only reports new pre-kickoff opportunities
 
 | Alert | Trigger |
 | --- | --- |
 | 🎯 [x.xx]% arb: A vs B | a live pre-kickoff opportunity in `/api/arbs` (re-alerts after 12 h or a 1-point profit gain) |
-| 🔴 Withdraw from [bookie] | cash share of the portfolio (cash + staked) > 35% |
-| 🟡 Consider topping up [bookie] | cash share < 15%, only once the shortfall has lasted 4 h **and** the local hour is ≥ 08:00; at most one per day |
-| 🎯 Daily Goal Reached | `dailyProfit` (history settled today) > 100 GHS |
 
-Cool-down state (when each bookie first fell below 15%) is kept per mode in `localStorage`, so
-logging a bet never triggers an instant top-up ping — the nudge waits for the 4-hour cool-down
-and the morning cutoff.
-
-Duplicates are suppressed for an hour unless the number moved by ≥ 5 percentage points (share
-alerts) or ≥ 100 GHS (cash alerts); an arb is suppressed for 12 hours unless its profit rises by
-≥ 1 percentage point. Clicking a notification dismisses it; "Mark all as read"
-clears the badge.
+Duplicates are suppressed for 12 hours unless the arb's profit rises by ≥ 1 percentage point.
+Clicking a notification dismisses it; "Mark all as read" clears the badge and "Clear all" empties
+the inbox.

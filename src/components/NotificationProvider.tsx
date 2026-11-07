@@ -5,17 +5,13 @@ import {
   dueAlerts,
   extractArbs,
   limitNotifications,
-  loadLowBalances,
   loadNotifications,
   loadSeen,
   newNotificationId,
   pruneToToday,
-  saveLowBalances,
   saveNotifications,
   saveSeen,
-  trackLowBalances,
   type AppNotification,
-  type LowBalances,
   type SeenAlerts,
 } from "../lib/notifications";
 import { fetchArbsJson } from "../lib/api";
@@ -33,10 +29,10 @@ const ARB_POLL_INTERVAL_MS = 30_000;
 /**
  * Owns the notification inbox and the suggestion engine.
  *
- * Alerts are rebuilt from the wallets payload on mode change, on mount, and whenever a caller
- * passes a fresh payload (wallet edit, reset, log, settle). The arb feed is also polled in the
- * background so new opportunities alert without a reload. `dueAlerts` suppresses duplicates
- * within the hour, so repeated triggers do not spam the bell.
+ * New arbitrage opportunities are the only alert source. The arb feed is polled in the
+ * background and re-read whenever a wallets payload arrives (the payload still decides which
+ * per-mode inbox the alert belongs to). `dueAlerts` suppresses duplicate arbs for 12 hours, so
+ * repeated polls do not spam the bell.
  */
 const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const { enabled } = useSimulation();
@@ -49,11 +45,6 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const seenRef = useRef<Record<ModeKey, SeenAlerts>>({
     sim: loadSeen(true),
     real: loadSeen(false),
-  });
-  // When each bookie first fell below the top-up threshold, so alerts can cool down.
-  const lowRef = useRef<Record<ModeKey, LowBalances>>({
-    sim: loadLowBalances(true),
-    real: loadLowBalances(false),
   });
   // Latest arb feed, so a wallet-only refresh still raises the arb alerts.
   const arbsRef = useRef<ArbOpportunity[]>([]);
@@ -76,14 +67,8 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     const mode = modeKey(payload.simulation);
     const now = Date.now();
 
-    // Track shortfalls first: a bookie that just dropped starts its cool-down now, so logging a
-    // bet never produces an instant top-up ping.
-    const lowSince = trackLowBalances(payload, lowRef.current[mode], now);
-    lowRef.current[mode] = lowSince;
-    saveLowBalances(mode === "sim", lowSince);
-
     const seen = seenRef.current[mode];
-    const due = dueAlerts(buildAlerts(payload, { now, lowSince, arbs }), seen, now);
+    const due = dueAlerts(buildAlerts({ now, arbs }), seen, now);
     if (due.length === 0) return;
 
     for (const alert of due) {
@@ -197,9 +182,13 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
     [activeMode],
   );
 
+  const clearAll = useCallback(() => {
+    setInboxes((current) => ({ ...current, [activeMode]: [] }));
+  }, [activeMode]);
+
   const value = useMemo(
-    () => ({ notifications, unreadCount, error, markAllRead, dismiss, refresh }),
-    [notifications, unreadCount, error, markAllRead, dismiss, refresh],
+    () => ({ notifications, unreadCount, error, markAllRead, clearAll, dismiss, refresh }),
+    [notifications, unreadCount, error, markAllRead, clearAll, dismiss, refresh],
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

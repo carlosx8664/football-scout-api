@@ -23,7 +23,7 @@ const BellIcon = () => (
 
 /** Bell button with an unread badge and a dropdown inbox (newest first). */
 const NotificationBell = () => {
-  const { notifications, unreadCount, markAllRead, dismiss } = useNotifications();
+  const { notifications, unreadCount, markAllRead, clearAll, dismiss } = useNotifications();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
@@ -67,14 +67,24 @@ const NotificationBell = () => {
         <div className="notification-panel" role="dialog" aria-label="Notifications">
           <header className="notification-panel-header">
             <h3>Notifications</h3>
-            <button
-              type="button"
-              className="notification-mark-read"
-              onClick={markAllRead}
-              disabled={unreadCount === 0}
-            >
-              Mark all as read
-            </button>
+            <div className="notification-panel-actions">
+              <button
+                type="button"
+                className="notification-mark-read"
+                onClick={markAllRead}
+                disabled={unreadCount === 0}
+              >
+                Mark all as read
+              </button>
+              <button
+                type="button"
+                className="notification-clear-all"
+                onClick={clearAll}
+                disabled={notifications.length === 0}
+              >
+                Clear all
+              </button>
+            </div>
           </header>
 
           {notifications.length === 0 ? (

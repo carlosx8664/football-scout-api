@@ -61,13 +61,24 @@
 }
 .notification-panel-header h3 { font-size: 0.9rem; font-weight: 800; }
 
-.notification-mark-read {
+.notification-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notification-mark-read,
+.notification-clear-all {
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--color-brand-4);
 }
-.notification-mark-read:hover:not(:disabled) { text-decoration: underline; }
-.notification-mark-read:disabled { color: var(--color-neutral-5); cursor: default; }
+.notification-mark-read:hover:not(:disabled),
+.notification-clear-all:hover:not(:disabled) { text-decoration: underline; }
+.notification-mark-read:disabled,
+.notification-clear-all:disabled { color: var(--color-neutral-5); cursor: default; }
+
+.notification-clear-all { color: var(--color-neutral-6); }
 
 .notification-empty {
   padding: 28px 16px;
