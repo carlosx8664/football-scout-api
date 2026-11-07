@@ -544,7 +544,8 @@ that is not sitting in a bookie account.
 - **Reset** rounds each wallet's opening deposit DOWN to a round 100
   (`openingBalanceFor`), so 10,000 across 6 bookies becomes 6 × 1,600 = 9,600 with the remaining
   400 seeded into `cash_reserve` as Momo cash. The exact per-bookie target (1,666.67) is still
-  shown — only the deposit is rounded.
+  shown — only the deposit is rounded. Each opening row is logged as an `INITIAL_DEPOSIT`, so the
+  cycle's **Total Deposited** card starts from the bankroll the user reset with.
 - **Momo** is real cash only: `cash_reserve`, i.e. what withdrawals moved out of the bookies plus
   the unallocated leftover from Reset, minus top-ups. **Deposit to MOMO** adds external capital to
   both `cash_reserve` and the bankroll, logging a `CAPITAL_INJECTION` row in `wallet_transfers`.

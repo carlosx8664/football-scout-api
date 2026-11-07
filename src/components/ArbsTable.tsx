@@ -209,22 +209,6 @@ function arbKey(arb: ArbOpportunity, legs: ArbLeg[]): string {
   return `${base}|${arb.market}|${legPart}`;
 }
 
-function bookmakerPairKey(legs: Array<{ bookmaker: string }>): string | null {
-  if (legs.length !== LEGS_PER_MATCH) return null;
-  return legs
-    .map((leg) => leg.bookmaker.trim().toLowerCase())
-    .sort()
-    .join("|");
-}
-
-function bookmakerPairLabel(legs: Array<{ bookmaker: string }>): string | null {
-  if (legs.length !== LEGS_PER_MATCH) return null;
-  return legs
-    .map((leg) => leg.bookmaker.trim())
-    .sort((a, b) => a.localeCompare(b))
-    .join(" + ");
-}
-
 const ClockIcon = () => (
   <svg className="arb-clock" viewBox="0 0 16 16" aria-hidden="true">
     <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -245,6 +229,8 @@ const UpArrow = () => (
   </svg>
 );
 
+const BOOKIE_FILTER_STORAGE_KEY = "oddtor:arb-bookie-filter";
+
 const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
@@ -256,7 +242,17 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
   // fit inside a leg (a small bankroll can produce a stake below 20).
   const [rounding, setRounding] = useState(() => stepFor(planStake));
   const [activeTab, setActiveTab] = useState<"live" | "past">("live");
-  const [selectedPairKeys, setSelectedPairKeys] = useState<string[]>([]);
+  const [selectedBookies, setSelectedBookies] = useState<string[]>(() => {
+    try {
+      const stored = window.localStorage.getItem(BOOKIE_FILTER_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((bookie): bookie is string => typeof bookie === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  });
   const [calculatorOpen, setCalculatorOpen] = useState(false);
   const { enabled: simulation } = useSimulation();
   const { refresh: refreshNotifications } = useNotifications();
@@ -388,28 +384,34 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     .sort((a, b) => b.kickoff - a.kickoff)
     .slice(0, PAST_LIMIT);
 
-  const pairOptions = new Map<string, string>();
+  const bookieOptions = new Set<string>();
   for (const arb of allLiveRows) {
-    const legs = legsFor(arb);
-    const key = bookmakerPairKey(legs);
-    const label = bookmakerPairLabel(legs);
-    if (key && label) pairOptions.set(key, label);
+    for (const leg of legsFor(arb)) bookieOptions.add(leg.bookmaker.trim());
   }
   for (const record of allPastRows) {
-    const key = bookmakerPairKey(record.legs);
-    const label = bookmakerPairLabel(record.legs);
-    if (key && label) pairOptions.set(key, label);
+    for (const leg of record.legs) bookieOptions.add(leg.bookmaker.trim());
   }
 
-  const matchesSelectedPair = (legs: Array<{ bookmaker: string }>): boolean => {
-    const key = bookmakerPairKey(legs);
-    return selectedPairKeys.length === 0 || (key !== null && selectedPairKeys.includes(key));
+  const availableBookies = Array.from(bookieOptions).sort((a, b) => a.localeCompare(b));
+  const matchesSelectedBookies = (legs: Array<{ bookmaker: string }>): boolean => {
+    if (selectedBookies.length === 0) return true;
+    if (selectedBookies.length < LEGS_PER_MATCH) return false;
+    return legs.length === LEGS_PER_MATCH &&
+      legs.every((leg) => selectedBookies.includes(leg.bookmaker.trim()));
   };
-  const liveRows = allLiveRows.filter((arb) => matchesSelectedPair(legsFor(arb)));
-  const pastRows = allPastRows.filter((record) => matchesSelectedPair(record.legs));
+  const liveRows = allLiveRows.filter((arb) => matchesSelectedBookies(legsFor(arb)));
+  const pastRows = allPastRows.filter((record) => matchesSelectedBookies(record.legs));
   const isTestData = feed?.boost != null && Math.abs(feed.boost - 1) > 1e-9;
   const ageMs = feed?.generatedAt ? now - Date.parse(feed.generatedAt) : null;
   const isStale = ageMs !== null && Number.isFinite(ageMs) && ageMs > STALE_AFTER_MS;
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(BOOKIE_FILTER_STORAGE_KEY, JSON.stringify(selectedBookies));
+    } catch {
+      // Private browsing can disable localStorage; filtering still works for this session.
+    }
+  }, [selectedBookies]);
 
   return (
     <section className="arbs-view">
@@ -469,40 +471,49 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           </div>
 
           <fieldset className="arbs-pair-filter">
-            <legend>Bookmaker pairs</legend>
+            <legend>Bookmakers</legend>
             <div className="arbs-pair-options">
-              {Array.from(pairOptions, ([key, label]) => (
-                <label key={key} className="arbs-pair-option">
+              {availableBookies.map((bookie) => (
+                <label key={bookie} className="arbs-pair-option">
                   <input
                     type="checkbox"
-                    checked={selectedPairKeys.includes(key)}
+                    checked={selectedBookies.includes(bookie)}
                     onChange={(event) => {
                       const checked = event.currentTarget.checked;
-                      setSelectedPairKeys((current) =>
+                      setSelectedBookies((current) =>
                         checked
-                          ? [...current, key]
-                          : current.filter((value) => value !== key),
+                          ? [...current, bookie]
+                          : current.filter((value) => value !== bookie),
                       );
                     }}
                   />
-                  <span>{label}</span>
+                  <span>{bookie}</span>
                 </label>
               ))}
             </div>
             <span className="arbs-pair-filter-hint">
-              {pairOptions.size === 0
-                ? "No pairs available"
-                : selectedPairKeys.length === 0
-                  ? "Showing all pairs"
-                  : `${selectedPairKeys.length} pair${selectedPairKeys.length === 1 ? "" : "s"} selected`}
+              {availableBookies.length === 0
+                ? "No bookmakers available"
+                : selectedBookies.length === 0
+                  ? "Showing all bookmakers"
+                  : selectedBookies.length === 1
+                    ? "Select at least two bookmakers"
+                    : `${selectedBookies.length} bookmakers selected`}
             </span>
-            {selectedPairKeys.length > 0 && (
+            <button
+              type="button"
+              className="arbs-pair-filter-clear"
+              onClick={() => setSelectedBookies([])}
+            >
+              Clear
+            </button>
+            {availableBookies.length > 0 && (
               <button
                 type="button"
                 className="arbs-pair-filter-clear"
-                onClick={() => setSelectedPairKeys([])}
+                onClick={() => setSelectedBookies(availableBookies)}
               >
-                Clear
+                Select All
               </button>
             )}
           </fieldset>

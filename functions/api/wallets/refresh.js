@@ -116,8 +116,9 @@ export async function onRequestPost({ request, env }) {
           db
             .prepare(
               `INSERT INTO wallet_transfers
-                 (id, wallet_id, bookie_name, kind, amount, is_simulation, created_at)
-               VALUES (?, ?, ?, 'deposit', ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 hour'))`,
+                 (id, wallet_id, bookie_name, kind, transfer_type, amount, is_simulation, created_at)
+               VALUES (?, ?, ?, 'deposit', 'INITIAL_DEPOSIT', ?, ?,
+                       strftime('%Y-%m-%dT%H:%M:%fZ','now','-1 hour'))`,
             )
             .bind(crypto.randomUUID(), wallet.id, wallet.bookie_name, openingBalance, flag),
         );

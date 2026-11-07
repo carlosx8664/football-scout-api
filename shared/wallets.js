@@ -280,8 +280,9 @@ export async function walletPayload(db, simulation) {
       .prepare(
         `SELECT
            COUNT(*) AS count,
-           COALESCE(SUM(CASE WHEN transfer_type = 'CAPITAL_INJECTION' THEN amount ELSE 0 END), 0)
-             AS deposited,
+           COALESCE(SUM(CASE WHEN kind = 'deposit'
+                              AND COALESCE(transfer_type, 'BOOKIE_TRANSFER') <> 'TRANSFER_TO_BOOKIE'
+                             THEN amount ELSE 0 END), 0) AS deposited,
            COALESCE(SUM(CASE WHEN transfer_type = 'PROFIT_WITHDRAWAL' THEN amount ELSE 0 END), 0)
              AS withdrawn,
            COALESCE(SUM(CASE WHEN transfer_type = 'PROFIT_WITHDRAWAL' THEN amount ELSE 0 END), 0)

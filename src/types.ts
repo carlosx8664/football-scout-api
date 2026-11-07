@@ -200,7 +200,8 @@ export interface WalletTransfer {
     | "CAPITAL_INJECTION"
     | "PROFIT_WITHDRAWAL"
     | "TRANSFER_TO_MOMO"
-    | "TRANSFER_TO_BOOKIE";
+    | "TRANSFER_TO_BOOKIE"
+    | "INITIAL_DEPOSIT";
   amount: number;
   createdAt: string;
 }
