@@ -6,6 +6,18 @@
   min-height: 0;
 }
 
+/*
+ * Children must never shrink. `.arbs-panel` has `overflow: hidden`, and a flex item with a
+ * non-visible overflow gets an automatic minimum size of 0 — so inside this fixed-height column
+ * the panel was being squeezed to the viewport and clipping the remaining rows instead of
+ * overflowing, which meant there was nothing to scroll. `flex: 0 0 auto` keeps each block at its
+ * natural height so `.arbs-view` overflows and its own scrollbar appears.
+ */
+.arbs-view > * {
+  flex: 0 0 auto;
+  min-height: auto;
+}
+
 .arbs-view-title {
   font-size: 1.75rem;
   font-weight: 800;
