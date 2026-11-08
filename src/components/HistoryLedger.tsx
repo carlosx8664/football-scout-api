@@ -214,6 +214,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
       ) : !payload ? null : groups.length === 0 ? (
         <p className="history-empty">No settled arbs in this range.</p>
       ) : (
+        <>
         <div className="history-table-wrap">
           <table className="history-table">
             <thead>
@@ -307,19 +308,20 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
                 </Fragment>
               ))}
             </tbody>
-            <tfoot>
-              <tr className="history-total-row">
-                <th scope="row" colSpan={5}>
-                  Total {arbProfit >= 0 ? "Profit" : "Loss"} · all {entries.length} in range
-                </th>
-                <td className={`history-profit${arbProfit < 0 ? " negative" : ""}`}>
-                  {arbProfit >= 0 ? "+" : "−"}
-                  {formatAmount(Math.abs(arbProfit))}
-                </td>
-              </tr>
-            </tfoot>
           </table>
         </div>
+
+        {/* Sits outside the scrollport, so the running total never scrolls away. */}
+        <div className="history-total-row">
+          <span>
+            Total {arbProfit >= 0 ? "Profit" : "Loss"} · all {entries.length} in range
+          </span>
+          <span className={`history-profit${arbProfit < 0 ? " negative" : ""}`}>
+            {arbProfit >= 0 ? "+" : "−"}
+            {formatAmount(Math.abs(arbProfit))}
+          </span>
+        </div>
+        </>
       )}
 
       {!loading && payload && pageCount > 1 && (
