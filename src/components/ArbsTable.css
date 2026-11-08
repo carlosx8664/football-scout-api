@@ -355,6 +355,15 @@
   font-weight: 700;
 }
 
+/* Below the alert floor: visible on the site, deliberately silent on Telegram/Web Push. */
+.arb-profit-low {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-neutral-6);
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
 .arb-note {
   display: block;
   margin-top: 4px;

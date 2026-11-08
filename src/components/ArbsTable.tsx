@@ -40,7 +40,10 @@ const PAST_LIMIT = 50;
 const MATCH_DURATION_MS = 120 * 60_000;
 const REFRESH_MS = 60_000;
 const STALE_AFTER_MS = 30 * 60_000;
-const HIGH_PROFIT_PCT = 10;
+/** Above this the scanner itself treats the arb as a suspected palpable error (void). */
+const HIGH_PROFIT_PCT = 7;
+/** Must match `--alert-min` in the odds-refresh workflow: below it, no Telegram/Web Push. */
+const ALERT_MIN_PROFIT_PCT = 1.5;
 const ROUNDING_STEPS = [5, 10, 20, 50, 100, 200];
 /** Stakes are always rounded, so there is no "none" option. */
 const DEFAULT_ROUNDING = 10;
@@ -635,9 +638,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                                     <ClockIcon />
                                     {countdown(arb.kickoff, now)}
                                   </span>
-                                  {arb.profitPct > HIGH_PROFIT_PCT && (
-                                    <span className="arb-profit-warn">Verify odds first</span>
-                                  )}
+                                  {arb.profitPct > HIGH_PROFIT_PCT ? (
+                                    <span className="arb-profit-warn">Suspected stale — verify</span>
+                                  ) : arb.profitPct < ALERT_MIN_PROFIT_PCT ? (
+                                    <span
+                                      className="arb-profit-low"
+                                      title={`Below the ${ALERT_MIN_PROFIT_PCT}% alert threshold: shown here only, never pushed to Telegram or the phone.`}
+                                    >
+                                      Not alerted
+                                    </span>
+                                  ) : null}
                                 </td>
                               )}
 

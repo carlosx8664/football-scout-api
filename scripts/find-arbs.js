@@ -374,9 +374,44 @@ async function sendPushAlert(arbs, previous = [], nowMs = Date.now()) {
 /** Extracts the numeric line (e.g. 2.5, -1.5) from a specifier string. */
 function extractLine(spec) {
   if (!spec || typeof spec !== 'string') return null;
-  // Handles "total=2.5", "hcp=-1.5", "total=12.5"
-  const m = spec.match(/(?:total=|hcp=)?(-?\d+(?:\.\d+)?)/);
+  // Some feeds are locale-formatted ("total=2,5"): parseFloat would read that as 2 and the pair
+  // would silently never match the other book's 2.5.
+  const text = spec.replace(/(\d),(\d)/g, '$1.$2');
+  // Prefer the explicit key so an incidental number can never win.
+  const explicit = text.match(/(?:total|hcp)\s*=\s*(-?\d+(?:\.\d+)?)/i);
+  if (explicit) return parseFloat(explicit[1]);
+  const m = text.match(/(-?\d+(?:\.\d+)?)/);
   return m ? parseFloat(m[1]) : null;
+}
+
+/**
+ * Over/Under side from an outcome, using the label first and sportradar-style outcome ids
+ * (12 Over / 13 Under) only when the label is missing. Never guesses: null means "skip it".
+ */
+function totalSideOf(outcome) {
+  const desc = String(outcome?.desc ?? outcome?.description ?? '').trim().toLowerCase();
+  if (/^over(?:\s|$)/.test(desc)) return 'O';
+  if (/^under(?:\s|$)/.test(desc)) return 'U';
+  const id = String(outcome?.id ?? '');
+  if (id === '12') return 'O';
+  if (id === '13') return 'U';
+  return null;
+}
+
+/**
+ * Epoch milliseconds from a value that may be ms, seconds, or an ISO string. Returns null when it
+ * cannot be understood, so a caller can refuse the fixture instead of dating it to 1970.
+ */
+function toEpochMs(value) {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value > 1e12 ? value : value * 1000;
+  }
+  const text = String(value ?? '').trim();
+  if (!text) return null;
+  const numeric = Number(text);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric > 1e12 ? numeric : numeric * 1000;
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /** Determines if a description string is Over/Under/Home/Away. */
@@ -392,18 +427,6 @@ function pickSide(desc) {
   if (c === '1') return 'H';
   if (c === '2') return 'A';
   if (c === 'x') return 'D';
-  return null;
-}
-
-function pickSportyTotalSide(outcome) {
-  const desc = String(outcome?.desc ?? outcome?.description ?? '').trim().toLowerCase();
-  if (/^over(?:\s|$)/.test(desc)) return 'O';
-  if (/^under(?:\s|$)/.test(desc)) return 'U';
-
-  // Keep the IDs as a fallback for responses that omit the outcome description.
-  const id = String(outcome?.id ?? '');
-  if (id === '12') return 'O';
-  if (id === '13') return 'U';
   return null;
 }
 
@@ -427,7 +450,7 @@ function readSportyMarket(m) {
     const desc = o.desc ?? o.description ?? '';
     // The API can reorder outcome rows, so use the explicit Over/Under description, never its
     // array position. IDs are only a fallback when a response omits the description.
-    const side = id === '18' ? (pickSportyTotalSide(o) ?? pickSide(desc)) : pickSide(desc);
+    const side = id === '18' ? totalSideOf(o) : pickSide(desc);
     const oid = String(o.id);
     let key;
 
@@ -584,7 +607,8 @@ function readMSportMarket(m) {
     if (odds === null || odds <= 1) continue;
 
     const desc = o.description ?? o.desc ?? '';
-    const side = pickSide(desc);
+    // A total market must resolve to Over/Under, never to "Yes"/"Home" from a stray label.
+    const side = id === '18' ? totalSideOf(o) : pickSide(desc);
     const oid = String(o.id);
     let key;
 
@@ -716,6 +740,32 @@ const betBoroOuPrice = (columns, side) => {
   return label.startsWith(side === '0' ? 'over' : 'under') ? price : null;
 };
 
+/** Label normalisation for BetBoro outcome names: "Home or Draw" -> "homeordraw". */
+const betBoroLabel = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Picks the price whose own label satisfies `test`, wherever BetBoro put it.
+ *
+ * The slots are NOT stable: `double_chance` and `both_teams_to_score` have been observed in a
+ * different order from the documented one, and trusting the slot silently swaps outcomes — which
+ * turns a 1 vs 1X into a "1 vs X2" arb. Position is therefore only used when the payload carries
+ * no labels at all; a labelled row that matches nothing is dropped rather than guessed.
+ */
+const betBoroLabelledPrice = (columns, test, fallbackSlot) => {
+  const entries = Object.entries(columns ?? {});
+  if (entries.length === 0) return null;
+
+  const labelled = entries.filter(([, node]) => String(node?.name ?? '').trim());
+  if (labelled.length > 0) {
+    for (const [, node] of labelled) {
+      if (test(betBoroLabel(node.name))) return betBoroPrice(node);
+    }
+    return null;
+  }
+
+  return betBoroPrice(columns?.[fallbackSlot]);
+};
+
 /**
  * A BetBoro market family. `*_alt` is a distinct family that used to be aliased onto the same key,
  * so it is only read when the canonical family is absent — never merged into it.
@@ -739,18 +789,27 @@ function loadBetBoro(file) {
     };
 
     const result = f.markets?.match_result ?? {};
-    add('1X2:H', betBoroPrice(result['0']));
-    add('1X2:D', betBoroPrice(result['1']));
-    add('1X2:A', betBoroPrice(result['2']));
+    add('1X2:H', betBoroLabelledPrice(result, (k) => k === '1' || k.includes('home'), '0'));
+    add('1X2:D', betBoroLabelledPrice(result, (k) => k === 'x' || k.includes('draw'), '1'));
+    add('1X2:A', betBoroLabelledPrice(result, (k) => k === '2' || k.includes('away'), '2'));
 
     const dc = f.markets?.double_chance ?? {};
-    add('DC:1X', betBoroPrice(dc['0']));
-    add('DC:12', betBoroPrice(dc['1']));
-    add('DC:X2', betBoroPrice(dc['2']));
+    add(
+      'DC:1X',
+      betBoroLabelledPrice(dc, (k) => k === '1x' || (k.includes('home') && k.includes('draw')), '0'),
+    );
+    add(
+      'DC:12',
+      betBoroLabelledPrice(dc, (k) => k === '12' || (k.includes('home') && k.includes('away')), '1'),
+    );
+    add(
+      'DC:X2',
+      betBoroLabelledPrice(dc, (k) => k === 'x2' || (k.includes('draw') && k.includes('away')), '2'),
+    );
 
     const btts = f.markets?.both_teams_to_score ?? {};
-    add('BTTS:Y', betBoroPrice(btts['0']));
-    add('BTTS:N', betBoroPrice(btts['1']));
+    add('BTTS:Y', betBoroLabelledPrice(btts, (k) => k === 'yes' || k === 'gg', '0'));
+    add('BTTS:N', betBoroLabelledPrice(btts, (k) => k === 'no' || k === 'ng', '1'));
 
     for (const [line, node] of Object.entries(betBoroFamily(f.markets, 'total_goals'))) {
       if (!line.endsWith('.5')) continue;
@@ -800,13 +859,17 @@ function loadBetBoro(file) {
       add(`SOT:${line}:U`, betBoroOuPrice(node, '1'));
     }
 
+    // A dump that stores kickoff as seconds or an ISO string used to make `notStarted` false for
+    // every BetBoro fixture, dropping the whole book from matching with no error.
+    const kickoff = toEpochMs(f.kickoff);
+
     events.set(f.eventId, {
       eventId: f.eventId,
       home: f.home,
       away: f.away,
-      kickoff: f.kickoff,
+      kickoff: kickoff ?? 0,
       tournament: `${f.region ?? ''} · ${f.competition ?? ''}`.trim(),
-      notStarted: Number(f.kickoff) > Date.now(),
+      notStarted: kickoff !== null && kickoff > Date.now(),
       sel,
       raw: {
         betBoroId: f.betBoroId,
@@ -1004,6 +1067,8 @@ const FIXED_PAIRS = [
   { a: 'DNB:H', b: 'DC:X2', scen: RESULT, market: 'DNB Home vs Draw/Away (X2)' },
   { a: 'DNB:A', b: 'DC:1X', scen: RESULT, market: 'DNB Away vs Home/Draw (1X)' },
   { a: 'DNB:H', b: 'DNB:A', scen: RESULT, profitScen: ['H', 'A'], market: 'Draw No Bet: Home vs Away', note: 'Draw = both stakes refunded' },
+  // Two double chances cover all three results between them (draw wins both legs).
+  { a: 'DC:1X', b: 'DC:X2', scen: RESULT, market: 'Home/Draw vs Draw/Away (1X + X2)' },
   { a: 'BTTS:Y', b: 'BTTS:N', scen: ['Y', 'N'], market: 'Both Teams to Score' },
 ];
 
