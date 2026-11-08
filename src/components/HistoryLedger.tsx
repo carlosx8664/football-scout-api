@@ -77,6 +77,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
   const [preset, setPreset] = useState<HistoryPreset>("week");
   const [custom, setCustom] = useState<HistoryRange>({ from: today, to: today });
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
+  const [page, setPage] = useState(1);
   const [result, setResult] = useState<{ key: string; payload: HistoryPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
 
@@ -99,11 +100,22 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
     return () => controller.abort();
   }, [simulation, range.from, range.to, refreshToken, key]);
 
+  // A new window or a new page size starts from the most recent entries again.
+  useEffect(() => {
+    setPage(1);
+  }, [key, pageSize]);
+
   const payload = result?.key === key ? result.payload : null;
   const error = problem?.key === key ? problem.message : null;
   const loading = payload === null && error === null;
   const entries = payload?.entries ?? [];
-  const visibleEntries = useMemo(() => entries.slice(0, pageSize), [entries, pageSize]);
+  const pageCount = Math.max(1, Math.ceil(entries.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleEntries = useMemo(
+    () => entries.slice(pageStart, pageStart + pageSize),
+    [entries, pageStart, pageSize],
+  );
   const groups = useMemo(() => groupByDay(visibleEntries), [visibleEntries]);
   /** Arb profit for the chosen window, to sit next to what the mug bets cost. */
   const arbProfit = entries.reduce((sum, entry) => sum + entry.netProfit, 0);
@@ -118,7 +130,9 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
           </p>
         </div>
         <span className="history-badge">
-          {entries.length} {entries.length === 1 ? "entry" : "entries"}
+          {pageCount > 1
+            ? `${pageStart + 1}–${pageStart + visibleEntries.length} of ${entries.length}`
+            : `${entries.length} ${entries.length === 1 ? "entry" : "entries"}`}
         </span>
       </header>
 
@@ -296,7 +310,7 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
             <tfoot>
               <tr className="history-total-row">
                 <th scope="row" colSpan={5}>
-                  Total {arbProfit >= 0 ? "Profit" : "Loss"}
+                  Total {arbProfit >= 0 ? "Profit" : "Loss"} · all {entries.length} in range
                 </th>
                 <td className={`history-profit${arbProfit < 0 ? " negative" : ""}`}>
                   {arbProfit >= 0 ? "+" : "−"}
@@ -306,6 +320,28 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
             </tfoot>
           </table>
         </div>
+      )}
+
+      {!loading && payload && pageCount > 1 && (
+        <nav className="history-pagination" aria-label="History pages">
+          <button
+            type="button"
+            onClick={() => setPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+          <span>
+            Page {currentPage} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(Math.min(pageCount, currentPage + 1))}
+            disabled={currentPage === pageCount}
+          >
+            Next
+          </button>
+        </nav>
       )}
 
       {payload && payload.mugTotals.count > 0 && (

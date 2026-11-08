@@ -108,7 +108,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/SettleBetModal.tsx` | Settlement wizard: Normal Win / Void / Cash Out |
 | `components/CashFlowPanel.tsx` | Deposit/withdrawal ledger (incl. each bookie's opening deposit) with deposited/withdrawn totals and the live planned-deposit figure |
 | `components/WalletsHistory.tsx` | `/wallets/history` page: settled history full width, no right sidebar |
-| `components/HistoryLedger.tsx` | Settled arbs grouped by day, date filter, weekly outlay, Void/Cash-Out badges |
+| `components/HistoryLedger.tsx` | Settled arbs grouped by day, date filter, 20/50/100 rows per page with Prev/Next paging (the table grows to fit, the page column scrolls), weekly outlay, Void/Cash-Out badges |
 | `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, sport — football or horse racing, daily stake, odds) and **Free Bet** (free-bet leg with odds/stake/outcome, hedge leg with bookie/odds/stake/outcome, plus an outcome note like "Home Win (Free) vs X2 (Hedge)") — both log to `active_bets` |
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
@@ -216,7 +216,7 @@ a fine-grained PAT.
   after a 4-hour cool-down and past 08:00, daily profit >100 GHS; per-mode localStorage inboxes
   pruned to the current day (earlier notifications are deleted).
 - Settlement wizard (win/void/cash-out), Remove-and-refund with audit row, history with date
-  presets, day grouping and weekly outlay.
+  presets, day grouping, 20/50/100-row pages with Prev/Next, and weekly outlay.
 - Automatic wallet provisioning for every bookmaker in `BOOKMAKERS`.
 
 **Backend:** all endpoints above deployed and functioning; D1 at migration 0006.

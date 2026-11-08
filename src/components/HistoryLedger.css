@@ -136,8 +136,6 @@
 }
 
 .history-table-wrap {
-  max-height: 480px;
-  overflow-y: auto;
   border: 1px solid var(--color-neutral-3);
   border-radius: 10px;
 }
@@ -147,9 +145,6 @@
   font-size: 0.8rem;
 }
 .history-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   padding: 10px 12px;
   text-align: left;
   background: var(--color-neutral-1);
@@ -168,8 +163,6 @@
 }
 
 .history-day-row th {
-  position: sticky;
-  top: 33px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -208,11 +201,9 @@
 /* Cancellations net to zero: shown greyed so they read as audit trail, not performance. */
 .history-profit.muted { color: var(--color-neutral-6); }
 
-/* Running total for the whole filtered window, pinned to the bottom of the ledger. */
+/* Running total for the whole filtered window, closing off the ledger. */
 .history-total-row th,
 .history-total-row td {
-  position: sticky;
-  bottom: 0;
   padding: 10px 12px;
   background: var(--color-neutral-3);
   border-top: 2px solid var(--color-neutral-5);
@@ -223,6 +214,31 @@
 }
 .history-total-row .history-profit { color: #15803d; }
 .history-total-row .history-profit.negative { color: #c20a0a; }
+/* The wrap's rounded corners have no overflow clip now, so close them off here. */
+.history-total-row th:first-child { border-bottom-left-radius: 10px; }
+.history-total-row td:last-child { border-bottom-right-radius: 10px; }
+
+.history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  border-top: 1px solid var(--color-neutral-3);
+  font-size: 0.75rem;
+  color: var(--color-neutral-6);
+}
+.history-pagination button {
+  padding: 6px 14px;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-neutral-7);
+  transition: background 0.2s, color 0.2s;
+}
+.history-pagination button:hover:not(:disabled) { background: var(--color-neutral-3); }
+.history-pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .history-tag {
   display: inline-block;
