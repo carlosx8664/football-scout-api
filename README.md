@@ -444,9 +444,10 @@ is missing or empty, so a failed fetch cannot wipe what is already live.
 KV data still works. Analysis is left to `/api/analysis` on demand — generating it here would
 cost a DeepSeek call per fixture every 15 minutes.
 
-Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day
-and this uses 192. GitHub runners use datacenter IPs, so bookmaker sites may block them even when
-the scripts work locally — check the run logs if a feed comes back empty.
+Cadence notes: the repo is public, so Actions minutes are unlimited. KV allows 1,000 writes/day;
+this workflow accounts for 3 writes per run (96 runs/day → **288**), which is why the live-scores
+Worker has to stay far below it. GitHub runners use datacenter IPs, so bookmaker sites may block
+them even when the scripts work locally — check the run logs if a feed comes back empty.
 
 ### Reliable trigger: Cloudflare Cron
 

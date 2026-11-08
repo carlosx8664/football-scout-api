@@ -46,8 +46,15 @@ const MAX_EVENT_LOOKUPS = 12;
 /**
  * The clock is not stored as data: the client advances it from `serverNow`. A write is only
  * forced this often to re-anchor that clock and prove the Worker is still alive.
+ * Kept under the client's LIVE_MAX_AGE_MS (15 min) so fresh data is never discarded as stale.
  */
-const HEARTBEAT_MS = 5 * 60 * 1000;
+const HEARTBEAT_MS = 10 * 60 * 1000;
+/**
+ * Routine churn — a fixture entering or leaving the live list — is coalesced to this cadence.
+ * The feed is global, so its turnover would otherwise spend a write almost every minute. A score
+ * or status flip on a match we already track, or a freshly resolved result, writes immediately.
+ */
+const COALESCE_MS = 2 * 60 * 1000;
 
 const EMPTY_STATE = { generatedAt: 0, liveAt: 0, serverNow: 0, live: [], finished: [] };
 
@@ -206,14 +213,49 @@ async function loadPrevious(env) {
   }
 }
 
+/** Stable comparison order, so an API reshuffle never looks like a data change. */
+const byEventId = (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+
+function liveSignature(live) {
+  return live
+    .map((match) => [String(match.eventId), match.score, match.matchStatus, match.status])
+    .sort(byEventId);
+}
+
+function finishedSignature(finished) {
+  return finished
+    .map((match) => [String(match.eventId), match.score, match.matchStatus])
+    .sort(byEventId);
+}
+
 /**
  * What actually justifies a KV write: the score, the status, and which matches are live.
  * `playedSeconds` is deliberately excluded — it ticks every poll and would write 90 times a match.
+ * Both arrays are sorted first: SportyBet reorders tournaments as the live set changes, and an
+ * order-only difference used to be indistinguishable from real news.
  */
 function signature(live, finished) {
   return JSON.stringify({
-    live: live.map((match) => [match.eventId, match.score, match.matchStatus, match.status]),
-    finished: finished.map((match) => [match.eventId, match.score, match.matchStatus]),
+    live: liveSignature(live),
+    finished: finishedSignature(finished),
+  });
+}
+
+/** `score|matchStatus` per fixture, used to tell a real scoreline change from list churn. */
+function scoreFingerprints(live) {
+  const map = new Map();
+  for (const match of live) {
+    map.set(String(match.eventId), `${match.score ?? ""}|${match.matchStatus ?? ""}`);
+  }
+  return map;
+}
+
+/** True when a fixture we were already reporting scored or changed status. */
+function scoreChanged(previousLive, nextLive) {
+  const before = scoreFingerprints(previousLive);
+  return nextLive.some((match) => {
+    const prior = before.get(String(match.eventId));
+    return prior !== undefined && prior !== `${match.score ?? ""}|${match.matchStatus ?? ""}`;
   });
 }
 
@@ -233,13 +275,32 @@ async function refresh(env, now) {
   const serverNow = live === null ? previous.serverNow : now;
 
   const changed = signature(nextLive, finished) !== signature(previous.live, previous.finished);
+  const finishedChanged =
+    JSON.stringify(finishedSignature(finished)) !==
+    JSON.stringify(finishedSignature(previous.finished));
   const heartbeatDue = now - previous.generatedAt >= HEARTBEAT_MS;
 
-  if (!changed && !heartbeatDue) {
+  // No football at all and nothing newly resolved: stay silent. `previous.generatedAt > 0` keeps
+  // the very first run writing once, so `/api/live-scores` is never a permanent 404.
+  // `previous.live.length === 0` matters: the last match ending must still clear the feed.
+  const idle =
+    previous.generatedAt > 0 &&
+    nextLive.length === 0 &&
+    previous.live.length === 0 &&
+    !finishedChanged;
+
+  // Coalescing only delays list churn. A goal, a status flip on a known fixture, or a newly
+  // resolved result is news the client should see now, not two minutes from now.
+  const urgent = finishedChanged || (live !== null && scoreChanged(previous.live, nextLive));
+  const coalescing = previous.generatedAt > 0 && now - previous.generatedAt < COALESCE_MS;
+  const throttled = changed && coalescing && !urgent;
+
+  if (idle || throttled || (!changed && !heartbeatDue)) {
     return {
       live: nextLive.length,
       finished: finished.length,
       written: false,
+      skipped: idle ? "idle" : throttled ? "coalesced" : undefined,
       error: live === null ? "live feed unavailable" : undefined,
     };
   }

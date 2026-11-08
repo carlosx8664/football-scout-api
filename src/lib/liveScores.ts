@@ -8,8 +8,10 @@ import type {
 
 /** The Worker rewrites the feed every minute; one poll per minute tracks it closely enough. */
 export const LIVE_POLL_MS = 60_000;
-/** The Worker only heartbeats every 5 minutes, so allow three beats before calling it stale. */
+/** The Worker only heartbeats every 10 minutes, so allow one missed beat before calling it stale. */
 export const LIVE_MAX_AGE_MS = 15 * 60 * 1000;
+/** `/api/now` is only needed to correct clock drift, so a slow refresh is plenty. */
+export const SERVER_CLOCK_POLL_MS = 5 * 60 * 1000;
 
 async function readJson<T>(url: string, signal?: AbortSignal): Promise<T | null> {
   try {
@@ -54,6 +56,9 @@ export function indexLiveMatches(payload: LiveScoresPayload | null): Map<string,
 /**
  * "67'" while running, "HT" at the break, "FT" once the Worker has a final score.
  * The minute is extrapolated from the snapshot so the Worker can stop writing every minute.
+ *
+ * `anchor.now` and `anchor.serverNow` must both be on the server's clock (see `useServerClock`),
+ * otherwise a device with a skewed clock invents minutes.
  */
 export function liveLabel(
   match: LiveMatch,
@@ -120,6 +125,44 @@ export function useLiveScores(): { payload: LiveScoresPayload | null; error: str
   }, []);
 
   return { payload, error };
+}
+
+/**
+ * Offset between this device's clock and the server's, refreshed from `/api/now`.
+ *
+ * The live minute is extrapolated from when the Worker last wrote, so measuring the drift with a
+ * device clock that is hours off would invent minutes. `/api/now` is a plain Function — no KV
+ * traffic — so this stays cheap enough to poll. Falls back to `0` (device clock) on any failure.
+ */
+export function useServerClock(): { offsetMs: number } {
+  const [offsetMs, setOffsetMs] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const load = async () => {
+      if (document.hidden) return;
+      const body = await readJson<{ now?: number }>("/api/now");
+      const serverNow = Number(body?.now);
+      if (!mounted || !Number.isFinite(serverNow) || serverNow <= 0) return;
+      setOffsetMs(serverNow - Date.now());
+    };
+
+    void load();
+    const timer = setInterval(() => void load(), SERVER_CLOCK_POLL_MS);
+    const onVisibility = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      mounted = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  return { offsetMs };
 }
 
 /** Bets whose match the Worker has a final score for. Best-effort: [] on any failure. */

@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LiveMatch, Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
-import { indexLiveMatches, liveLabel, scoreParts, useLiveScores } from "../lib/liveScores";
+import {
+  indexLiveMatches,
+  liveLabel,
+  scoreParts,
+  useLiveScores,
+  useServerClock,
+} from "../lib/liveScores";
 import { matchesForTab, type FeedTab } from "../lib/schedule";
 import BookBreakdown from "./BookBreakdown";
 import "./MainFeed.css";
@@ -165,9 +171,12 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { payload: liveScores } = useLiveScores();
+  // The extrapolated minute is server time minus the snapshot time, so both sides use the
+  // server's clock; `now` alone would let a skewed device invent minutes.
+  const { offsetMs } = useServerClock();
   const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
-  const anchor = { now, serverNow: liveScores?.serverNow ?? 0 };
+  const anchor = { now: now + offsetMs, serverNow: liveScores?.serverNow ?? 0 };
 
   const currentTabLabel = TABS.find((tab) => tab.id === activeTab)?.label ?? "Today's Matches";
 
