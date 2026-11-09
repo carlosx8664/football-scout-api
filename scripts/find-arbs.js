@@ -1474,10 +1474,25 @@ async function main() {
           const { profitPct, shareA, shareB } = evaluate(pair, oa, ob);
           
           if (profitPct > MIN_PROFIT || NEAR > 0) {
-            // SportyBet ids make the leg bookable in one click; other books only get deep links.
-            const bookingFor = (book, key) => {
+            // SportyBet ids both book the leg in one click and drive the market deep link; other
+            // books only get deep links.
+            const legOf = (book, key, odds, share) => {
               const ids = selIds?.[book]?.[key];
-              return ids ? { sportybet: { eventId: event.eventId, ...ids } } : {};
+              return {
+                bookmaker: book,
+                outcome: labelOf(key),
+                odds: Number(odds.toFixed(2)),
+                stake: Number((TOTAL_STAKE * share).toFixed(2)),
+                url: buildUrl(book, event.eventId, event.home, event.away, {
+                  ...raw[book],
+                  league: event.tournament,
+                  market: pair.market,
+                  marketId: ids?.marketId,
+                  outcomeId: ids?.outcomeId,
+                  specifier: ids?.specifier,
+                }),
+                ...(ids ? { sportybet: { eventId: event.eventId, ...ids } } : {}),
+              };
             };
 
             const record = {
@@ -1489,24 +1504,7 @@ async function main() {
               market: pair.market,
               profitPct: Number(profitPct.toFixed(3)),
               totalStake: TOTAL_STAKE,
-              legs: [
-                { 
-                  bookmaker: bookA, 
-                  outcome: labelOf(pair.a), 
-                  odds: Number(oa.toFixed(2)), 
-                  stake: Number((TOTAL_STAKE * shareA).toFixed(2)),
-                  url: buildUrl(bookA, event.eventId, event.home, event.away, { ...raw[bookA], league: event.tournament }),
-                  ...bookingFor(bookA, pair.a)
-                },
-                { 
-                  bookmaker: bookB, 
-                  outcome: labelOf(pair.b), 
-                  odds: Number(ob.toFixed(2)), 
-                  stake: Number((TOTAL_STAKE * shareB).toFixed(2)),
-                  url: buildUrl(bookB, event.eventId, event.home, event.away, { ...raw[bookB], league: event.tournament }),
-                  ...bookingFor(bookB, pair.b)
-                },
-              ],
+              legs: [legOf(bookA, pair.a, oa, shareA), legOf(bookB, pair.b, ob, shareB)],
             };
             if (pair.note) record.note = pair.note;
             if (pair.needsRuleReview) {

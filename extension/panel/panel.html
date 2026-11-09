@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Autobet</title>
+    <link rel="icon" href="../icons/icon32.png" />
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand">
+        <img class="logo" src="../icons/icon32.png" alt="" width="20" height="20" />
+        <span id="feedDot" class="dot" title="Feed status"></span> Autobet
+      </div>
+      <div class="bar-actions">
+        <button id="refreshBtn" class="ghost" title="Refresh now">Refresh</button>
+        <button id="settingsBtn" class="ghost" title="Settings">⚙</button>
+      </div>
+    </header>
+
+    <section id="setup" class="card setup" hidden>
+      <p><strong>Connect your dashboard.</strong> Paste the Cloudflare Pages URL, or pick the tab that already has the dashboard open.</p>
+      <input id="apiBaseInput" type="url" placeholder="https://your-project.pages.dev" spellcheck="false" />
+      <div class="row">
+        <button id="useTabBtn" class="ghost">Use open dashboard tab</button>
+        <button id="saveBaseBtn">Save</button>
+      </div>
+    </section>
+
+    <section id="jobCard" class="card job" hidden>
+      <div class="job-head">
+        <div>
+          <div id="jobTitle" class="job-title"></div>
+          <div id="jobMeta" class="muted"></div>
+        </div>
+        <button id="cancelBtn" class="ghost danger" hidden>Cancel</button>
+      </div>
+      <ul id="jobLegs" class="legs"></ul>
+      <div class="row" id="jobActions" hidden>
+        <button id="retryBtn" class="ghost">Retry unfilled legs</button>
+      </div>
+      <p class="hint">Place Bet is always manual. Check both slips before clicking it.</p>
+    </section>
+
+    <section id="settings" class="card" hidden>
+      <label class="field">
+        <span>Total stake (GHS)</span>
+        <input id="stakeInput" type="number" min="1" step="1" />
+      </label>
+      <label class="field">
+        <span>Round each leg to</span>
+        <select id="stepInput">
+          <option value="1">1</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>Abort if odds drift by (%)</span>
+        <input id="tolInput" type="number" min="0" step="0.1" />
+      </label>
+      <label class="field">
+        <span>Feed refresh (seconds)</span>
+        <input id="refreshInput" type="number" min="15" step="5" />
+      </label>
+      <label class="field">
+        <span>Dashboard URL</span>
+        <input id="apiBaseEdit" type="url" placeholder="https://your-project.pages.dev" spellcheck="false" />
+      </label>
+      <div class="row">
+        <button id="saveSettingsBtn">Save settings</button>
+      </div>
+      <p class="hint">Uses the sessions already signed in to your Chrome profile. It never signs in for you, and only SportyBet and BetBoro legs are filled.</p>
+    </section>
+
+    <div class="controls">
+      <span id="feedMeta" class="muted">Loading feed…</span>
+      <span id="arbCount" class="pill">0 arbs</span>
+    </div>
+
+    <main id="arbList"></main>
+
+    <footer class="foot muted">
+      <span id="statusLine">Fills betslips only.</span>
+      <span id="extVersion" class="muted"></span>
+    </footer>
+
+    <script type="module" src="panel.js"></script>
+  </body>
+</html>

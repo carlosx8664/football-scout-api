@@ -49,7 +49,15 @@ const LEAGUE_COUNTRY: Record<number, string> = {
   3: "Europe",
   848: "Europe",
   1: "World",
+  5: "Europe",
   10: "World",
+  36: "Africa",
+  29: "Africa",
+  30: "Asia",
+  31: "North America",
+  32: "Europe",
+  33: "Oceania",
+  34: "South America",
 };
 
 const leagueHeading = (league: Match["league"]): string => {

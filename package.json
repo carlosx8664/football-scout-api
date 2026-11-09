@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "axios": "^1.20.0",
+    "dotenv": "^18.0.10",
     "playwright": "^1.64.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -37,6 +38,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "puppeteer": "^25.16.0",
     "rimraf": "^6.0.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

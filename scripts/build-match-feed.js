@@ -60,6 +60,29 @@ const LEAGUE_ALIASES = {
   144: ["belgium pro league"],
   203: ["turkiye super lig", "turkey super lig"],
   848: ["international clubs uefa conference league"],
+  // National-team football. Keys must quote the bookmaker's own wording: SportyBet appends
+  // `<categoryName> <tournament.name>`, MSport `<category> <tournament>`, BetBoro `<region> <competition>`.
+  1: ["international world cup", "world world cup"],
+  5: ["europe uefa nations league", "international uefa nations league", "uefa nations league"],
+  10: [
+    "international int friendly games",
+    "international international friendlies",
+    "international friendlies",
+    "international international friendlies u23",
+    "international international friendlies u19",
+    "international youth u23 friendly games",
+  ],
+  36: [
+    "africa africa cup of nations qualification",
+    "international africa cup of nations qualification",
+    "africa cup of nations qualification",
+  ],
+  29: ["africa world cup qualification africa", "international world cup qualification africa", "world cup qualification africa"],
+  30: ["asia world cup qualification asia", "international world cup qualification asia", "world cup qualification asia"],
+  31: ["international world cup qualification concacaf", "world cup qualification concacaf", "north america world cup qualification concacaf"],
+  32: ["europe world cup qualification europe", "international world cup qualification europe", "world cup qualification europe"],
+  33: ["international world cup qualification oceania", "world cup qualification oceania", "oceania world cup qualification oceania"],
+  34: ["south america world cup qualification south america", "international world cup qualification south america", "world cup qualification south america"],
 };
 
 const OUTCOMES = [

@@ -27,7 +27,15 @@ export const LEAGUES = [
   { id: 48, name: "EFL Cup", logo: logo(48) },
   { id: 45, name: "FA Cup", logo: logo(45) },
   { id: 1, name: "World Cup", logo: logo(1) },
+  { id: 5, name: "UEFA Nations League", logo: logo(5) },
   { id: 10, name: "Friendlies", logo: logo(10) },
+  { id: 36, name: "Africa Cup of Nations Qualifying", logo: logo(36) },
+  { id: 29, name: "World Cup Qualifying (Africa)", logo: logo(29) },
+  { id: 30, name: "World Cup Qualifying (Asia)", logo: logo(30) },
+  { id: 31, name: "World Cup Qualifying (North America)", logo: logo(31) },
+  { id: 32, name: "World Cup Qualifying (Europe)", logo: logo(32) },
+  { id: 33, name: "World Cup Qualifying (Oceania)", logo: logo(33) },
+  { id: 34, name: "World Cup Qualifying (South America)", logo: logo(34) },
 ];
 
 /** @type {number[]} */

@@ -8,6 +8,8 @@
  *   BoltBet:   https://boltbet.com.gh/sports/match/football/{fixture.slug}
  *   Soccabet:  Google fallback until a verified fixture route is captured                         
  *   BetPawa:   https://www.betpawa.com.gh/event/{numeric event id} *
+ *   Market selection rides along as `?marketId=&outcomeId=&specifier=` (SportyBet only, best-effort);
+ *   see MARKET_QUERY_SUPPORT for why the other books keep the plain fixture link.
  * Sportradar ids ("sr:match:...") are shared by every bookmaker, so one id is enough to
  * link to the same fixture everywhere. BetBoro and BoltBet each need their own ids,
  * which only their raw dumps carry.
@@ -32,6 +34,36 @@ export const BOOKMAKERS = [SPORTY, MSPORT, BETBORO, BOLTBET, BETPAWA, SOCCABET];
 export function srMatchId(eventId) {
   const id = String(eventId ?? '').replace('sr:match:', '').trim();
   return /^\d+$/.test(id) ? id : null;
+}
+
+/**
+ * Whether a bookmaker's public fixture route can pre-select a market, i.e. whether appending
+ * `?marketId=…&outcomeId=…&specifier=…` does anything.
+ *
+ *   - SportyBet: best-effort. The route is a client-side SPA, so the ids are simply carried in the
+ *     query string; the same ids the booking API uses. A route that ignores them still lands on the
+ *     fixture page, so the link never gets worse.
+ *   - Everyone else: unsupported. BetBoro's pre-sports route is fixture-only and its feed carries no
+ *     market/outcome ids at all; the remaining books expose neither ids nor a market route.
+ */
+const MARKET_QUERY_SUPPORT = {
+  [SPORTY]: 'best-effort',
+  [MSPORT]: 'unsupported',
+  [BETBORO]: 'unsupported',
+  [BOLTBET]: 'unsupported',
+  [BETPAWA]: 'unsupported',
+  [SOCCABET]: 'unsupported',
+};
+
+/** One warning per bookmaker per run — an arb feed would otherwise drown in them. */
+const warnedMarketLinks = new Set();
+
+function warnMarketNotPreselected(bookmaker, reason) {
+  if (warnedMarketLinks.has(bookmaker)) return;
+  warnedMarketLinks.add(bookmaker);
+  console.warn(
+    `[deeplinks] ${bookmaker}: market pre-selection not supported (${reason}); linking the match page only.`,
+  );
 }
 
 const SEARCH_SITES = {
@@ -72,6 +104,60 @@ function plainSearchUrl(bookmaker, home, away) {
   return `https://www.google.com/search?q=${bookmaker.toLowerCase()}+${encodeURIComponent(
     home,
   )}+vs+${encodeURIComponent(away)}`;
+}
+
+/** True when `url` points at the bookmaker itself rather than a Google fallback. */
+function isFixtureUrl(bookmaker, url) {
+  const site = SEARCH_SITES[bookmaker];
+  if (!site) return false;
+  try {
+    return new URL(url).hostname.endsWith(site);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Query string for a pre-selected selection, or null when the bookmaker's route cannot take one
+ * (in which case the reason is logged once).
+ *
+ * @param {string} bookmaker
+ * @param {Record<string, unknown>} context
+ * @returns {URLSearchParams | null}
+ */
+function marketQuery(bookmaker, context) {
+  const marketId = String(context?.marketId ?? '').trim();
+  const outcomeId = String(context?.outcomeId ?? '').trim();
+
+  if (!/^\d+$/.test(marketId) || !/^\d+$/.test(outcomeId)) {
+    warnMarketNotPreselected(bookmaker, 'the feed carries no market/outcome id');
+    return null;
+  }
+  if (MARKET_QUERY_SUPPORT[bookmaker] !== 'best-effort') {
+    warnMarketNotPreselected(bookmaker, 'its URL has no market parameter');
+    return null;
+  }
+
+  const params = new URLSearchParams({ marketId, outcomeId });
+  const specifier = String(context?.specifier ?? '').trim();
+  if (specifier) params.set('specifier', specifier);
+  return params;
+}
+
+/**
+ * Adds the market selection to a fixture URL when the route understands it, otherwise returns the
+ * plain fixture URL. Only called when the caller passed a `market` label, so bookmakers that are
+ * never asked to pre-select (e.g. the bet-builder) stay silent.
+ */
+function withMarketSelection(bookmaker, url, context) {
+  if (!url || !context?.market) return url;
+  if (!isFixtureUrl(bookmaker, url)) {
+    warnMarketNotPreselected(bookmaker, 'the link is a search fallback, not a fixture page');
+    return url;
+  }
+  const params = marketQuery(bookmaker, context);
+  if (!params) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}${params.toString()}`;
 }
 
 /**
@@ -173,10 +259,13 @@ export function directUrl(bookmaker, eventId, context = {}) {
 /**
  * Link used in the arbitrage feed: `directUrl` then a site search for every
  * bookmaker, so an arbs.json row always has something clickable.
+ *
+ * Pass `market` (plus `marketId` / `outcomeId` / `specifier` when the feed carries them) to ask for
+ * the market to be pre-selected; bookmakers whose route cannot do that keep the fixture URL and log
+ * a one-time warning.
  */
 export function buildUrl(bookmaker, eventId, home, away, rawFixture = {}) {
-  return (
-    directUrl(bookmaker, eventId, { ...rawFixture, home, away }) ??
-    searchUrl(bookmaker, home, away)
-  );
+  const context = { ...rawFixture, home, away };
+  const url = directUrl(bookmaker, eventId, context) ?? searchUrl(bookmaker, home, away);
+  return withMarketSelection(bookmaker, url, context);
 }

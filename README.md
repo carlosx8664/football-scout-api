@@ -1,9 +1,10 @@
 # football-scout-api
 
-A football scouting dashboard: upcoming fixtures across 18 competitions (top-5 European
+A football scouting dashboard: upcoming fixtures across 27 competitions (top-5 European
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
-Süper Lig, Danish Superliga, Champions League, Conference League, EFL Cup, FA Cup, World Cup and
-Friendlies) for **today and tomorrow**, match-winner odds from API-Football, and a friendly AI
+Süper Lig, Danish Superliga, Champions League, Conference League, EFL Cup, FA Cup, the World Cup,
+UEFA Nations League and Friendlies, plus Africa Cup of Nations and World Cup qualifying) for
+**today and tomorrow**, match-winner odds from API-Football, and a friendly AI
 scout preview per match built from DeepSeek search plus the prices the odds pipeline already
 fetched.
 
@@ -36,7 +37,7 @@ The Pages Function never calls API-Football or DeepSeek, so traffic can never dr
 ## Project layout
 
 ```
-shared/leagues.js              Single source of truth for the 16 tracked leagues
+shared/leagues.js              Single source of truth for the 27 tracked leagues
 shared/deeplinks.js            Bookmaker names + verified per-fixture deep links
 shared/teams.js                Team-name normalisation for matching/deduping
 shared/betslip-prompt.js       Vision prompt + JSON contract for betslip extraction
@@ -314,7 +315,8 @@ above **Top Picks** and disappears when the row is collapsed.
   token-similarity scoring used by the odds feed.
 - Mapped competitions: Premier League, Championship, Serie A, Bundesliga, La Liga, Ligue 1,
   Eredivisie, Primeira Liga, Brasileirão, Champions League and World Cup. Cups, the Belgian Pro
-  League and the Conference League have no table and return a friendly message instead.
+  League, the Conference League and the international competitions have no table and return a
+  friendly message instead.
 
 ## Bet builder
 
@@ -473,6 +475,39 @@ cd ../.. && npm run worker:deploy
   never be duplicated. Its `concurrency` group still guards against overlap.
 - Secrets stay in Cloudflare; nothing is shared with a third-party scheduler.
 - The `GH_DISPATCH_TOKEN` has no expiry, so rotate it manually if it is ever exposed.
+
+## Autobet Deployment
+
+The V2 autobet probes (`scripts/sportybet-autobet.js`, `scripts/betboro-autobet.js`) drive a real
+Chrome window with Puppeteer, so they need a logged-in bookmaker session — not an API key.
+
+**Locally** both scripts load `.env` (`import 'dotenv/config'`) and read their own pair:
+
+```bash
+SPORTYBET_USERNAME=...
+SPORTYBET_PASSWORD=...
+BETBORO_USERNAME=...
+BETBORO_PASSWORD=...
+```
+
+With both set, a run that finds no saved session signs in automatically and verifies the result
+before betting. If either is missing (and the saved profile is signed out) the script aborts with a
+screenshot instead of waiting. `.env*` is already git-ignored — never commit credentials. The first
+run also creates `data/sportybet-profile/` (and `data/betboro-profile/` for BetBoro) — the persistent
+Chrome profiles that keep each session alive between runs.
+
+**When the bot moves to Cloudflare** the credentials become secrets instead of `.env` values:
+
+```bash
+npx wrangler pages secret put SPORTYBET_USERNAME
+npx wrangler pages secret put SPORTYBET_PASSWORD
+```
+
+It is `pages secret put`, not plain `secret put`, because this is a Pages project. Inside the Worker
+they arrive as `env.SPORTYBET_USERNAME` / `env.SPORTYBET_PASSWORD` — same names, so the script's
+lookup does not change. Note that a Pages Function cannot host Chromium itself, so a Worker
+deployment needs an external browser/container service; this section covers where the credentials
+live, not the runtime.
 
 ## Routes
 
