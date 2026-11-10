@@ -14,10 +14,8 @@ interface CashFlowPanelProps {
   planBookies: string[];
   /** Cash locked in unsettled bets, per bookie. */
   locked: Array<{ bookie: string; locked: number }>;
-  /** SUM(net_profit) for the mode. */
+  /** Lifetime realized profit remaining after previous profit withdrawals. */
   totalProfit: number;
-  /** Profit already taken out, which comes off the withdrawable cap. */
-  profitTaken: number;
   /** Cash across the wallets right now, before any take. */
   cashInWallets: number;
   /** Portfolio floor: the take may never drop the wallets below this. */
@@ -45,7 +43,6 @@ const CashFlowPanel = ({
   planBookies,
   locked,
   totalProfit,
-  profitTaken,
   cashInWallets,
   bankroll,
   onWithdraw,
@@ -109,8 +106,7 @@ const CashFlowPanel = ({
   const requested = rows.reduce((sum, row) => sum + amountFor(row.wallet.id), 0);
   const total = Math.round(requested * 100) / 100;
   const portfolioAfter = Math.round((cashInWallets - total) * 100) / 100;
-  // Profit already banked is not on offer again.
-  const withdrawable = Math.max(0, Math.round((totalProfit - profitTaken) * 100) / 100);
+  const withdrawable = Math.max(0, Math.round(totalProfit * 100) / 100);
 
   const overAvailable = rows.find((row) => amountFor(row.wallet.id) > row.available + 0.0001);
   const guardError = overAvailable
@@ -293,7 +289,7 @@ const CashFlowPanel = ({
                     : transfer.type === "INITIAL_DEPOSIT"
                       ? "Initial deposit"
                       : transfer.type === "PROFIT_WITHDRAWAL"
-                        ? "Profit withdrawal"
+                        ? "Withdrawal"
                         : transfer.type === "TRANSFER_TO_MOMO"
                           ? "To MOMO"
                           : transfer.type === "TRANSFER_TO_BOOKIE"

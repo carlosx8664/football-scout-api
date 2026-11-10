@@ -587,8 +587,9 @@ that is not sitting in a bookie account.
   both `cash_reserve` and the bankroll, logging a `CAPITAL_INJECTION` row in `wallet_transfers`.
 - **Withdraw Weekly Profits** opens a per-bookie profit take. Only the bookies ticked in the
   plan appear, each showing `Available to Withdraw = balance − locked` where `locked` is the cash
-  still at risk in that bookie's active bets. The total cannot exceed the mode's total profit
-  (`SUM(history.net_profit)`), and the cash left in the wallets may never fall below the bankroll.
+  still at risk in that bookie's active bets. The total cannot exceed the mode's remaining lifetime
+  profit (`SUM(history.net_profit) − PROFIT_WITHDRAWAL`), and the cash left in the wallets may
+  never fall below the bankroll.
   Each draw is logged as a `PROFIT_WITHDRAWAL`; the money leaves the system, so `cash_reserve`
   and the bankroll plan are untouched.
 - **Mug bets** live in `mug_bets`, separate from `history` so arb profit stays a pure measure of

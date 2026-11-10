@@ -250,7 +250,6 @@ const WalletsDashboard = () => {
           planBookies={plan.bookies}
           locked={payload?.locked ?? []}
           totalProfit={payload?.totalProfit ?? 0}
-          profitTaken={payload?.profitTaken ?? 0}
           cashInWallets={payload?.liquidity.totalBalance ?? 0}
           bankroll={settings.bankroll}
           onWithdraw={handleProfitTake}

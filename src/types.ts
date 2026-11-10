@@ -225,12 +225,12 @@ export interface WalletsPayload {
   liquidity: LiquiditySummary;
   /** Mobile-money wallet: bankroll not sitting in a bookie account. */
   cashReserve: number;
-  /** SUM(net_profit) over `history` for the same mode. */
+  /** Lifetime realized profit after subtracting `PROFIT_WITHDRAWAL` transactions. */
   totalProfit: number;
   /** SUM(net_profit) settled today (UTC). */
   dailyProfit: number;
   cashFlow: CashFlowSummary;
-  /** Profit already withdrawn via profit takes; `totalProfit - profitTaken` is withdrawable. */
+  /** Lifetime amount withdrawn via profit takes. */
   profitTaken: number;
   /** Whether trading has started for this mode, so the bankroll can no longer be edited. */
   activity: {

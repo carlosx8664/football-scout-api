@@ -304,7 +304,9 @@ export async function walletPayload(db, simulation) {
     liquidity,
     /** Mobile-money wallet: bankroll that is not sitting in a bookie account. */
     cashReserve,
-    totalProfit: round2(Number(history?.total_profit ?? 0)),
+    totalProfit: round2(
+      Number(history?.total_profit ?? 0) - Number(transfers?.profit_taken ?? 0),
+    ),
     /** Realised profit settled today (UTC) — drives the "take a break" alert. */
     dailyProfit: round2(Number(history?.daily_profit ?? 0)),
     activity: {
