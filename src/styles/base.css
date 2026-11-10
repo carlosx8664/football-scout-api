@@ -211,6 +211,28 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   }
 }
 
+@media (max-width: 768px) {
+  .app-body,
+  .app-body-wide {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .app-body > .left-sidebar,
+  .app-body-home > .right-sidebar {
+    display: none;
+  }
+
+  .app-body > .main-feed,
+  .app-body > .arbs-view,
+  .app-body > .wallets-page,
+  .app-body > .history-panel {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 @media (max-width: 480px) {
   .app-body,
   .app-body-wide {

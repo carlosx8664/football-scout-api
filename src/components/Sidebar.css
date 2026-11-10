@@ -73,3 +73,7 @@
   .league-link.active { border-color: var(--color-brand); }
   .league-link:hover { background: var(--color-neutral-1); }
 }
+
+@media (max-width: 768px) {
+  .top-matches { display: none; }
+}

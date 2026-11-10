@@ -141,7 +141,7 @@ function App() {
   } else if (data) {
     content = (
       <Shell>
-        <div className="app-body">
+        <div className="app-body app-body-home">
           <Sidebar selectedLeague={selectedLeague} setSelectedLeague={selectLeague} />
 
           <MainFeed
