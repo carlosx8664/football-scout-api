@@ -65,6 +65,28 @@ interface RowState {
   score: string;
 }
 
+function TeamLogo({ team }: { team: Match["teams"]["home"] }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!team.logo || failed) {
+    return (
+      <span className="score-logo-fallback" aria-hidden="true">
+        {team.name.trim().charAt(0).toUpperCase() || "?"}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      className="score-logo"
+      src={team.logo}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 /** Final/current goals from the snapshot, formatted as "1 - 0"; blank when unknown. */
 function goalsScore(match: Match): string {
   const home = match.goals?.home;
@@ -258,14 +280,10 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
                   <span className="score-fixture">
                     <span className="score-team home">
                       <span className="score-team-name">{match.teams.home.name}</span>
-                      {match.teams.home.logo ? (
-                        <img className="score-logo" src={match.teams.home.logo} alt="" loading="lazy" />
-                      ) : null}
+                      <TeamLogo team={match.teams.home} />
                     </span>
                     <span className="score-team away">
-                      {match.teams.away.logo ? (
-                        <img className="score-logo" src={match.teams.away.logo} alt="" loading="lazy" />
-                      ) : null}
+                      <TeamLogo team={match.teams.away} />
                       <span className="score-team-name">{match.teams.away.name}</span>
                     </span>
                   </span>

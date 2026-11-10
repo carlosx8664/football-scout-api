@@ -22,30 +22,31 @@
 
 /* --- Day tabs (Live / Today / weekday + date) --- */
 .match-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 4px;
   width: 100%;
-  overflow-x: auto;
   padding: 4px;
   margin-bottom: 24px;
   background: var(--color-neutral-3);
   border: 1px solid var(--color-neutral-4);
   border-radius: 999px;
-  scrollbar-width: thin;
 }
 
 .match-tab {
-  display: inline-flex;
-  flex: 0 0 auto;
+  display: flex;
+  min-width: 0;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 8px 6px;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: clamp(0.65rem, 1.1vw, 0.875rem);
   font-weight: 600;
   color: var(--color-neutral-6);
   background: transparent;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.15;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
@@ -58,12 +59,12 @@
 }
 
 .match-tab .tab-count {
-  min-width: 22px;
-  padding: 1px 7px;
+  min-width: 18px;
+  padding: 1px 5px;
   border-radius: 999px;
   background: var(--color-neutral-1);
   color: var(--color-neutral-6);
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-align: center;
 }
@@ -237,6 +238,20 @@
   flex: 0 0 auto;
 }
 
+.score-logo-fallback {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e5e7eb;
+  color: #475569;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
 .score-value {
   text-align: right;
   font-size: 0.9rem;
@@ -314,7 +329,11 @@
     margin-bottom: 16px;
   }
   .page-title { font-size: 1.4rem; }
-  .match-tabs { margin-bottom: 16px; }
+  .match-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
   .day-section-title { font-size: 0.95rem; }
   .score-row {
     grid-template-columns: 70px minmax(0, 1fr) 62px;
@@ -324,9 +343,10 @@
 }
 
 @media (max-width: 520px) {
-  .match-tab { padding: 8px 12px; }
+  .match-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .match-tab { padding: 8px 3px; gap: 4px; }
   .score-status { font-size: 0.7rem; }
   .score-team-name { font-size: 0.78rem; }
-  .score-logo { width: 16px; height: 16px; }
+  .score-logo, .score-logo-fallback { width: 16px; height: 16px; }
   .score-detail { flex-direction: column; }
 }
