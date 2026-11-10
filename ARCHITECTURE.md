@@ -206,7 +206,7 @@ a fine-grained PAT.
 - Web Push alerts via `sendPushAlerts` inside `find-arbs.js`.
 
 **Frontend:**
-- Home feed with live/today/tomorrow tabs (Live sits first and stays put; an empty Live tab says so), league filter, best-price tooltips, and Top Picks ranked by overlay against a de-vigged market consensus (≥2%, one pick per fixture).
+- Home feed as one scroll: a **Live** section first, then the next seven days (Today, then `Wed 11th`, `Thu 12th`, … — today plus six more, never more than a week out), each day's fixtures grouped by league. Live fixtures are pulled out of the day sections so no match is listed twice, days with no fixtures are skipped, plus league filter, best-price tooltips, and Top Picks ranked by overlay against a de-vigged market consensus (≥2%, one pick per fixture).
 - `/arbs`: live tables with stake scaling + rounding, near-miss mode, Ledger checkbox → Log Arb.
 - `/wallets`: Bankroll Plan → My Wallets → Rebalancing Hints (centre); Active Bets (2/page),
   Cash Flow and Mug Bets (340px aside). Settled history lives on its own page,

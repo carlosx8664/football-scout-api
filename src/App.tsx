@@ -135,7 +135,7 @@ function App() {
       </Shell>
     );
   } else if (loading) {
-    content = <div className="loader">Loading today's matches...</div>;
+    content = <div className="loader">Loading matches...</div>;
   } else if (error) {
     content = <div className="error">Error: {error}</div>;
   } else if (data) {
@@ -161,7 +161,7 @@ function App() {
 
   return (
     <>
-      <LoadingOverlay message="Loading today's matches…" visible={loading} />
+      <LoadingOverlay message="Loading matches…" visible={loading} />
       {content}
     </>
   );

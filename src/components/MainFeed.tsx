@@ -8,7 +8,7 @@ import {
   useLiveScores,
   useServerClock,
 } from "../lib/liveScores";
-import { matchesForTab, type FeedTab } from "../lib/schedule";
+import { FEED_DAYS, daySections, liveMatches } from "../lib/schedule";
 import BookBreakdown from "./BookBreakdown";
 import "./MainFeed.css";
 
@@ -19,12 +19,6 @@ interface MainFeedProps {
   /** Notifies the app which fixture's row is expanded, so the rail can show its league table. */
   onSelectMatch?: (match: Match | null) => void;
 }
-
-const TABS: Array<{ id: FeedTab; label: string }> = [
-  { id: "live", label: "Live Matches" },
-  { id: "today", label: "Today's Matches" },
-  { id: "tomorrow", label: "Tomorrow's Matches" },
-];
 
 /** A fixture at or past this age (and absent from the live feed) is treated as finished. */
 const MATCH_DURATION_MS = 120 * 60 * 1000;
@@ -174,8 +168,28 @@ const OddsPanel = ({ match }: { match: Match }) => {
   );
 };
 
+interface LeagueGroup {
+  league: Match["league"];
+  matches: Match[];
+}
+
+/** Leagues in first-seen order, fixtures inside a league in kickoff order. */
+function groupByLeague(matches: Match[]): LeagueGroup[] {
+  const byLeague = new Map<number, LeagueGroup>();
+  for (const match of matches) {
+    const group = byLeague.get(match.league.id);
+    if (group) group.matches.push(match);
+    else byLeague.set(match.league.id, { league: match.league, matches: [match] });
+  }
+  for (const group of byLeague.values()) {
+    group.matches.sort(
+      (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
+    );
+  }
+  return [...byLeague.values()];
+}
+
 const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
-  const [activeTab, setActiveTab] = useState<FeedTab>("today");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { payload: liveScores } = useLiveScores();
@@ -186,35 +200,19 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
   const anchor = { now: now + offsetMs, serverNow: liveScores?.serverNow ?? 0 };
 
-  const currentTabLabel = TABS.find((tab) => tab.id === activeTab)?.label ?? "Today's Matches";
-
-  const counts: Record<FeedTab, number> = {
-    live: matchesForTab(matches, "live", now, liveEventIds).length,
-    today: matchesForTab(matches, "today", now, liveEventIds).length,
-    tomorrow: matchesForTab(matches, "tomorrow", now, liveEventIds).length,
-  };
-
-  const visibleMatches = useMemo(
-    () => matchesForTab(matches, activeTab, now, liveEventIds),
-    [matches, activeTab, now, liveEventIds],
+  const live = useMemo(() => liveMatches(matches, now, liveEventIds), [matches, now, liveEventIds]);
+  const liveIds = useMemo(() => new Set(live.map((match) => match.fixture.id)), [live]);
+  const sections = useMemo(
+    () => daySections(matches, now, { days: FEED_DAYS, excludeIds: liveIds }),
+    [matches, now, liveIds],
   );
 
-  const groups = useMemo(() => {
-    const byLeague = new Map<number, { league: Match["league"]; matches: Match[] }>();
-    for (const match of visibleMatches) {
-      const group = byLeague.get(match.league.id);
-      if (group) group.matches.push(match);
-      else byLeague.set(match.league.id, { league: match.league, matches: [match] });
-    }
-    for (const group of byLeague.values()) {
-      group.matches.sort(
-        (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
-      );
-    }
-    return [...byLeague.values()];
-  }, [visibleMatches]);
+  const visibleMatches = useMemo(
+    () => [...live, ...sections.flatMap((section) => section.matches)],
+    [live, sections],
+  );
 
-  // Drop the selection when the expanded fixture leaves the list (tab or league change).
+  // Drop the selection when the expanded fixture leaves the feed (day or league change).
   useEffect(() => {
     if (expandedId === null) return;
     if (visibleMatches.some((match) => match.fixture.id === expandedId)) return;
@@ -228,90 +226,83 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
     onSelectMatch?.(next === null ? null : match);
   };
 
-  const changeTab = (tab: FeedTab) => {
-    setActiveTab(tab);
-    setExpandedId(null);
-    onSelectMatch?.(null);
-  };
+  const renderGroups = (list: Match[], keyPrefix: string) =>
+    groupByLeague(list).map((group) => (
+      <section className="league-group" key={`${keyPrefix}-${group.league.id}`}>
+        <header className="league-group-header">
+          <span className="league-group-title">{leagueHeading(group.league)}</span>
+        </header>
+
+        <div className="league-rows">
+          {group.matches.map((match) => {
+            const row = describeMatch(match, liveById, anchor);
+            const isOpen = expandedId === match.fixture.id;
+
+            return (
+              <div className="score-item" key={match.fixture.id}>
+                <button
+                  type="button"
+                  className={`score-row ${row.kind}${isOpen ? " open" : ""}`}
+                  onClick={() => toggleRow(match)}
+                  aria-expanded={isOpen}
+                >
+                  <span className="score-status">{row.status}</span>
+
+                  <span className="score-fixture">
+                    <span className="score-team home">
+                      <span className="score-team-name">{match.teams.home.name}</span>
+                      {match.teams.home.logo ? (
+                        <img className="score-logo" src={match.teams.home.logo} alt="" loading="lazy" />
+                      ) : null}
+                    </span>
+                    <span className="score-team away">
+                      {match.teams.away.logo ? (
+                        <img className="score-logo" src={match.teams.away.logo} alt="" loading="lazy" />
+                      ) : null}
+                      <span className="score-team-name">{match.teams.away.name}</span>
+                    </span>
+                  </span>
+
+                  <span className="score-value">{row.score}</span>
+                </button>
+
+                {isOpen ? <OddsPanel match={match} /> : null}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    ));
 
   return (
     <main className="main-feed">
       <div className="feed-top-header">
-        <h2 className="page-title">{currentTabLabel}</h2>
+        <h2 className="page-title">Next 7 Days</h2>
         <span className="feed-date-badge">{date}</span>
       </div>
 
-      <div className="match-tabs" role="tablist" aria-label="Match days">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            className={`match-tab${activeTab === tab.id ? " active" : ""}`}
-            onClick={() => changeTab(tab.id)}
-          >
-            {tab.label}
-            <span className="tab-count">{counts[tab.id]}</span>
-          </button>
-        ))}
-      </div>
-
-      {groups.length === 0 ? (
-        <div className="empty-state">
-          {activeTab === "live"
-            ? "No live matches right now for this league."
-            : activeTab === "today"
-              ? "No more matches today for this league."
-              : "No matches tomorrow for this league."}
-        </div>
+      {live.length === 0 && sections.length === 0 ? (
+        <div className="empty-state">No matches in the next 7 days for this league.</div>
       ) : (
         <div className="score-table">
-          {groups.map((group) => (
-            <section className="league-group" key={group.league.id}>
-              <header className="league-group-header">
-                <span className="league-group-title">{leagueHeading(group.league)}</span>
-              </header>
-
-              <div className="league-rows">
-                {group.matches.map((match) => {
-                  const row = describeMatch(match, liveById, anchor);
-                  const isOpen = expandedId === match.fixture.id;
-
-                  return (
-                    <div className="score-item" key={match.fixture.id}>
-                      <button
-                        type="button"
-                        className={`score-row ${row.kind}${isOpen ? " open" : ""}`}
-                        onClick={() => toggleRow(match)}
-                        aria-expanded={isOpen}
-                      >
-                        <span className="score-status">{row.status}</span>
-
-                        <span className="score-fixture">
-                          <span className="score-team home">
-                            <span className="score-team-name">{match.teams.home.name}</span>
-                            {match.teams.home.logo ? (
-                              <img className="score-logo" src={match.teams.home.logo} alt="" loading="lazy" />
-                            ) : null}
-                          </span>
-                          <span className="score-team away">
-                            {match.teams.away.logo ? (
-                              <img className="score-logo" src={match.teams.away.logo} alt="" loading="lazy" />
-                            ) : null}
-                            <span className="score-team-name">{match.teams.away.name}</span>
-                          </span>
-                        </span>
-
-                        <span className="score-value">{row.score}</span>
-                      </button>
-
-                      {isOpen ? <OddsPanel match={match} /> : null}
-                    </div>
-                  );
-                })}
+          {live.length > 0 ? (
+            <div className="day-section" key="live">
+              <div className="day-section-header live">
+                <h3 className="day-section-title">Live</h3>
+                <span className="day-section-count">{live.length}</span>
               </div>
-            </section>
+              <div className="day-section-body">{renderGroups(live, "live")}</div>
+            </div>
+          ) : null}
+
+          {sections.map((section) => (
+            <div className="day-section" key={section.key}>
+              <div className={`day-section-header${section.isToday ? " today" : ""}`}>
+                <h3 className="day-section-title">{section.label}</h3>
+                <span className="day-section-count">{section.matches.length}</span>
+              </div>
+              <div className="day-section-body">{renderGroups(section.matches, section.key)}</div>
+            </div>
           ))}
         </div>
       )}

@@ -17,10 +17,10 @@ jobs:
   refresh:
     name: Fetch odds, rebuild feeds, publish to KV
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
 
     env:
-      DAYS: 2
+      DAYS: 7
 
     steps:
       - name: Checkout
