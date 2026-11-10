@@ -4,8 +4,8 @@ export const KICKOFF_REFRESH_WINDOW_MS = 60 * 60 * 1000;
 export const SNAPSHOT_REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The home feed always covers today plus the following six days. */
-export const FEED_DAYS = 7;
+/** The home feed covers now through seven days from now, across UTC calendar days. */
+export const FEED_DAYS = 8;
 
 /** UTC day key (`YYYY-MM-DD`) for an ISO kickoff string. */
 export function utcDayKey(iso: string): string {
@@ -77,9 +77,9 @@ export interface DaySection {
 }
 
 /**
- * Calendar sections for the next `days` UTC days starting today, earliest first.
+ * Calendar sections for the next `days` UTC dates starting today, earliest first.
  * Fixtures listed in `excludeIds` (the live ones) are left out so no row appears twice,
- * and days without fixtures are skipped.
+ * including dates without fixtures so the UI can always render every day tab.
  */
 export function daySections(
   matches: Match[],
@@ -102,13 +102,12 @@ export function daySections(
   const sections: DaySection[] = [];
   for (let offset = 0; offset < days; offset += 1) {
     const key = utcDayKey(new Date(now + offset * DAY_MS).toISOString());
-    const dayFixtures = byDay.get(key);
-    if (!dayFixtures?.length) continue;
+    const dayFixtures = byDay.get(key) ?? [];
 
     sections.push({
       key,
       label: dayLabel(key, now),
-      matches: [...dayFixtures].sort(
+      matches: dayFixtures.sort(
         (a, b) => new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime(),
       ),
       isToday: key === todayKey,

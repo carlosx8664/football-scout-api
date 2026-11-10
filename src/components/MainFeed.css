@@ -20,6 +20,59 @@
   border-radius: 6px;
 }
 
+/* --- Day tabs (Live / Today / weekday + date) --- */
+.match-tabs {
+  display: flex;
+  gap: 4px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px;
+  margin-bottom: 24px;
+  background: var(--color-neutral-3);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 999px;
+  scrollbar-width: thin;
+}
+
+.match-tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+  background: transparent;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.match-tab:hover { color: var(--color-neutral-7); }
+
+.match-tab.active {
+  background: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(211, 36, 252, 0.35);
+}
+
+.match-tab .tab-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.match-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
 /* --- Day sections (Live / Today / Wed 11th …) --- */
 .day-section {
   display: flex;
@@ -261,6 +314,7 @@
     margin-bottom: 16px;
   }
   .page-title { font-size: 1.4rem; }
+  .match-tabs { margin-bottom: 16px; }
   .day-section-title { font-size: 0.95rem; }
   .score-row {
     grid-template-columns: 70px minmax(0, 1fr) 62px;
@@ -270,6 +324,7 @@
 }
 
 @media (max-width: 520px) {
+  .match-tab { padding: 8px 12px; }
   .score-status { font-size: 0.7rem; }
   .score-team-name { font-size: 0.78rem; }
   .score-logo { width: 16px; height: 16px; }

@@ -4,7 +4,7 @@ A football scouting dashboard: upcoming fixtures across 27 competitions (top-5 E
 leagues plus Primeira Liga, Eredivisie, Belgian Pro League, EFL Championship, Brasileirão,
 Süper Lig, Danish Superliga, Champions League, Conference League, EFL Cup, FA Cup, the World Cup,
 UEFA Nations League and Friendlies, plus Africa Cup of Nations and World Cup qualifying) for
-**the next seven days**, match-winner odds from API-Football, and a friendly AI
+**now through seven days from now**, match-winner odds from API-Football, and a friendly AI
 scout preview per match built from DeepSeek search plus the prices the odds pipeline already
 fetched.
 
@@ -511,9 +511,9 @@ live, not the runtime.
 
 ## Routes
 
-- `/` — one scrolling fixture feed: **Live** first, then the next seven days (Today, then
-  `Wed 11th`, `Thu 12th`, …), each day grouped by league, plus a league filter. Live fixtures are
-  not repeated in the day lists and days with no fixtures are skipped. Expanding a
+- `/` — one fixture feed with **Live** first, then **Today** and weekday/date tabs through
+  seven days from now, each day grouped by league, plus a league filter. Live
+  fixtures are not repeated in the day lists; dates with no fixtures remain selectable. Expanding a
   fixture opens its odds and shows that league's standings above **Top Picks** in the right
   sidebar, which also carries the **Bet Builder** (betslip screenshot → matches).
 - `/arbs` — live + past arbitrage tables. Each live arb has a **Ledger** checkbox that opens the

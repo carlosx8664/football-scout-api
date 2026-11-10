@@ -4,7 +4,7 @@
  * longer needs API-Football.
  *
  * Each source is normalised to { home, away, startTime, tournament, logos, odds }, merged
- * across bookmakers, filtered to the tracked leagues and the today+tomorrow window, and
+ * across bookmakers, filtered to the tracked leagues and the rolling lookahead window, and
  * written in the shape the React app already consumes (SnapshotData).
  *
  * Optionally asks DeepSeek for a two-sentence preview per match that has odds:
@@ -801,9 +801,10 @@ async function main() {
     return;
   }
 
-  const start = todayUtc();
-  const windowEnd = new Date(`${addDays(start, windowDays - 1)}T23:59:59.999Z`).getTime();
-  const windowStart = new Date(`${start}T00:00:00.000Z`).getTime();
+  const windowStart = Date.now();
+  const windowEnd = windowStart + windowDays * 24 * 60 * 60 * 1000;
+  const start = todayUtc(windowStart);
+  const windowTo = new Date(windowEnd).toISOString().slice(0, 10);
 
   const matches = merged
     .filter((entry) => entry.startTime >= windowStart && entry.startTime <= windowEnd)
@@ -829,7 +830,7 @@ async function main() {
       };
     });
 
-  log(`Matches in ${start} + ${windowDays - 1} day window: ${matches.length}.`);
+  log(`Matches from ${new Date(windowStart).toISOString()} through ${new Date(windowEnd).toISOString()} (${windowDays} days): ${matches.length}.`);
 
   await attachBoltBetIds(matches, log);
   if (matches.length === 0) {
@@ -852,7 +853,7 @@ async function main() {
   const payload = {
     status: "success",
     date: start,
-    window: { from: start, to: addDays(start, windowDays - 1) },
+    window: { from: start, to: windowTo },
     generated_at: new Date().toISOString(),
     match_count: allMatches.length,
     analysed_count: allMatches.filter((match) => match.odds && match.ai_analysis).length,

@@ -190,6 +190,7 @@ function groupByLeague(matches: Match[]): LeagueGroup[] {
 }
 
 const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
+  const [activeDay, setActiveDay] = useState("today");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { payload: liveScores } = useLiveScores();
@@ -207,23 +208,29 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
     [matches, now, liveIds],
   );
 
-  const visibleMatches = useMemo(
-    () => [...live, ...sections.flatMap((section) => section.matches)],
-    [live, sections],
-  );
+  const activeSection = activeDay === "today"
+    ? sections[0]
+    : sections.find((section) => section.key === activeDay);
+  const selectedMatches = activeDay === "live" ? live : activeSection?.matches ?? [];
 
   // Drop the selection when the expanded fixture leaves the feed (day or league change).
   useEffect(() => {
     if (expandedId === null) return;
-    if (visibleMatches.some((match) => match.fixture.id === expandedId)) return;
+    if (selectedMatches.some((match) => match.fixture.id === expandedId)) return;
     setExpandedId(null);
     onSelectMatch?.(null);
-  }, [expandedId, visibleMatches, onSelectMatch]);
+  }, [expandedId, selectedMatches, onSelectMatch]);
 
   const toggleRow = (match: Match) => {
     const next = expandedId === match.fixture.id ? null : match.fixture.id;
     setExpandedId(next);
     onSelectMatch?.(next === null ? null : match);
+  };
+
+  const changeTab = (tab: string) => {
+    setActiveDay(tab);
+    setExpandedId(null);
+    onSelectMatch?.(null);
   };
 
   const renderGroups = (list: Match[], keyPrefix: string) =>
@@ -277,33 +284,49 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   return (
     <main className="main-feed">
       <div className="feed-top-header">
-        <h2 className="page-title">Next 7 Days</h2>
+        <h2 className="page-title">
+          {activeDay === "live" ? "Live" : activeSection?.label ?? "Today"}
+        </h2>
         <span className="feed-date-badge">{date}</span>
       </div>
 
-      {live.length === 0 && sections.length === 0 ? (
-        <div className="empty-state">No matches in the next 7 days for this league.</div>
+      <div className="match-tabs" role="tablist" aria-label="Match days">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeDay === "live"}
+          className={`match-tab${activeDay === "live" ? " active" : ""}`}
+          onClick={() => changeTab("live")}
+        >
+          Live <span className="tab-count">{live.length}</span>
+        </button>
+        {sections.map((section) => {
+          const tabId = section.isToday ? "today" : section.key;
+          return (
+            <button
+              key={section.key}
+              type="button"
+              role="tab"
+              aria-selected={activeDay === tabId}
+              className={`match-tab${activeDay === tabId ? " active" : ""}`}
+              onClick={() => changeTab(tabId)}
+            >
+              {section.label}
+              <span className="tab-count">{section.matches.length}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedMatches.length === 0 ? (
+        <div className="empty-state">
+          {activeDay === "live"
+            ? "No live matches right now for this league."
+            : `No matches for ${activeSection?.label ?? "today"} for this league.`}
+        </div>
       ) : (
         <div className="score-table">
-          {live.length > 0 ? (
-            <div className="day-section" key="live">
-              <div className="day-section-header live">
-                <h3 className="day-section-title">Live</h3>
-                <span className="day-section-count">{live.length}</span>
-              </div>
-              <div className="day-section-body">{renderGroups(live, "live")}</div>
-            </div>
-          ) : null}
-
-          {sections.map((section) => (
-            <div className="day-section" key={section.key}>
-              <div className={`day-section-header${section.isToday ? " today" : ""}`}>
-                <h3 className="day-section-title">{section.label}</h3>
-                <span className="day-section-count">{section.matches.length}</span>
-              </div>
-              <div className="day-section-body">{renderGroups(section.matches, section.key)}</div>
-            </div>
-          ))}
+          {renderGroups(selectedMatches, activeDay)}
         </div>
       )}
     </main>
