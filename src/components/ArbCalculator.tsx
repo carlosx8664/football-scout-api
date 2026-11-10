@@ -11,7 +11,6 @@ type StakeSource = "total" | "a" | "b";
 
 interface LegDraft {
   bookmaker: string;
-  market: string;
   odds: string;
   stake: string;
 }
@@ -22,7 +21,6 @@ interface ArbCalculatorProps {
 
 const blankLeg = (bookmaker: string): LegDraft => ({
   bookmaker,
-  market: "",
   odds: "",
   stake: "",
 });
@@ -247,18 +245,6 @@ const ArbCalculator = ({ onClose }: ArbCalculatorProps) => {
                       </option>
                     ))}
                   </select>
-                </label>
-
-                <label className="calc-field">
-                  <span>Market</span>
-                  <input
-                    type="text"
-                    placeholder="e.g. Over 27.5 Shots"
-                    value={leg.market}
-                    onChange={(event) =>
-                      updateLeg(index as LegIndex, { market: event.target.value })
-                    }
-                  />
                 </label>
 
                 <label className="calc-field">

@@ -466,22 +466,35 @@
   color: var(--color-brand-4);
 }
 
-.arbs-calc-open {
-  padding: 9px 18px;
-  border: 1px solid var(--color-brand);
-  border-radius: 999px;
-  background: var(--color-brand-weak);
-  color: var(--color-brand-4);
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.arbs-calc-open:hover {
+.arbs-calc-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 60;
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: var(--color-brand);
   color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.arbs-calc-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+.arbs-calc-fab.active {
+  background: var(--color-brand-4);
 }
 
 .arbs-tabs {

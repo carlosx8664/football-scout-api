@@ -463,14 +463,6 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
               <span className="tab-count">{pastRows.length}</span>
             </button>
             </div>
-
-            <button
-              type="button"
-              className="arbs-calc-open"
-              onClick={() => setCalculatorOpen(true)}
-            >
-              Open Calculator
-            </button>
           </div>
 
           <fieldset className="arbs-pair-filter">
@@ -882,6 +874,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           )}
         </>
       )}
+
+      <button
+        type="button"
+        className={`arbs-calc-fab${calculatorOpen ? " active" : ""}`}
+        aria-label={calculatorOpen ? "Close calculator" : "Open calculator"}
+        aria-expanded={calculatorOpen}
+        onClick={() => setCalculatorOpen((open) => !open)}
+      >
+        🧮
+      </button>
 
       {calculatorOpen && <ArbCalculator onClose={() => setCalculatorOpen(false)} />}
 
