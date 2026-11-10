@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { fetchArbsJson } from "../lib/api";
 import ArbCalculator from "./ArbCalculator";
 import { computePlan, useBankroll } from "../lib/bankroll";
@@ -237,6 +237,14 @@ const BOOKIE_FILTER_STORAGE_KEY = "oddtor:arb-bookie-filter";
 const ArbsTable = ({ now }: ArbsTableProps) => {
   // `null` means "still loading"; a feed with no arbs means "loaded, nothing to show".
   const [feed, setFeed] = useState<Feed | null>(null);
+  const previousArbKeys = useRef<Set<string> | null>(null);
+  const originalPageTitle = useRef(document.title);
+  const restorePageTitle = useCallback(() => {
+    document.title = originalPageTitle.current;
+  }, []);
+  const setArbFoundTitle = useCallback(() => {
+    document.title = `🔥 ARB FOUND - ${originalPageTitle.current}`;
+  }, []);
   // The stake comes from the Bankroll Plan (bankroll × risk profile), never a fixed number.
   const { settings } = useBankroll();
   const planStake = computePlan(settings).stake;
@@ -271,6 +279,16 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     real: [],
   });
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onFocus = () => restorePageTitle();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      restorePageTitle();
+    };
+  }, [restorePageTitle]);
 
   // Follow the Bankroll Plan: changing the bankroll or risk profile re-sizes the stakes here.
   // Adjusted during render (React's documented pattern) so no extra render pass is needed.
@@ -338,7 +356,19 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
           setFeed((previous) => previous ?? EMPTY_FEED);
           return;
         }
-        setFeed(normalize(payload));
+        const nextFeed = normalize(payload);
+        const nextArbKeys = new Set(
+          nextFeed.arbs.map((arb) => arbKey(arb, legsFor(arb))),
+        );
+        const previousKeys = previousArbKeys.current;
+        if (
+          previousKeys &&
+          [...nextArbKeys].some((key) => !previousKeys.has(key))
+        ) {
+          setArbFoundTitle();
+        }
+        previousArbKeys.current = nextArbKeys;
+        setFeed(nextFeed);
       } catch (error) {
         if (controller.signal.aborted) return;
         console.warn("Could not read arbs.json; showing empty state.", error);
@@ -361,7 +391,7 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, []);
+  }, [setArbFoundTitle]);
 
   // Only complete two-leg opportunities for games that have not started can be shown live.
   const allLiveRows = (feed?.arbs ?? []).filter(
