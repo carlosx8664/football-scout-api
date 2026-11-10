@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LiveMatch, Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import {
@@ -214,6 +214,7 @@ function groupByLeague(matches: Match[]): LeagueGroup[] {
 const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   const [activeDay, setActiveDay] = useState("today");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   const { payload: liveScores } = useLiveScores();
   // The extrapolated minute is server time minus the snapshot time, so both sides use the
@@ -253,6 +254,10 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
     setActiveDay(tab);
     setExpandedId(null);
     onSelectMatch?.(null);
+  };
+
+  const scrollTabs = (direction: -1 | 1) => {
+    tabsRef.current?.scrollBy({ left: direction * 180, behavior: "smooth" });
   };
 
   const renderGroups = (list: Match[], keyPrefix: string) =>
@@ -308,32 +313,50 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
         <span className="feed-date-badge">{date}</span>
       </div>
 
-      <div className="match-tabs" role="tablist" aria-label="Match days">
+      <div className="match-tabs-container">
         <button
           type="button"
-          role="tab"
-          aria-selected={activeDay === "live"}
-          className={`match-tab${activeDay === "live" ? " active" : ""}`}
-          onClick={() => changeTab("live")}
+          className="match-tabs-arrow"
+          aria-label="Scroll match days left"
+          onClick={() => scrollTabs(-1)}
         >
-          Live <span className="tab-count">{live.length}</span>
+          ‹
         </button>
-        {sections.map((section) => {
-          const tabId = section.isToday ? "today" : section.key;
-          return (
-            <button
-              key={section.key}
-              type="button"
-              role="tab"
-              aria-selected={activeDay === tabId}
-              className={`match-tab${activeDay === tabId ? " active" : ""}`}
-              onClick={() => changeTab(tabId)}
-            >
-              {section.label}
-              <span className="tab-count">{section.matches.length}</span>
-            </button>
-          );
-        })}
+        <div className="match-tabs" ref={tabsRef} role="tablist" aria-label="Match days">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeDay === "live"}
+            className={`match-tab${activeDay === "live" ? " active" : ""}`}
+            onClick={() => changeTab("live")}
+          >
+            Live <span className="tab-count">{live.length}</span>
+          </button>
+          {sections.map((section) => {
+            const tabId = section.isToday ? "today" : section.key;
+            return (
+              <button
+                key={section.key}
+                type="button"
+                role="tab"
+                aria-selected={activeDay === tabId}
+                className={`match-tab${activeDay === tabId ? " active" : ""}`}
+                onClick={() => changeTab(tabId)}
+              >
+                {section.label}
+                <span className="tab-count">{section.matches.length}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          className="match-tabs-arrow"
+          aria-label="Scroll match days right"
+          onClick={() => scrollTabs(1)}
+        >
+          ›
+        </button>
       </div>
 
       {selectedMatches.length === 0 ? (

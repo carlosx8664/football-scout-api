@@ -21,32 +21,62 @@
 }
 
 /* --- Day tabs (Live / Today / weekday + date) --- */
-.match-tabs {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 4px;
-  width: 100%;
-  padding: 4px;
+.match-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 24px;
+}
+
+.match-tabs-arrow {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 50%;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-7);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.match-tabs-arrow:hover {
+  background: var(--color-neutral-4);
+}
+
+.match-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px;
   background: var(--color-neutral-3);
   border: 1px solid var(--color-neutral-4);
   border-radius: 999px;
+  scrollbar-width: none;
+}
+
+.match-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .match-tab {
-  display: flex;
-  min-width: 0;
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 6px;
+  padding: 8px 16px;
   border-radius: 999px;
-  font-size: clamp(0.65rem, 1.1vw, 0.875rem);
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-neutral-6);
   background: transparent;
-  white-space: normal;
-  line-height: 1.15;
+  white-space: nowrap;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
@@ -329,11 +359,7 @@
     margin-bottom: 16px;
   }
   .page-title { font-size: 1.4rem; }
-  .match-tabs {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    border-radius: 16px;
-    margin-bottom: 16px;
-  }
+  .match-tabs-container { margin-bottom: 16px; }
   .day-section-title { font-size: 0.95rem; }
   .score-row {
     grid-template-columns: 70px minmax(0, 1fr) 62px;
@@ -343,8 +369,7 @@
 }
 
 @media (max-width: 520px) {
-  .match-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .match-tab { padding: 8px 3px; gap: 4px; }
+  .match-tab { padding: 8px 12px; }
   .score-status { font-size: 0.7rem; }
   .score-team-name { font-size: 0.78rem; }
   .score-logo, .score-logo-fallback { width: 16px; height: 16px; }
