@@ -185,7 +185,15 @@
 
 @media (max-width: 720px) {
   .wallets-liquidity { grid-template-columns: minmax(0, 1fr); }
-  .wallet-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .wallet-row {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 10px;
+  }
+  .wallet-row .wallet-identity { grid-column: 2; }
+  .wallet-row .wallet-amount { grid-column: 3; min-width: 0; }
+  .wallet-row .wallet-actions { grid-column: 2 / -1; }
   .wallets-panel { padding: 16px; }
   .wallets-header { flex-wrap: wrap; gap: 8px; }
   .wallets-header h2 { font-size: 1.1rem; }
