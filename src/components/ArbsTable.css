@@ -470,7 +470,7 @@
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 60;
+  z-index: 151;
   width: 56px;
   height: 56px;
   display: inline-flex;
@@ -481,10 +481,8 @@
   border-radius: 50%;
   background: var(--color-brand);
   color: #fff;
-  font-size: 1.5rem;
-  line-height: 1;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
   transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
@@ -495,6 +493,10 @@
 
 .arbs-calc-fab.active {
   background: var(--color-brand-4);
+}
+
+.arbs-calc-fab svg {
+  display: block;
 }
 
 .arbs-tabs {

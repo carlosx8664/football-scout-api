@@ -882,7 +882,20 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
         aria-expanded={calculatorOpen}
         onClick={() => setCalculatorOpen((open) => !open)}
       >
-        🧮
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="26"
+          height="26"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="4" y="3" width="16" height="18" rx="2.5" />
+          <path d="M8 7h8M8 11h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2" />
+        </svg>
       </button>
 
       {calculatorOpen && <ArbCalculator onClose={() => setCalculatorOpen(false)} />}
