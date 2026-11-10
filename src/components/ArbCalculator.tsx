@@ -185,9 +185,6 @@ const ArbCalculator = ({ onClose }: ArbCalculatorProps) => {
         <header className="calc-header">
           <div>
             <h2 id="calc-title">Real-time Arb Calculator</h2>
-            <p className="calc-subtitle">
-              Equal-profit staking for any two bookmakers — no arb required.
-            </p>
           </div>
           <button type="button" className="calc-close" onClick={onClose} aria-label="Close calculator">
             ×
@@ -260,7 +257,7 @@ const ArbCalculator = ({ onClose }: ArbCalculatorProps) => {
                   />
                 </label>
 
-                <label className="calc-field">
+                <label className="calc-field calc-field-stake">
                   <span>Stake (GHS)</span>
                   <input
                     type="number"
@@ -310,11 +307,6 @@ const ArbCalculator = ({ onClose }: ArbCalculatorProps) => {
           </div>
         </div>
 
-        {guaranteed !== null && guaranteed < 0 && (
-          <p className="calc-warning">
-            Negative profit: these odds do not cover both outcomes. Adjust the stakes or odds.
-          </p>
-        )}
       </div>
     </div>
   );
