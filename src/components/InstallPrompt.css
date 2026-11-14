@@ -1,0 +1,20 @@
+.install-prompt {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand-weak);
+  color: var(--color-brand-4);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.install-prompt:hover {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  .install-prompt { padding: 5px 9px; font-size: 0.72rem; }
+}

@@ -94,8 +94,11 @@ async function startJob(input) {
       bookmaker: leg.bookmaker,
       url: leg.url,
       outcome: leg.outcome,
+      // `odds` is what allocateStakes() prices the split on; expectedOdds is the drift check.
+      odds: Number(leg.odds) || 0,
       expectedOdds: Number(leg.odds) || 0,
-      stake: 0,
+      // The panel already decided the stakes; this is only overwritten when it sent none.
+      stake: Number(leg.stake) || 0,
       status: 'pending',
       message: '',
       observedOdds: null,
@@ -113,10 +116,44 @@ async function startJob(input) {
 
   const totalStake = Number(input.totalStake) || settingsNow.totalStake;
   const roundStep = Number(input.roundStep) || settingsNow.roundStep;
-  const stakes = allocateStakes(legs, totalStake, roundStep);
+
+  // The panel sends the stakes it displays; honour them and only compute a split when absent.
+  const provided = legs.map((leg) => Number(leg.stake) || 0);
+  const priced = legs.map((leg) => ({
+    odds: Number(leg.odds) || Number(leg.expectedOdds) || 0,
+  }));
+  const stakes = provided.every((value) => value > 0)
+    ? provided
+    : allocateStakes(priced, totalStake, roundStep);
+
   legs.forEach((leg, index) => {
     leg.stake = stakes[index];
   });
+
+  console.log(
+    '[autobet] stake split',
+    JSON.stringify({
+      source: provided.every((value) => value > 0) ? 'panel' : 'worker',
+      totalStake,
+      roundStep,
+      legs: legs.map((leg, index) => ({
+        book: leg.bookmaker,
+        outcome: leg.outcome,
+        odds: priced[index].odds,
+        stake: stakes[index],
+      })),
+    }),
+  );
+
+  // A zero stake means the split never happened (missing/invalid odds). Never type 0 into a book.
+  if (!stakes.every((value) => value > 0)) {
+    const missing = legs.filter((leg, index) => !(priced[index].odds > 1)).map((leg) => leg.bookmaker);
+    throw new Error(
+      missing.length
+        ? `No usable odds for ${missing.join(', ')} — refusing to fill with a fallback stake.`
+        : 'The job has no usable stake — check the total stake and rounding in Settings.',
+    );
+  }
 
   const job = {
     id: String(Date.now()),
@@ -345,6 +382,13 @@ async function waitForTab(tabId, host, timeout = 60_000) {
 }
 
 async function sendFill(tabId, leg, job, settingsNow) {
+  // The stake the content script will type — logged so a settings/rounding mix-up is visible here.
+  console.log(
+    `[autobet] fill ${leg.bookmaker} "${leg.outcome}" stake=${leg.stake} expectedOdds=${leg.expectedOdds} market="${job.market}"`,
+  );
+  if (!(Number(leg.stake) > 0)) {
+    throw new Error(`Leg ${leg.bookmaker} has no stake to type (${leg.stake}).`);
+  }
   const message = {
     type: 'AUTOBET_FILL',
     leg: {
@@ -382,9 +426,12 @@ async function sendFill(tabId, leg, job, settingsNow) {
 async function inject(tabId, bookmaker) {
   const file = SUPPORTED[bookmaker];
   if (!file) return;
+  // The market dictionary is a classic script too, and must land before the handler that reads it.
+  const DICTIONARY = { SportyBet: 'shared/markets.js', BetBoro: 'shared/betboro-markets.js' };
+  const files = [DICTIONARY[bookmaker], 'content/common.js', `content/${file}.js`].filter(Boolean);
   await chrome.scripting.executeScript({
     target: { tabId },
-    files: ['content/common.js', `content/${file}.js`],
+    files,
   });
 }
 
@@ -399,10 +446,26 @@ async function retryFailed(input) {
   const pending = job.legs.filter((leg) => leg.status !== 'filled');
   if (!pending.length) throw new Error('Every leg is already filled.');
 
-  const stakes = allocateStakes(job.legs, job.totalStake, job.roundStep ?? settingsNow.roundStep);
+  // Retry keeps the stakes the job already carries; only a missing one is recomputed.
+  const provided = job.legs.map((leg) => Number(leg.stake) || 0);
+  const stakes = provided.every((value) => value > 0)
+    ? provided
+    : allocateStakes(
+        job.legs.map((leg) => ({ odds: Number(leg.odds) || Number(leg.expectedOdds) || 0 })),
+        job.totalStake,
+        job.roundStep ?? settingsNow.roundStep,
+      );
   job.legs.forEach((leg, index) => {
     leg.stake = stakes[index];
   });
+  console.log(
+    '[autobet] retry stake split',
+    JSON.stringify(job.legs.map((leg, index) => ({ book: leg.bookmaker, odds: leg.odds, stake: stakes[index] }))),
+  );
+
+  if (!stakes.every((value) => value > 0)) {
+    throw new Error('No usable odds for one of the legs — cannot retry with a fallback stake.');
+  }
 
   pending.forEach((leg) => {
     leg.status = 'pending';
@@ -444,6 +507,13 @@ async function handle(message) {
       return { ok: true, job: await startJob(message) };
     case 'AUTOBET_GET':
       return { ok: true, job: await readJob() };
+    case 'AUTOBET_REFRESH': {
+      // Fetch from the worker so the panel does not depend on its own host permission for a
+      // custom dashboard domain, and so a sleeping panel still gets fresh arbs.
+      const { apiBase } = await settings();
+      if (!apiBase) throw new Error('No dashboard URL configured.');
+      return { ok: true, feed: await fetchFeed(apiBase) };
+    }
     case 'AUTOBET_CANCEL':
       return { ok: true, job: await cancelJob() };
     case 'AUTOBET_RETRY':

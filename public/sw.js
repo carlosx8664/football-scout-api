@@ -13,12 +13,86 @@
 const DEFAULT_URL = '/arbs';
 const ICON = '/favicon.png';
 
-self.addEventListener('install', () => {
+/* --- App-shell caching (installable / instant reloads) -------------------- */
+
+const CACHE_NAME = 'oddtor-shell-v1';
+const SHELL_URLS = [
+  '/',
+  '/manifest.json',
+  '/favicon.png',
+  '/logo.png',
+  '/icon-192.png',
+  '/icon-512.png',
+];
+const CACHEABLE = /\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|css|js|json)$/i;
+const cachingAvailable = 'caches' in self;
+
+function cachePut(request, response) {
+  if (!response || response.status !== 200) return;
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, response)).catch(() => {});
+}
+
+self.addEventListener('install', (event) => {
   self.skipWaiting();
+  if (!cachingAvailable) return;
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      // One missing icon must not fail the whole install.
+      Promise.all(SHELL_URLS.map((url) => cache.add(url).catch(() => {}))),
+    ),
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      if (cachingAvailable) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+        );
+      }
+      await self.clients.claim();
+    })(),
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (!cachingAvailable || request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  // API responses and dev-server module URLs must always hit the network.
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/src/') || url.pathname.startsWith('/@')) return;
+
+  if (request.mode === 'navigate') {
+    // Network-first: fresh HTML when online, cached shell when offline.
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          cachePut('/', response.clone());
+          return response;
+        })
+        .catch(async () => (await caches.match('/')) || Response.error()),
+    );
+    return;
+  }
+
+  if (!CACHEABLE.test(url.pathname)) return;
+
+  // Stale-while-revalidate for static assets.
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      const network = fetch(request)
+        .then((response) => {
+          cachePut(request, response.clone());
+          return response;
+        })
+        .catch(() => cached || Response.error());
+      return cached || network;
+    }),
+  );
 });
 
 self.addEventListener('push', (event) => {

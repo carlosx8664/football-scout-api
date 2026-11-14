@@ -2,27 +2,16 @@
  * BetBoro content script.
  *
  * BetBoro's fixture deep link carries no market/outcome ids, so this is the "click it" path:
- * market tab -> market header -> outcome tile -> betslip. Ported from
- * `scripts/betboro-autobet.js` (`tagByText` / `waitForTag` / `tagOver25InMarket`), with the
- * innermost-matching-node rule kept so a wrapping container cannot swallow the click.
+ * market tab -> market header -> outcome tile -> betslip. The tab, header and tile text all come
+ * from the translation dictionary (`shared/betboro-markets.js`), so no market name is hardcoded
+ * here; the walk-up-from-the-header rule is kept so a wrapping container cannot swallow the click.
  */
 (() => {
   const A = globalThis.__autobet;
-  if (!A) return;
+  const M = globalThis.__betboroMarkets;
+  if (!A || !M) return;
 
   const BOOK = 'BetBoro';
-
-  const TABS = {
-    ou: [/^goals\b/i, /goals\s*\(\d+\)/i],
-    result: [/^(1x2|match result|main|result)\b/i, /^(1x2|match result|main|result)\s*\(\d+\)/i],
-    btts: [/^(btts|both teams)/i, /both teams to score\s*\(\d+\)/i],
-  };
-
-  const MARKET_HEADERS = {
-    ou: [/total goals over\s*\/\s*under/i, /over\s*\/\s*under/i],
-    result: [/1x2/i, /match result/i, /double chance/i, /draw no bet/i],
-    btts: [/both teams to score/i],
-  };
 
   const CLICKABLE = 'button, a, [role="tab"], [role="button"], li, label, [data-testid]';
   const LABELS = 'h1, h2, h3, h4, h5, h6, span, p, div, button';
@@ -41,39 +30,89 @@
       .filter(A.visible);
   }
 
-  function clickTab(family) {
-    const patterns = TABS[family];
-    if (!patterns) return false;
-    const [tab] = findLabels(patterns, { nodes: CLICKABLE, max: 40 });
+  const exact = (value) => new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+
+  /** Opens the market tab the dictionary names. A missing tab is not fatal — the card may be up. */
+  function openTab(tab) {
     if (!tab) return false;
-    A.deepClick(tab.closest(CLICKABLE) ?? tab);
+    const [found] = findLabels([new RegExp(`^${tab}`, 'i')], { nodes: CLICKABLE, max: 40 });
+    if (!found) return false;
+    A.deepClick(found.closest(CLICKABLE) ?? found);
     return true;
   }
 
-  /**
-   * Clicks the outcome tile that belongs to the matching market.
-   *
-   * The header anchors the search: walk up from it until the ancestor also contains a label
-   * naming the outcome, then click that label's tile. This is what keeps the repeated "Over 2.5"
-   * labels in other markets out of reach.
-   */
-  function selectOutcome(family, outcome) {
-    const headers = MARKET_HEADERS[family] ?? [];
-    const [header] = findLabels(headers, { max: 60 });
+  function namesOutcome(text, spec) {
+    const value = A.textOf(text);
+    if (!value) return false;
+    return exact(spec.outcome).test(value) || A.textMatches(value, spec.outcome) || A.matchesSide(value, spec.outcome);
+  }
 
-    let scope = header ?? document;
+  const TILE = '[class*="betting-info" i]';
+
+  /**
+   * Column the dictionary outcome sits in, counted left to right inside one market row.
+   * BetBoro prints Yes before No, Over before Under, 1 before X before 2, so the position is a
+   * reliable fallback when the label text comes back padded or abbreviated.
+   */
+  function tileIndexFor(outcome) {
+    const value = String(outcome ?? '')
+      .trim()
+      .toLowerCase();
+    if (/^yes\b|^over\b|^home win$|^home$|^home or draw/.test(value)) return 0;
+    if (/^no\b|^under\b|^draw$|^home or away/.test(value)) return 1;
+    if (/^away win$|^away$|^draw or away/.test(value)) return 2;
+    return null;
+  }
+
+  /**
+   * Leaf price tiles inside `scope`, in DOM order.
+   *
+   * BetBoro nests them (`betting-info` wraps `betting-info-main`), so a plain query returns the
+   * row *and* its tiles — which shifted every index by one and clicked "Yes" for a "No" leg.
+   * Only nodes that contain no other matched tile, and that carry a two-decimal price, count.
+   */
+  function cardTiles(scope) {
+    const all = [...scope.querySelectorAll(TILE)].filter(A.visible);
+    return all.filter(
+      (node) =>
+        !all.some((other) => other !== node && node.contains(other)) &&
+        A.parseOdds(A.textOf(node)) != null,
+    );
+  }
+
+  /** Tiles that belong to the dictionary outcome's line ("2.5", not "12.5"). */
+  function rowTiles(scope, spec) {
+    const line = String(spec.outcome).match(/\d+(?:\.\d+)?/)?.[0] ?? null;
+    const wanted = line
+      ? new RegExp(`(^|[^0-9.])${line.replace('.', '\\.')}([^0-9]|$)`)
+      : null;
+    return cardTiles(scope).filter((tile) => !wanted || wanted.test(A.textOf(tile)));
+  }
+
+  /**
+   * Clicks the outcome tile inside the dictionary's market card.
+   *
+   * The header anchors the search: walk up from it until the ancestor holds the market's tiles.
+   * The dictionary outcome's position picks the column (Yes = first, No = second), so padded or
+   * abbreviated labels ("No " / "0") no longer stop the click; an exact label match still wins
+   * when one exists.
+   */
+  function selectOutcome(spec) {
+    const [header] = findLabels([exact(spec.section)], { max: 60 });
+    // Unverified sections only accept the exact header; a loose match could pick the wrong card.
+    const [fallback] =
+      !header && spec.verified ? findLabels([new RegExp(spec.section, 'i')], { max: 60 }) : [];
+
+    let scope = header ?? fallback ?? null;
     for (let depth = 0; depth < 6 && scope; depth += 1) {
-      const found = findLabels([{ test: (text) => A.textMatches(text, outcome) }], {
-        scope,
-        nodes: 'h6, span, div, p, button',
-        max: 30,
-      });
-      if (found.length) {
-        const target = found[found.length - 1];
-        const tile =
-          target.closest('[class*="betting-info" i], [class*="odd" i], [role="button"], button') ??
-          target;
-        const odds = A.parseOdds(A.textOf(tile)) ?? A.parseOdds(A.textOf(target));
+      const tiles = rowTiles(scope, spec);
+      if (tiles.length) {
+        const labelled = tiles.find((tile) => namesOutcome(tile, spec));
+        const index = tileIndexFor(spec.outcome);
+        const tile = labelled ?? (index == null ? null : tiles[index]) ?? null;
+        if (!tile) return null;
+
+        const odds = A.parseOdds(A.textOf(tile));
         A.deepClick(tile);
         return { tile, odds };
       }
@@ -87,18 +126,18 @@
     const leg = message.leg ?? {};
     const outcome = String(leg.outcome ?? '');
     const market = String(message.arb?.market ?? '');
-    const family = A.marketFamily(market);
     const expected = Number(leg.expectedOdds) || 0;
     const tolerance = message.tolerancePct;
+    console.log(`[autobet] ${BOOK} fill "${outcome}" stake=${leg.stake} expectedOdds=${expected} market="${market}"`);
 
-    if (family === 'exotic') {
-      return {
-        status: 'unsupported',
-        message: `"${market}" is not auto-filled on ${BOOK}. Open it manually.`,
-      };
-    }
+    const spec = M.resolveBetboroMarket(market, outcome);
+    if (!spec.ok) return { status: 'unsupported', message: spec.reason };
 
-    const matchesOutcome = (slip) => slip && A.textMatches(A.textOf(slip), outcome);
+    const matchesOutcome = (slip) => slip && namesOutcome(slip, spec);
+
+    // 0. Start from an empty slip: a leftover selection would ride along with ours.
+    const stale = A.findSlip();
+    if (stale && (await A.clearSlip(stale))) await A.sleep(400);
 
     let slip = await A.waitFor(() => {
       const candidate = A.findSlip();
@@ -108,17 +147,17 @@
     let tileOdds = null;
 
     if (!slip) {
-      clickTab(family);
+      openTab(spec.tab);
       await A.sleep(900);
 
-      const selected = await A.waitFor(() => selectOutcome(family, outcome), {
+      const selected = await A.waitFor(() => selectOutcome(spec), {
         timeout: 15000,
         interval: 600,
       });
       if (!selected) {
         return {
           status: 'failed',
-          message: `Could not find "${outcome}" in the ${family.toUpperCase()} market on ${BOOK}.`,
+          message: `Could not find "${spec.outcome}" inside "${spec.section}" on ${BOOK}. Nothing filled.`,
         };
       }
       tileOdds = selected.odds;
@@ -139,11 +178,17 @@
       };
     }
 
-    const observed = A.parseOdds(A.textOf(slip)) ?? tileOdds;
+    const observed = A.readSlipOdds(slip, expected) ?? tileOdds;
     const check = A.oddsCheck(expected, observed, tolerance, message.ignoreOdds);
     if (!check.ok) return { status: 'aborted', observedOdds: observed, message: check.message };
 
-    return A.fillSlip({ slip, stake: leg.stake, observedOdds: observed, outcome });
+    return A.fillSlip({
+      slip,
+      stake: leg.stake,
+      observedOdds: observed,
+      outcome,
+      matches: matchesOutcome,
+    });
   }
 
   A.listen(BOOK, run);

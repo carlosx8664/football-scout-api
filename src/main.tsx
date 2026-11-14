@@ -7,6 +7,16 @@ import SimulationProvider from './components/SimulationProvider.tsx'
 import NotificationProvider from './components/NotificationProvider.tsx'
 import BankrollProvider from './components/BankrollProvider.tsx'
 
+// Registers the push/caching service worker once on load. Push alerts register it
+// lazily as well (`src/lib/push.ts`); re-registering an existing worker is a no-op.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // Offline caching is a progressive enhancement; the app still works without it.
+    })
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

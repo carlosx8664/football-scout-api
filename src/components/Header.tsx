@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import BestArbBadge from "./BestArbBadge";
+import InstallPrompt from "./InstallPrompt";
 import NotificationBell from "./NotificationBell";
 import PushToggle from "./PushToggle";
 import SimulationToggle from "./SimulationToggle";
@@ -30,6 +31,7 @@ const Header = () => {
           </nav>
         </div>
         <div className="header-right">
+          <InstallPrompt />
           <SimulationToggle />
           <PushToggle />
           <NotificationBell />

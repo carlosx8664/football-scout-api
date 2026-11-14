@@ -33,12 +33,12 @@
   "content_scripts": [
     {
       "matches": ["https://*.sportybet.com/*"],
-      "js": ["content/common.js", "content/sportybet.js"],
+      "js": ["shared/markets.js", "content/common.js", "content/sportybet.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://*.betboro.com.gh/*"],
-      "js": ["content/common.js", "content/betboro.js"],
+      "js": ["shared/betboro-markets.js", "content/common.js", "content/betboro.js"],
       "run_at": "document_idle"
     },
     {

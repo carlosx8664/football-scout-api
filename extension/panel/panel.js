@@ -47,6 +47,7 @@ const state = {
   feedAt: null,
   job: null,
   starting: false,
+  refreshing: false,
   aborter: null,
 };
 
@@ -116,6 +117,22 @@ async function saveBase(raw) {
 
 // ---------------------------------------------------------------- feed
 
+/** Applies a feed payload to the panel: dot, meta line and the arb list. */
+function applyFeed(feed) {
+  state.feed = feed;
+  state.feedError = null;
+  state.feedAt = new Date();
+  const age = feed.generatedAt ? Date.parse(feed.generatedAt) : null;
+  const stale = Number.isFinite(age) && Date.now() - age > 25 * 60_000;
+  ui.feedDot.className = `dot ${stale ? 'stale' : 'live'}`;
+  renderFeedMeta(
+    `Feed ${feed.generatedAt ? new Date(feed.generatedAt).toLocaleTimeString() : 'just now'}${
+      stale ? ' · stale' : ''
+    }`,
+  );
+  renderArbs();
+}
+
 async function refreshFeed() {
   if (!state.settings.apiBase) {
     state.feedError = 'No dashboard URL configured.';
@@ -129,25 +146,46 @@ async function refreshFeed() {
 
   try {
     const feed = await fetchFeed(state.settings.apiBase, state.aborter.signal);
-    state.feed = feed;
-    state.feedError = null;
-    state.feedAt = new Date();
-    const age = feed.generatedAt ? Date.parse(feed.generatedAt) : null;
-    const stale = Number.isFinite(age) && Date.now() - age > 25 * 60_000;
-    ui.feedDot.className = `dot ${stale ? 'stale' : 'live'}`;
-    renderFeedMeta(
-      `Feed ${feed.generatedAt ? new Date(feed.generatedAt).toLocaleTimeString() : 'just now'}${
-        stale ? ' · stale' : ''
-      }`,
-    );
+    applyFeed(feed);
   } catch (error) {
     if (error?.name === 'AbortError') return;
     state.feedError = String(error?.message || error);
     ui.feedDot.className = 'dot off';
     renderFeedMeta(state.feedError);
+    renderArbs();
   }
+}
 
-  renderArbs();
+/**
+ * The Refresh button: asks the service worker for a fresh feed (it holds the host permission and
+ * survives the panel being idle), falling back to a direct fetch if the worker is unreachable.
+ */
+async function refreshNow() {
+  if (state.refreshing) return;
+  state.refreshing = true;
+
+  const label = ui.refreshBtn.textContent;
+  ui.refreshBtn.disabled = true;
+  ui.refreshBtn.textContent = 'Refreshing…';
+  ui.feedDot.className = 'dot stale';
+
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'AUTOBET_REFRESH' });
+    if (response?.ok && response.feed) {
+      applyFeed(response.feed);
+      say(`Feed refreshed · ${activeArbs().length} arb(s).`);
+    } else {
+      await refreshFeed();
+      say(response?.error ? `Worker: ${response.error} — fetched directly.` : 'Feed refreshed.');
+    }
+  } catch (error) {
+    await refreshFeed();
+    say(`Feed refreshed (${String(error?.message || error)}).`);
+  } finally {
+    state.refreshing = false;
+    ui.refreshBtn.disabled = false;
+    ui.refreshBtn.textContent = label;
+  }
 }
 
 function renderFeedMeta(text) {
@@ -266,9 +304,13 @@ async function startJob(arb, button) {
   say('Opening both bookmakers…');
 
   try {
+    // Send the exact stakes the card is showing, so the worker never re-derives them.
+    const stakes = allocateStakes(arb.legs ?? [], state.settings.totalStake, state.settings.roundStep);
+    const legs = (arb.legs ?? []).map((leg, index) => ({ ...leg, stake: stakes[index] }));
+
     const response = await chrome.runtime.sendMessage({
       type: 'AUTOBET_START',
-      arb,
+      arb: { ...arb, legs },
       totalStake: Number(state.settings.totalStake),
       roundStep: Number(state.settings.roundStep),
     });
@@ -406,7 +448,7 @@ function connectPort() {
 }
 
 ui.refreshBtn.addEventListener('click', () => {
-  refreshFeed();
+  refreshNow();
 });
 
 ui.settingsBtn.addEventListener('click', () => {

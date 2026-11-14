@@ -91,19 +91,20 @@
     });
   }
 
-  /**
-   * Which supported bookmaker market family an arb market belongs to.
-   * Anything else returns 'exotic' and is never auto-filled — a wrong-market fill is worse than none.
-   */
-  function marketFamily(market) {
-    const value = norm(market);
-    if (/^over\/under [\d.]+ goals$/.test(value)) return 'ou';
-    if (value === 'both teams to score') return 'btts';
-    if (/^(draw no bet|dnb|home win|away win|draw|home\/draw)/.test(value)) return 'result';
-    return 'exotic';
+  /** True when `node` is not covered by another element at its own centre. */
+  function isTopmost(node) {
+    if (!node || typeof document.elementFromPoint !== 'function') return false;
+    const box = node.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return Boolean(hit) && (hit === node || node.contains(hit));
   }
 
-  /** The largest visible container that looks like a betslip and holds an input. */
+  /**
+   * The visible container that looks like a betslip and holds an input.
+   *
+   * BetBoro keeps two open at once (the pinned slip and the "Betslip (1)" drawer), so the one the
+   * user can actually see — the topmost — wins over the merely larger one.
+   */
   function findSlip() {
     const nodes = [
       ...document.querySelectorAll(
@@ -111,53 +112,159 @@
       ),
     ].filter((node) => visible(node) && node.querySelector('input'));
 
-    return nodes.sort((a, b) => area(b) - area(a))[0] ?? null;
+    const score = (node) => {
+      const input = findStakeInput(node);
+      return (input && isTopmost(input) ? 1_000_000 : 0) + area(node);
+    };
+    return nodes.sort((a, b) => score(b) - score(a))[0] ?? null;
+  }
+
+  const describeInput = (input) =>
+    [
+      input.getAttribute('placeholder'),
+      input.getAttribute('aria-label'),
+      input.getAttribute('name'),
+      input.getAttribute('data-testid'),
+      input.id,
+      input.className,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+  /** Text around the input, where "Total Stake" / "Stake" lives on both books. */
+  const labelText = (input) => {
+    const row = input.closest?.('label, li, [class*="stake" i], [class*="field" i], [class*="item" i]');
+    return textOf(row ?? input.parentElement ?? input).slice(0, 120);
+  };
+
+  /**
+   * Every editable input in the slip, best stake candidate first.
+   *
+   * Known branding: SportyBet's stake is `input.m-input`, BetBoro's is `input.pay_btn`
+   * (`<input type="text" inputmode="none" min="0" class="pay_btn">`). Those win outright, then a
+   * "min"/"stake" placeholder, then whatever sits beside a "stake" label, then the topmost field.
+   */
+  function stakeCandidates(slip) {
+    if (!slip) return [];
+
+    const inputs = [...slip.querySelectorAll('input')].filter(
+      (input) =>
+        visible(input) &&
+        input.type !== 'hidden' &&
+        !input.disabled &&
+        !input.readOnly &&
+        !/code|load|booking|share|promo|search|phone/.test(describeInput(input)),
+    );
+
+    const score = (input) => {
+      const text = describeInput(input);
+      let value = 0;
+      if (/(^|\s)(m-input|pay_btn)(\s|$)/.test(input.className || '')) value += 20;
+      if (/min|stake/i.test(input.getAttribute('placeholder') || '')) value += 8;
+      if (/stake/.test(text)) value += 6;
+      if (/stake|amount|wager/i.test(labelText(input))) value += 5;
+      if (/amount|wager|bet-?amount/.test(text)) value += 3;
+      if (input.type === 'number') value += 2;
+      if (['decimal', 'numeric'].includes(input.inputMode)) value += 1;
+      if (isTopmost(input)) value += 10;
+      return value;
+    };
+
+    return inputs.map((input) => [score(input), input]).sort((a, b) => b[0] - a[0]).map(([, input]) => input);
   }
 
   /** The stake field inside a betslip, excluding booking/share/promo code inputs. */
   function findStakeInput(slip) {
-    if (!slip) return null;
-    const describe = (input) =>
-      [
-        input.getAttribute('placeholder'),
-        input.getAttribute('aria-label'),
-        input.getAttribute('name'),
-        input.getAttribute('data-testid'),
-        input.id,
-        input.className,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-    const inputs = [...slip.querySelectorAll('input')].filter(
-      (input) =>
-        visible(input) && input.type !== 'hidden' && !input.disabled && !input.readOnly,
-    );
-
-    const scored = inputs
-      .filter((input) => !/code|load|booking|share|promo|search|phone/.test(describe(input)))
-      .map((input) => {
-        const text = describe(input);
-        let score = 0;
-        if (/stake/.test(text)) score += 5;
-        if (/amount|wager|bet-?amount/.test(text)) score += 3;
-        if (input.type === 'number') score += 2;
-        if (['decimal', 'numeric'].includes(input.inputMode)) score += 2;
-        return [score, input];
-      })
-      .sort((a, b) => b[0] - a[0]);
-
-    return scored[0]?.[1] ?? null;
+    return stakeCandidates(slip)[0] ?? null;
   }
 
-  /** Last 2-decimal number in range — odds, not a line ("2.5") or an empty "0.00" payout. */
+  /**
+   * Side of a market outcome, independent of the bookmaker's own wording:
+   * "BTTS Yes" -> yes, "Over 2.5 Goals" -> over, "Away (DNB)" -> away.
+   */
+  function sideOfOutcome(outcome) {
+    const value = norm(outcome);
+    if (/\bbtts yes\b|^yes\b/.test(value)) return 'yes';
+    if (/\bbtts no\b|^no\b/.test(value)) return 'no';
+    if (/^over\b|\bteam over\b/.test(value)) return 'over';
+    if (/^under\b|\bteam under\b/.test(value)) return 'under';
+    if (/^home win\b|^home\s*\(|^home$/.test(value)) return 'home';
+    if (/^away win\b|^away\s*\(|^away$/.test(value)) return 'away';
+    if (/^draw$/.test(value)) return 'draw';
+    return null;
+  }
+
+  const SIDE_PATTERNS = {
+    yes: /\byes\b|\bgg\b/,
+    no: /\bno\b|\bng\b/,
+    over: /\bover\b/,
+    under: /\bunder\b/,
+    home: /\bhome\b/,
+    draw: /\bdraw\b/,
+    away: /\baway\b/,
+  };
+  const SIDE_OPPOSITE = { yes: 'no', no: 'yes', over: 'under', under: 'over', home: 'away', away: 'home' };
+
+  /**
+   * Last-resort outcome check for a betslip: this side's own word is present and the opposite
+   * side's is not. Used when the market label is missing from the job, which is what left the
+   * SportyBet "Yes" selection looking like a mismatch.
+   */
+  function matchesSide(text, outcome) {
+    const side = sideOfOutcome(outcome);
+    if (!side) return false;
+
+    const value = norm(text);
+    if (!value || !SIDE_PATTERNS[side].test(value)) return false;
+
+    const opposite = SIDE_OPPOSITE[side];
+    return !opposite || !SIDE_PATTERNS[opposite].test(value);
+  }
+
+  /** A price from a tile: the only two-decimal number, never the line ("2.5") or an integer. */
   function parseOdds(text) {
     const matches = String(text || '').match(/\b\d{1,3}\.\d{2}\b/g) ?? [];
     const values = matches
       .map((value) => Number(value))
       .filter((value) => value >= 1.01 && value < 1000);
     return values.length ? values[values.length - 1] : null;
+  }
+
+  /**
+   * The price of a betslip selection.
+   *
+   * Reading the whole slip text is what produced "3.80 → 38.00": the stake and the potential
+   * payout sit next to the price, so the last number in the slip is the payout, not the odds.
+   * The price element is read directly when the bookmaker exposes one; otherwise the number
+   * closest to `expectedOdds` is taken, never the payout at the end of the slip.
+   */
+  function readSlipOdds(slip, expectedOdds) {
+    if (!slip) return null;
+
+    const priceNodes = [
+      ...slip.querySelectorAll(
+        '[class*="odd" i], [class*="price" i], [data-odds], [data-testid*="odd" i], [data-testid*="price" i]',
+      ),
+    ].filter(visible);
+
+    for (const node of priceNodes) {
+      // Only a node holding nothing but the price is trusted, so "2.5 1.58" is skipped.
+      const text = textOf(node);
+      if (/^\d{1,3}\.\d{2}$/.test(text)) return Number(text);
+    }
+
+    const values = textOf(slip)
+      .match(/\b\d{1,3}\.\d{2}\b/g)
+      ?.map(Number)
+      .filter((value) => value >= 1.01 && value < 1000);
+    if (!values?.length) return null;
+
+    const expected = Number(expectedOdds) || 0;
+    if (!(expected > 1)) return values[0];
+    return values.reduce((best, value) =>
+      Math.abs(value - expected) < Math.abs(best - expected) ? value : best,
+    );
   }
 
   function oddsCheck(expectedOdds, observedOdds, tolerancePct, ignoreOdds) {
@@ -177,20 +284,93 @@
     return { ok: true, message: '' };
   }
 
-  /** React-safe value write: the native setter plus input/change, then blur. */
-  function setInputValue(input, value) {
+  /**
+   * React-safe value write.
+   *
+   * The native setter plus `input` is enough for React, but the bookmakers' stake fields also
+   * accept input through `insertText` (Angular masking) and some re-render on a bare `change`.
+   * The field is therefore cleared, filled with `execCommand('insertText')`, and only re-written
+   * character by character when the site still disagrees — then blurred.
+   */
+  function setInputValue(input, value, { keys = false } = {}) {
     if (!input) return false;
+    const wanted = String(value);
+    const digits = (text) => String(text ?? '').replace(/[^0-9.]/g, '');
+    const fire = (type) => {
+      // React 18/19 listen for InputEvent on some builds; fall back to a bubbling Event.
+      try {
+        if (type === 'input' && typeof InputEvent === 'function') {
+          input.dispatchEvent(
+            new InputEvent('input', {
+              bubbles: true,
+              data: String(input.value ?? '').slice(-1),
+              inputType: 'insertText',
+            }),
+          );
+          return;
+        }
+      } catch {
+        /* older Chromium */
+      }
+      input.dispatchEvent(new Event(type, { bubbles: true }));
+    };
+    const write = (text) => {
+      try {
+        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+        if (setter) setter.call(input, text);
+        else input.value = text;
+      } catch {
+        input.value = text;
+      }
+    };
+
+    input.scrollIntoView({ block: 'center' });
     input.focus();
     try {
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-      if (setter) setter.call(input, String(value));
-      else input.value = String(value);
+      input.select();
     } catch {
-      input.value = String(value);
+      /* not selectable */
     }
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    return true;
+
+    write('');
+    fire('input');
+
+    let inserted = false;
+    if (!keys) {
+      try {
+        inserted = document.execCommand('insertText', false, wanted);
+      } catch {
+        inserted = false;
+      }
+    }
+    if (!inserted || digits(input.value) !== digits(wanted)) {
+      write(wanted);
+      fire('input');
+    }
+
+    // Second strategy (and the retry pass): type it a character at a time with real key events,
+    // which is what masked inputs like SportyBet's `m-input` actually listen for.
+    if (keys || digits(input.value) !== digits(wanted)) {
+      write('');
+      let typed = '';
+      const keyEvent = (type, key) => {
+        try {
+          input.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
+        } catch {
+          /* KeyboardEvent unavailable */
+        }
+      };
+      for (const char of wanted) {
+        keyEvent('keydown', char);
+        typed += char;
+        write(typed);
+        fire('input');
+        keyEvent('keyup', char);
+      }
+    }
+
+    fire('change');
+    return digits(input.value) === digits(wanted);
   }
 
   /**
@@ -241,12 +421,71 @@
     }
   }
 
-  /** Types the stake into an already-verified betslip and reports what the field actually holds. */
-  function fillSlip({ slip, stake, observedOdds, outcome }) {
+  /**
+   * Types the stake into an already-verified betslip and reports what the field actually holds.
+   * `matches` lets a bookmaker pass its own alias-aware outcome check (the betslip may name the
+   * market card rather than the scanner's outcome label).
+   */
+  /** Close/remove controls that belong to one selection (never the whole slip or Cashout). */
+  function removalTargets(slip) {
+    if (!slip) return [];
+
+    const explicit = [
+      ...slip.querySelectorAll(
+        '[class*="remove" i], [class*="delete" i], [class*="trash" i], [aria-label*="remove" i], [aria-label*="delete" i], [title*="remove" i]',
+      ),
+    ];
+
+    // SportyBet and BetBoro also render a bare "×" / trash glyph per selection row.
+    const glyphs = [...slip.querySelectorAll('button, span, a, div')].filter((node) => {
+      if (!visible(node) || node.children.length) return false;
+      const text = textOf(node);
+      if (!/^[×✕✖xX✗]$/.test(text)) return false;
+      // Its row must look like a selection (a price lives next to the glyph).
+      const row = node.closest('li, [class*="item" i], [class*="selection" i]') ?? node.parentElement;
+      return Boolean(row) && parseOdds(textOf(row)) != null;
+    });
+
+    // Third shape: an unlabelled close/cancel button inside a selection row. The row test keeps
+    // the slip's own "close panel" button — which has no price next to it — out of reach.
+    const closers = [
+      ...slip.querySelectorAll('[class*="close" i], [class*="cancel" i], [class*="clear" i]'),
+    ].filter((node) => {
+      if (!visible(node)) return false;
+      if (/max|cash\s*out/i.test(`${textOf(node)} ${node.getAttribute?.('aria-label') ?? ''}`)) {
+        return false;
+      }
+      const row = node.closest('li, [class*="item" i], [class*="selection" i]') ?? node.parentElement;
+      return Boolean(row) && row !== slip && parseOdds(textOf(row)) != null;
+    });
+
+    const unique = [...new Set([...explicit, ...glyphs, ...closers])];
+    return unique.filter(visible);
+  }
+
+  /**
+   * Empties a betslip before a job fills it, so a leftover selection cannot ride along and the
+   * stake we type is the only one on the page. Returns how many rows were removed.
+   */
+  async function clearSlip(slip, { attempts = 6, waitMs = 250 } = {}) {
+    let cleared = 0;
+    for (let index = 0; index < attempts; index += 1) {
+      const [target] = removalTargets(slip);
+      if (!target) break;
+      deepClick(target.closest('button, a, [role="button"]') ?? target);
+      cleared += 1;
+      await sleep(waitMs);
+    }
+    return cleared;
+  }
+
+  async function fillSlip({ slip, stake, observedOdds, outcome, matches }) {
     if (!slip) {
       return { status: 'failed', observedOdds, message: 'Betslip not found.' };
     }
-    if (outcome && !textMatches(textOf(slip), outcome)) {
+    const namesOutcome =
+      typeof matches === 'function' ? matches(textOf(slip)) : textMatches(textOf(slip), outcome);
+    if (outcome && !namesOutcome) {
       return {
         status: 'failed',
         observedOdds,
@@ -254,22 +493,42 @@
       };
     }
 
-    const input = findStakeInput(slip);
-    if (!input) {
+    const candidates = stakeCandidates(slip);
+    if (!candidates.length) {
       return { status: 'failed', observedOdds, message: 'Could not find the stake field.' };
+    }
+    if (!(Number(stake) > 0)) {
+      return { status: 'failed', observedOdds, message: `No stake to type (${stake}). Check Settings.` };
     }
 
     const wanted = String(stake);
-    input.scrollIntoView({ block: 'center' });
-    setInputValue(input, wanted);
-    input.blur();
+    const digits = (text) => String(text ?? '').replace(/[^0-9.]/g, '');
+    const holds = (input) => Math.abs(Number(digits(input.value)) - Number(stake)) <= 0.01;
 
-    const actual = Number(String(input.value).replace(/[^0-9.]/g, ''));
-    if (!Number.isFinite(actual) || Math.abs(actual - Number(stake)) > 0.01) {
+    // Try each candidate until one actually keeps the value: a covered or mis-branded field reads
+    // back whatever we wrote while the visible stake stays at the site default (10 / 0).
+    let chosen = null;
+    let lastSeen = '';
+    for (const input of candidates.slice(0, 3)) {
+      for (let attempt = 0; attempt < 2 && !chosen; attempt += 1) {
+        setInputValue(input, wanted, { keys: attempt > 0 });
+        await sleep(150);
+        input.blur();
+        await sleep(150);
+        if (holds(input)) chosen = input;
+      }
+      lastSeen = `${input.className || input.type}="${input.value}"`;
+      console.log(
+        `[autobet] stake field ${input.className || input.type} value="${input.value}" wanted=${wanted} ok=${Boolean(chosen)}`,
+      );
+      if (chosen) break;
+    }
+
+    if (!chosen) {
       return {
         status: 'failed',
         observedOdds,
-        message: `Stake field shows "${input.value}" instead of ${wanted}.`,
+        message: `Stake field shows ${lastSeen || 'nothing'} instead of ${wanted}.`,
       };
     }
 
@@ -307,15 +566,17 @@
     canonicalOutcome,
     outcomeCandidates,
     textMatches,
-    marketFamily,
+    matchesSide,
     findSlip,
     findStakeInput,
     parseOdds,
+    readSlipOdds,
     oddsCheck,
     setInputValue,
     deepClick,
     waitFor,
     fillSlip,
+    clearSlip,
     listen,
   };
 })();

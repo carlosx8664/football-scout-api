@@ -25,7 +25,9 @@ export function allocateStakes(legs, total, step) {
   const wanted = Math.max(1, Number(step) || 1);
   const unit = stake >= wanted * legs.length ? wanted : 1;
   const raw = prices.map((odds) => (odds > 1 ? stake / implied / odds : 0));
-  const stakes = raw.map((value) => Math.max(unit, Math.floor(value / unit) * unit));
+  // An unpriceable leg gets 0, never the minimum unit: a leg with no odds must fail the job, not
+  // silently receive the rounding step (10) as its stake.
+  const stakes = raw.map((value) => (value > 0 ? Math.max(unit, Math.floor(value / unit) * unit) : 0));
 
   let shortfall = stake - stakes.reduce((sum, value) => sum + value, 0);
   let guard = 0;

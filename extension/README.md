@@ -27,10 +27,44 @@ use it after you have seen why the first attempt stopped.
 
 ## What it will not do
 
-- Cricket/booking-code style markets, corners, cards, shots, tackles, throw-ins, team totals and
-  Asian handicaps: reported as `manual only` rather than guessed.
+- Markets missing from the translation dictionary — or whose SportyBet card header does not match
+  the dictionary's `section` — are reported as `manual only` rather than guessed.
 - Sign in, deposit, accept an "odds changed" modal, or click Place Bet.
 - Read or store credentials. Nothing leaves the browser except `GET /api/arbs`.
+
+## Market dictionaries
+
+`shared/markets.js` (SportyBet) and `shared/betboro-markets.js` (BetBoro) translate the scanner's
+market labels (`scripts/find-arbs.js`, e.g. `Over/Under 2.5 Goals`) into where each bookmaker
+renders them — the market card header plus the exact outcome tile — so no market text is hardcoded
+in a content script and adding a market means adding one entry.
+
+SportyBet sections were taken from its own `factsCenter` market `desc`; BetBoro sections are the
+card headers it renders (`BOTH TEAMS TO SCORE`, `TOTAL GOALS OVER/UNDER`, `MATCH RESULT`,
+`TOTAL CORNERS OVER/UNDER`, `TOTAL CARDS OVER/UNDER`), with `tab` naming the market tab that has to
+be open first (BetBoro only mounts the selected tab).
+
+| Scanner market | SportyBet section | BetBoro section |
+| --- | --- | --- |
+| `Both Teams to Score` | `GG/NG` | `BOTH TEAMS TO SCORE` |
+| `Over/Under {line} Goals` | `Over/Under` | `TOTAL GOALS OVER/UNDER` |
+| `Over/Under {line} Corners` | `Corners - Over/Under` | `TOTAL CORNERS OVER/UNDER` |
+| `Over/Under {line} Bookings` | `Bookings - Over/Under` | `TOTAL CARDS OVER/UNDER` |
+| `Asian Handicap {line}` | `Asian Handicap` | `ASIAN HANDICAP` |
+| `1X2` / `Double Chance` / `Draw No Bet` legs | same names | `MATCH RESULT` / `DOUBLE CHANCE` / `DRAW NO BET` |
+
+Entries marked `verified: false` (shots, tackles, throw-ins, half markets, team totals, Asian
+handicap) use a header that has not been confirmed against a live page: only an exact header match
+is accepted, so a mismatch ends the attempt instead of filling from the wrong card.
+
+An entry may also carry `aliases` — SportyBet's `BTTS Yes`/`BTTS No` legs are selected from the
+`GG/NG` card, so the betslip names the card. `matchesMarket()` accepts those spellings
+(`GG/NG`, `GG/NG Yes`, `GG`, `Yes`), still rejecting a slip that states the other side
+(`GG/NG No`), and both content scripts pass their alias-aware check into `fillSlip`.
+
+Both dictionaries are classic scripts, not ES modules — `chrome.scripting.executeScript({ files })`
+cannot load modules — so they publish `globalThis.__markets` / `globalThis.__betboroMarkets` and are
+listed before the handler in `manifest.json` and in `background.js`'s `inject()`.
 
 ## Layout
 
@@ -39,10 +73,12 @@ use it after you have seen why the first attempt stopped.
 | `manifest.json` | MV3 manifest; host permissions limited to the two books plus Pages/localhost |
 | `background.js` | Job state machine, tab orchestration + split-view pairing, badge, panel message router |
 | `content/common.js` | DOM helpers shared by both bookie scripts (ported from `scripts/*-autobet.js`) |
-| `content/sportybet.js` | Deep-link-first fill: verify betslip, check price, type stake |
-| `content/betboro.js` | Click path: market tab → market header → outcome tile, then verify/type |
+| `content/sportybet.js` | Deep-link-first fill: dictionary lookup → section scroll → tile click, then verify/type |
+| `content/betboro.js` | Dictionary-driven click path: market tab → market header → outcome tile, then verify/type |
 | `content/bridge.js` | Dashboard ⇄ extension relay (`window.postMessage` + `chrome.runtime`) |
 | `panel/` | Side panel UI: feed list, stake preview, job progress |
+| `shared/markets.js` | SportyBet market dictionary + alias-aware outcome matcher |
+| `shared/betboro-markets.js` | BetBoro market dictionary (tab → section → tile) |
 | `shared/stakes.js` | Stake split/rounding shared by the panel preview and the worker |
 | `shared/feed.js` | `/api/arbs` → `/arbs.json` fallback reader |
 
