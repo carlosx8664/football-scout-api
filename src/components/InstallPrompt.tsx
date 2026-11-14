@@ -42,7 +42,7 @@ const InstallPrompt = () => {
 
   return (
     <button type="button" className="install-prompt" onClick={install}>
-      Install
+      Add to Home Screen
     </button>
   );
 };
