@@ -31,9 +31,9 @@ function amountFrom(value) {
 /**
  * Turns a settlement request into wallet credits, the winning bookie and the net profit.
  *
- * Stakes left the wallets at placement, so only *credits* are returned here: a normal win pays
- * `stake × odds`, a void refunds the cancelled stake(s), and a cash out returns the manual
- * amount. `netProfit` is always credits − total outlay.
+ * Stakes left the wallets at placement, so only *credits* are returned here: a cash win pays
+ * `stake × odds`, a free-bet win pays `stake × odds − stake`, a void refunds the cancelled
+ * stake(s), and a cash out returns the manual amount. `netProfit` is always credits − total outlay.
  */
 function planSettlement(bet, outcome, body) {
   // A free bet's leg A never left the wallet, so only real stakes count as outlay/refunds.
@@ -65,7 +65,10 @@ function planSettlement(bet, outcome, body) {
     if (body?.payoutAmount !== undefined && manual === null) {
       return { error: "`payoutAmount` must be a valid amount." };
     }
-    const payout = manual === null ? round2(won.stake * won.odds) : manual;
+    const payout =
+      manual === null
+        ? round2(won.stake * won.odds - (freeA && side === "a" ? won.stake : 0))
+        : manual;
     return {
       credits: [{ bookie: won.bookie, amount: payout }],
       winningBookie: won.bookie,

@@ -82,6 +82,11 @@ const SettleBetModal = ({
   };
   const totalStake = stakeOf("a") + stakeOf("b");
   const legOf = (side: "a" | "b") => (side === "a" ? bet.legA : bet.legB);
+  const payoutOf = (side: "a" | "b") => {
+    const leg = legOf(side);
+    const payout = leg.stake * leg.odds;
+    return bet.isFreeBet && side === "a" ? payout - leg.stake : payout;
+  };
   /** Free bets name each side so settling the right leg is unambiguous. */
   const roleLabel = (side: "a" | "b", bookie: string) => {
     if (!bet.isFreeBet) return bet.kind === "arb" ? bookie : `Leg ${side.toUpperCase()} · ${bookie}`;
@@ -122,7 +127,7 @@ const SettleBetModal = ({
 
     if (outcome === "win" && winner) {
       const leg = legOf(winner);
-      const payout = leg.stake * leg.odds;
+      const payout = payoutOf(winner);
       return {
         request: { simulation, outcome: "win", winner },
         credits: [{ bookie: leg.name, amount: payout, kind: "Payout" }],
@@ -163,7 +168,7 @@ const SettleBetModal = ({
       }
 
       if (remaining === "won") {
-        const payout = liveLeg.stake * liveLeg.odds;
+        const payout = payoutOf(voided === "a" ? "b" : "a");
         return {
           request: { simulation, outcome: "void", voided, remaining: "won" },
           credits: [
@@ -316,7 +321,7 @@ const SettleBetModal = ({
                     key={side}
                     label={`${leg.name} Won`}
                     hint={`${formatGhs(leg.stake)} @ ${leg.odds.toFixed(2)} → payout ${formatGhs(
-                      leg.stake * leg.odds,
+                      payoutOf(side),
                     )}`}
                     onClick={() => setWinner(side)}
                   />
@@ -378,7 +383,7 @@ const SettleBetModal = ({
                 <div className="settle-choices">
                   <Choice
                     label="It Won"
-                    hint={`Payout ${formatGhs(liveLeg.stake * liveLeg.odds)}`}
+                    hint={`Payout ${formatGhs(payoutOf(voided === "a" ? "b" : "a"))}`}
                     onClick={() => setRemaining("won")}
                   />
                   <Choice
