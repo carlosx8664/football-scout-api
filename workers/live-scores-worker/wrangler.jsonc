@@ -6,10 +6,6 @@
   "observability": {
     "enabled": true
   },
-  "triggers": {
-    // Cloudflare's finest granularity is one minute.
-    "crons": ["* * * * *"]
-  },
   // Same namespace as the Pages project: /api/live-scores reads feed-live-scores from it.
   "kv_namespaces": [
     {

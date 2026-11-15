@@ -10,10 +10,13 @@
  *
  * Requires puppeteer: npm i -D puppeteer
  */
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
+
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
 
 const DEFAULT_URL =
   'https://betboro.com.gh/pre-sports/1/region/50/competition/7249/fixture/91588027';

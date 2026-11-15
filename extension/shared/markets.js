@@ -42,7 +42,7 @@
       },
     },
     'Over/Under {line} Goals': overUnder('Over/Under', { marketId: '18', verified: true }),
-    'Over/Under {line} Corners': overUnder('Corners - Over/Under', { marketId: '166', verified: true }),
+    'Over/Under {line} Corners': overUnder('Corners', { marketId: '166', verified: true }),
     'Over/Under {line} Bookings': overUnder('Bookings - Over/Under', { marketId: '139', verified: true }),
     'Over/Under {line} Tackles': overUnder('Tackles - Over/Under'),
     'Over/Under {line} Throw-Ins': overUnder('Throw-Ins - Over/Under'),

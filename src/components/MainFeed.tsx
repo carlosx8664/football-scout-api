@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LiveMatch, Match } from "../types";
 import { formatKickoff, matchWinnerPrices } from "../lib/format";
 import {
+  LIVE_MAX_AGE_MS,
   indexLiveMatches,
   liveLabel,
   scoreParts,
@@ -216,11 +217,18 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
 
-  const { payload: liveScores } = useLiveScores();
+  const { payload: liveScores, error: liveScoresError } = useLiveScores();
   // The extrapolated minute is server time minus the snapshot time, so both sides use the
   // server's clock; `now` alone would let a skewed device invent minutes.
   const { offsetMs } = useServerClock();
-  const liveById = useMemo(() => indexLiveMatches(liveScores), [liveScores]);
+  const liveScoresFresh = Boolean(
+    liveScores && now - (liveScores.liveAt || 0) <= LIVE_MAX_AGE_MS,
+  );
+  const liveScoresDisabled = liveScoresError !== null || (liveScores !== null && !liveScoresFresh);
+  const liveById = useMemo(
+    () => indexLiveMatches(liveScoresFresh ? liveScores : null),
+    [liveScores, liveScoresFresh],
+  );
   const liveEventIds = useMemo(() => new Set(liveById.keys()), [liveById]);
   const anchor = { now: now + offsetMs, serverNow: liveScores?.serverNow ?? 0 };
 
@@ -362,7 +370,9 @@ const MainFeed = ({ matches, date, now, onSelectMatch }: MainFeedProps) => {
       {selectedMatches.length === 0 ? (
         <div className="empty-state">
           {activeDay === "live"
-            ? "No live matches right now for this league."
+            ? liveScoresDisabled
+              ? "Live scores are temporarily disabled."
+              : "No live matches right now for this league."
             : `No matches for ${activeSection?.label ?? "today"} for this league.`}
         </div>
       ) : (
