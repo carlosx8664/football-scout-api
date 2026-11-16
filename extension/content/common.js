@@ -426,15 +426,47 @@
    * `matches` lets a bookmaker pass its own alias-aware outcome check (the betslip may name the
    * market card rather than the scanner's outcome label).
    */
+  /**
+   * Nearest ancestor that looks like one selection row, or null when none matches.
+   * `table` keeps the `tr` option for the callers that already had it.
+   */
+  const selectionRowOf = (node, table = false) =>
+    node.closest(
+      `${table ? 'li, tr' : 'li'}, [class*="item" i], [class*="selection" i], [class*="bets_body" i]`,
+    );
+
+  /**
+   * The selection row that owns `node`, defined as the nearest ancestor whose own text shows a
+   * price — or null when nothing up to (but excluding) the slip carries one.
+   *
+   * Neither `closest()` nor a class match works here. SportyBet's slip root is `m-item …`, so a
+   * class match resolves to the slip itself; and the live control chain is
+   * `DIV.m-item > .m-lay-mid > .m-lay-mid > DIV.m-item-play > icon`, where `m-item-play` matches
+   * "item" but only its grandparent actually prints the odds. The price is what marks a selection.
+   */
+  function rowWithin(node, slip) {
+    for (let n = node.parentElement; n && n !== slip; n = n.parentElement) {
+      if (parseOdds(textOf(n)) != null) return n;
+    }
+    return null;
+  }
+
   /** Close/remove controls that belong to one selection (never the whole slip or Cashout). */
   function removalTargets(slip) {
     if (!slip) return [];
 
+    // An explicit remove/delete/trash control still only counts when its row looks like a
+    // selection: SportyBet renders `m-icon-delete` inside the empty betslip too, and without the
+    // row test that icon reads as a selection that can never be cleared.
     const explicit = [
       ...slip.querySelectorAll(
         '[class*="remove" i], [class*="delete" i], [class*="trash" i], [aria-label*="remove" i], [aria-label*="delete" i], [title*="remove" i]',
       ),
-    ];
+    ].filter((node) => {
+      if (!visible(node)) return false;
+      const row = rowWithin(node, slip);
+      return Boolean(row) && parseOdds(textOf(row)) != null;
+    });
 
     // SportyBet and BetBoro also render a bare "×" / trash glyph per selection row.
     const glyphs = [...slip.querySelectorAll('button, span, a, div')].filter((node) => {
@@ -463,20 +495,111 @@
     return unique.filter(visible);
   }
 
+  /** True when the node prints a price and nothing else — what a populated slip row shows. */
+  const priceLeaf = (node) =>
+    visible(node) && node.children.length === 0 && parseOdds(textOf(node)) != null;
+
   /**
-   * Empties a betslip before a job fills it, so a leftover selection cannot ride along and the
-   * stake we type is the only one on the page. Returns how many rows were removed.
+   * Selection rows in `slip`, found without relying on the removal controls.
+   *
+   * A populated betslip prints one two-decimal price per selection and an empty one prints none,
+   * so counting these rows is what proves the slip is empty rather than trusting a click.
    */
-  async function clearSlip(slip, { attempts = 6, waitMs = 250 } = {}) {
-    let cleared = 0;
-    for (let index = 0; index < attempts; index += 1) {
-      const [target] = removalTargets(slip);
-      if (!target) break;
-      deepClick(target.closest('button, a, [role="button"]') ?? target);
-      cleared += 1;
-      await sleep(waitMs);
+  function selectionRows(slip) {
+    if (!slip) return [];
+    const rows = new Set();
+    for (const node of slip.querySelectorAll('*')) {
+      if (!priceLeaf(node)) continue;
+      const row = selectionRowOf(node, true) ?? node.parentElement;
+      if (row && row !== slip && visible(row)) rows.add(row);
     }
-    return cleared;
+    return [...rows];
+  }
+
+  /**
+   * What the active slip currently holds: price rows plus the rows owning a removal control.
+   * A control without a readable price still counts, so such a row cannot pass as empty.
+   */
+  function slipSelections(slip) {
+    const targets = removalTargets(slip);
+    const rows = new Set(selectionRows(slip));
+    for (const target of targets) {
+      rows.add(selectionRowOf(target, true) ?? target);
+    }
+    return { selections: rows.size, targets };
+  }
+
+  /**
+   * Empties the active betslip and proves it is empty before returning.
+   *
+   * Removal clicks are only the means. After each one the slip is re-queried from the DOM and its
+   * selection rows recounted, then recounted again once the page has settled so a row the SPA
+   * restores is not reported as cleared. `ok` therefore means "a currently located slip shows zero
+   * selections", not "a click was dispatched". A slip that cannot be located is never read as
+   * empty: a hidden or closing panel proves nothing. Anything else stops the leg, because a stale
+   * selection must never ride along with the one about to be placed.
+   *
+   * @returns {Promise<{ok: true, removed: number, message: string}
+   *   | {ok: false, removed: number, reason: 'slip-not-found' | 'no-removal-control' | 'not-cleared', message: string}>}
+   */
+  async function clearSlip(slip, { attempts = 6, waitMs = 250, settleMs = 400 } = {}) {
+    // `null` means the slip could not be located — that is not evidence of an empty slip.
+    const read = () => {
+      const node = findSlip() ?? (visible(slip) ? slip : null);
+      return node ? slipSelections(node) : null;
+    };
+
+    const missing = (removed) => ({
+      ok: false,
+      removed,
+      reason: 'slip-not-found',
+      message: removed
+        ? `The betslip could not be found after ${removed} removal click(s), so clearing cannot be verified. Nothing filled.`
+        : 'The betslip could not be found, so it cannot be shown to be empty. Nothing filled.',
+    });
+
+    let state = read();
+    if (!state) return missing(0);
+    if (!state.selections) return { ok: true, removed: 0, message: 'Betslip was already empty.' };
+
+    let removed = 0;
+    for (let index = 0; index < attempts; index += 1) {
+      if (!state.targets.length) {
+        return {
+          ok: false,
+          removed,
+          reason: 'no-removal-control',
+          message: `The betslip holds ${state.selections} stale selection(s) but no removal control was found, so it cannot be cleared safely. Nothing filled.`,
+        };
+      }
+
+      const [target] = state.targets;
+      deepClick(target.closest('button, a, [role="button"]') ?? target);
+      removed += 1;
+      await sleep(waitMs);
+
+      state = read();
+      if (!state) return missing(removed);
+      if (!state.selections) {
+        await sleep(settleMs);
+        state = read();
+        if (!state) return missing(removed);
+        if (!state.selections) {
+          return {
+            ok: true,
+            removed,
+            message: `Betslip cleared (${removed} removal click(s)); no selections remain.`,
+          };
+        }
+      }
+    }
+
+    return {
+      ok: false,
+      removed,
+      reason: 'not-cleared',
+      message: `The betslip still holds ${state.selections} selection(s) after ${removed} removal attempt(s). Nothing filled.`,
+    };
   }
 
   async function fillSlip({ slip, stake, observedOdds, outcome, matches }) {

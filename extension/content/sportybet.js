@@ -109,7 +109,12 @@
 
     // 0. Start from an empty slip: a leftover selection would ride along with ours.
     const stale = A.findSlip();
-    if (stale && (await A.clearSlip(stale))) await A.sleep(400);
+    if (stale) {
+      const cleared = await A.clearSlip(stale);
+      console.log(`[autobet] ${BOOK} betslip clear: ${cleared.message}`);
+      if (!cleared.ok) return { status: 'failed', message: cleared.message };
+      if (cleared.removed) await A.sleep(400);
+    }
 
     // 1. The deep link usually selected the market already.
     let slip = await A.waitFor(() => {

@@ -122,6 +122,68 @@
     return null;
   }
 
+  const BETSLIP_COUNT_AT_START = /^betslip\s*(\d{0,3})(?!\d)/i;
+
+  /**
+   * BetBoro keeps the betslip selection count in `#myForm`, which exists even while the panel is
+   * hidden: "Betslip1My Bets1" with one selection, "BetslipMy Bets1" when empty. The rendered rows
+   * are unmounted while hidden, so this counter is the only evidence that a selection still exists.
+   *
+   * @returns {{state: 'zero'|'selected'|'unknown', count: number|null, reason: string}}
+   */
+  function betBoroSlipState() {
+    const form = document.querySelector('#myForm');
+    if (!form) return { state: 'unknown', count: null, reason: '#myForm not found' };
+
+    const text = A.textOf(form);
+    const match = text.match(BETSLIP_COUNT_AT_START);
+    if (!match) {
+      return {
+        state: 'unknown',
+        count: null,
+        reason: `unrecognised betslip counter "${text.slice(0, 60) || '(empty)'}"`,
+      };
+    }
+
+    // With no digits the observed layout continues with the next label ("BetslipMy Bets1");
+    // anything else ("Betslip(1)") is a layout this parser does not understand.
+    if (!match[1] && !/^[a-z]/i.test(text.slice(match[0].length))) {
+      return {
+        state: 'unknown',
+        count: null,
+        reason: `unrecognised betslip counter "${text.slice(0, 60)}"`,
+      };
+    }
+
+    const count = match[1] ? Number(match[1]) : 0;
+    return count > 0
+      ? { state: 'selected', count, reason: '' }
+      : { state: 'zero', count: 0, reason: '' };
+  }
+
+  /**
+   * Opens the closed BetBoro betslip so its hidden selections can be cleared.
+   * Only called when findSlip() is null, so the tab toggle is expected to open — not close — the panel.
+   *
+   * @returns {Promise<boolean>} whether a slip became visible after the click.
+   */
+  async function openBetslipPanel() {
+    // The tab is navigated just before this runs, so the toggle can still be hydrating (zero-sized).
+    const toggle = await A.waitFor(
+      () => [...document.querySelectorAll('.tab-button.betslip-btn')].filter(A.visible)[0] ?? null,
+      { timeout: 3000, interval: 200 },
+    );
+    if (!toggle) {
+      console.log(`[autobet] ${BOOK} closed betslip: no visible betslip toggle found`);
+      return false;
+    }
+
+    A.deepClick(toggle);
+    const opened = Boolean(await A.waitFor(() => A.findSlip(), { timeout: 5000, interval: 200 }));
+    if (!opened) console.log(`[autobet] ${BOOK} closed betslip: toggle clicked but no slip appeared`);
+    return opened;
+  }
+
   async function run(message) {
     const leg = message.leg ?? {};
     const outcome = String(leg.outcome ?? '');
@@ -137,7 +199,12 @@
 
     // 0. Start from an empty slip: a leftover selection would ride along with ours.
     const stale = A.findSlip();
-    if (stale && (await A.clearSlip(stale))) await A.sleep(400);
+    if (stale) {
+      const cleared = await A.clearSlip(stale);
+      console.log(`[autobet] ${BOOK} betslip clear: ${cleared.message}`);
+      if (!cleared.ok) return { status: 'failed', message: cleared.message };
+      if (cleared.removed) await A.sleep(400);
+    }
 
     let slip = await A.waitFor(() => {
       const candidate = A.findSlip();
@@ -147,6 +214,38 @@
     let tileOdds = null;
 
     if (!slip) {
+      // A closed betslip unmounts its rows, so findSlip() cannot see a selection it still holds.
+      // When nothing was visible to clear, the counter is the only evidence: if it reports
+      // selections, open the panel and clear them instead of clicking an outcome on top of them.
+      if (!stale) {
+        const counter = betBoroSlipState();
+        if (counter.state === 'unknown') {
+          return {
+            status: 'failed',
+            message: `Could not verify that the BetBoro betslip is empty (${counter.reason}). No new outcome was selected and no stake was entered.`,
+          };
+        }
+        if (counter.state === 'selected') {
+          const hidden = (await openBetslipPanel()) ? A.findSlip() : null;
+          if (!hidden) {
+            return {
+              status: 'failed',
+              message: `BetBoro holds ${counter.count} selection(s) in a closed betslip, and it could not be opened to clear them. No new outcome was selected and no stake was entered. Open the BetBoro betslip, review it, then run Autobet again.`,
+            };
+          }
+
+          const cleared = await A.clearSlip(hidden);
+          console.log(`[autobet] ${BOOK} closed betslip clear: ${cleared.message}`);
+          if (!cleared.ok) {
+            return {
+              status: 'failed',
+              message: `${cleared.message} ${counter.count} selection(s) were in the closed betslip. No new outcome was selected and no stake was entered.`,
+            };
+          }
+          if (cleared.removed) await A.sleep(400);
+        }
+      }
+
       openTab(spec.tab);
       await A.sleep(900);
 

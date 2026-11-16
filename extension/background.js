@@ -75,6 +75,12 @@ async function refreshBadge() {
 
 let running = false;
 
+/**
+ * Jobs the panel asked to stop. `cancelJob` only mutates the stored copy, while `runJob` keeps its
+ * own object, so the id is flagged here and checked by the loop and after it.
+ */
+const cancelledJobs = new Set();
+
 async function startJob(input) {
   if (running) throw new Error('A job is already running. Cancel it first.');
 
@@ -192,7 +198,7 @@ async function runJob(job) {
     await saveJob(job);
 
     for (const leg of job.legs) {
-      if (job.status !== 'running') break;
+      if (job.status !== 'running' || cancelledJobs.has(job.id)) break;
       if (leg.status === 'filled' || !leg.loaded) continue;
 
       leg.status = 'filling';
@@ -210,6 +216,13 @@ async function runJob(job) {
       }
 
       await saveJob(job);
+    }
+
+    if (cancelledJobs.has(job.id)) {
+      job.status = 'cancelled';
+      job.endedAt = job.endedAt ?? new Date().toISOString();
+      await saveJob(job);
+      return;
     }
 
     if (job.status === 'running') {
@@ -483,11 +496,22 @@ async function retryFailed(input) {
 
 async function cancelJob() {
   const job = await readJob();
-  if (!job || job.status !== 'running') return null;
+  if (!job) return null;
+  // runJob holds its own copy, so flag the id as well or the loop keeps going.
+  cancelledJobs.add(job.id);
   job.status = 'cancelled';
   job.endedAt = new Date().toISOString();
   await saveJob(job);
   return job;
+}
+
+/** Removes a finished job so the panel starts clean. A running job must be cancelled first. */
+async function clearJob() {
+  const job = await readJob();
+  if (job?.status === 'running') throw new Error('The job is still running. Cancel it first.');
+  if (job) cancelledJobs.delete(job.id);
+  await chrome.storage.session.remove(JOB_KEY);
+  return null;
 }
 
 // ---------------------------------------------------------------- messages
@@ -516,6 +540,8 @@ async function handle(message) {
     }
     case 'AUTOBET_CANCEL':
       return { ok: true, job: await cancelJob() };
+    case 'AUTOBET_CLEAR':
+      return { ok: true, job: await clearJob() };
     case 'AUTOBET_RETRY':
       return { ok: true, job: await retryFailed(message) };
     case 'AUTOBET_OUTCOME':

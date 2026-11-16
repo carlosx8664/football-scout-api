@@ -26,6 +26,7 @@ const ui = {
   jobActions: $('jobActions'),
   cancelBtn: $('cancelBtn'),
   retryBtn: $('retryBtn'),
+  dismissBtn: $('dismissBtn'),
   settings: $('settings'),
   stakeInput: $('stakeInput'),
   stepInput: $('stepInput'),
@@ -400,7 +401,9 @@ function renderJob() {
   );
 
   ui.cancelBtn.hidden = !running;
-  ui.jobActions.hidden = running || unfilled.length === 0;
+  // Retry/Dismiss stay reachable once a job stops, so a stuck or finished job can always be cleared.
+  ui.jobActions.hidden = running;
+  ui.retryBtn.hidden = unfilled.length === 0;
 }
 
 async function retryFailed() {
@@ -509,6 +512,19 @@ ui.cancelBtn.addEventListener('click', async () => {
 });
 
 ui.retryBtn.addEventListener('click', retryFailed);
+
+ui.dismissBtn.addEventListener('click', async () => {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'AUTOBET_CLEAR' });
+    if (!response?.ok) throw new Error(response?.error || 'Could not clear the job.');
+    state.job = null;
+    renderJob();
+    renderArbs();
+    say('Job cleared. You can run Autobet again.');
+  } catch (error) {
+    say(String(error?.message || error));
+  }
+});
 
 let pollTimer = null;
 function schedulePolling() {
