@@ -483,8 +483,9 @@
     if (!slip) {
       return { status: 'failed', observedOdds, message: 'Betslip not found.' };
     }
+    // Bookmaker callbacks normalize the slip themselves, so they get the element, not its text.
     const namesOutcome =
-      typeof matches === 'function' ? matches(textOf(slip)) : textMatches(textOf(slip), outcome);
+      typeof matches === 'function' ? matches(slip) : textMatches(textOf(slip), outcome);
     if (outcome && !namesOutcome) {
       return {
         status: 'failed',
