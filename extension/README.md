@@ -99,3 +99,26 @@ window.addEventListener('message', (event) => {
   if (event.data?.source === 'oddtor-autobet') console.log(event.data);
 });
 ```
+
+### Filling a whole slip (Bet Builder)
+
+`AUTOBET_SLIP` takes a list of selections on one bookmaker and types none of the stakes:
+
+```js
+window.postMessage(
+  {
+    source: 'oddtor-dashboard',
+    type: 'AUTOBET_SLIP',
+    requestId: 'abc',
+    legs: [
+      // market/outcome are BetBoro dictionary keys — see shared/betslip-betboro.js
+      { bookmaker: 'BetBoro', url: 'https://betboro.com.gh/...', market: 'Over/Under 2.5 Goals', outcome: 'Over', label: 'Over 2.5' },
+    ],
+  },
+  window.location.origin,
+);
+// reply: { source: 'oddtor-autobet', type: 'AUTOBET_SLIP_RESULT', requestId, result: { ok, filled, total, results[] } }
+```
+
+The first leg clears the BetBoro betslip (the same verified clear Autobet uses); later legs append.
+A missing `stake` means the stake stays empty for the user to fill.

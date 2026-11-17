@@ -7,6 +7,9 @@
  *   page  -> window.postMessage({ source: 'oddtor-dashboard', type: 'AUTOBET_START', arb, totalStake })
  *   ext   <- window.postMessage({ source: 'oddtor-autobet', type: 'AUTOBET_START_RESULT', requestId, result })
  *
+ *   page  -> window.postMessage({ source: 'oddtor-dashboard', type: 'AUTOBET_SLIP', legs })
+ *   ext   <- window.postMessage({ source: 'oddtor-autobet', type: 'AUTOBET_SLIP_RESULT', requestId, result })
+ *
  * The same page can also listen for 'AUTOBET_READY' to know the extension is installed.
  */
 (() => {
@@ -36,18 +39,22 @@
       return;
     }
 
-    if (data.type !== 'AUTOBET_START') return;
+    if (data.type !== 'AUTOBET_START' && data.type !== 'AUTOBET_SLIP') return;
+
+    const isSlip = data.type === 'AUTOBET_SLIP';
 
     chrome.runtime.sendMessage(
-      {
-        type: 'AUTOBET_START',
-        arb: data.arb,
-        totalStake: data.totalStake,
-        roundStep: data.roundStep,
-      },
+      isSlip
+        ? { type: 'AUTOBET_SLIP', legs: Array.isArray(data.legs) ? data.legs : [] }
+        : {
+            type: 'AUTOBET_START',
+            arb: data.arb,
+            totalStake: data.totalStake,
+            roundStep: data.roundStep,
+          },
       (result) => {
         post({
-          type: 'AUTOBET_START_RESULT',
+          type: isSlip ? 'AUTOBET_SLIP_RESULT' : 'AUTOBET_START_RESULT',
           requestId: data.requestId ?? null,
           result: result ?? { ok: false, error: chrome.runtime.lastError?.message ?? 'No response' },
         });

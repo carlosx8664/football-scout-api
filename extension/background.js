@@ -436,6 +436,88 @@ async function sendFill(tabId, leg, job, settingsNow) {
   throw lastError ?? new Error('The page never accepted the fill command.');
 }
 
+// ---------------------------------------------------- slip job (Bet Builder -> one book)
+
+/**
+ * Fills a whole betslip on a single bookmaker.
+ *
+ * BetBoro exposes no booking/share API, so the only way to load a slip is to open each fixture and
+ * click the outcome. The first leg clears the slip (the same `clearBetslip` guard Autobet uses),
+ * later legs append, and no stake is typed — the user reviews the slip before staking.
+ */
+async function sendSlipFill(tabId, leg, { clearSlip }) {
+  const message = {
+    type: 'AUTOBET_FILL',
+    leg: {
+      bookmaker: leg.bookmaker,
+      url: leg.url,
+      outcome: leg.outcome,
+      expectedOdds: 0,
+      stake: 0,
+    },
+    arb: { home: leg.home ?? '', away: leg.away ?? '', market: leg.market ?? '' },
+    // The slip carries no price from the screenshots; the live tile price is reported instead.
+    ignoreOdds: true,
+    clearSlip: Boolean(clearSlip),
+  };
+
+  let lastError = null;
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, message);
+      if (response) return response;
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt === 5) await inject(tabId, leg.bookmaker).catch(() => {});
+    await sleep(750);
+  }
+
+  throw lastError ?? new Error('The page never accepted the fill command.');
+}
+
+async function fillSlip(input) {
+  const legs = Array.isArray(input?.legs) ? input.legs : [];
+  if (!legs.length) throw new Error('The slip has no selections to add.');
+  if (legs.length > 20) throw new Error('A slip can hold at most 20 selections.');
+
+  const results = [];
+
+  for (const [index, leg] of legs.entries()) {
+    const bookmaker = leg?.bookmaker || 'BetBoro';
+    const label = leg?.label || `${leg?.market ?? ''} / ${leg?.outcome ?? ''}`.trim();
+
+    if (!SUPPORTED[bookmaker]) {
+      results.push({ label, status: 'failed', message: `${bookmaker} is not supported.` });
+      continue;
+    }
+    if (!/^https?:\/\//i.test(String(leg?.url ?? ''))) {
+      results.push({ label, status: 'failed', message: 'No fixture link for this selection.' });
+      continue;
+    }
+
+    try {
+      const tab = await openTab({ url: leg.url });
+      await waitForTab(tab.id, new URL(leg.url).host);
+      const response = await sendSlipFill(tab.id, { ...leg, bookmaker }, { clearSlip: index === 0 });
+      results.push({
+        label,
+        status: response?.status ?? 'failed',
+        message: response?.message ?? '',
+        observedOdds: Number.isFinite(response?.observedOdds) ? response.observedOdds : null,
+      });
+    } catch (error) {
+      results.push({ label, status: 'failed', message: String(error?.message || error) });
+    }
+  }
+
+  const filled = results.filter((entry) => entry.status === 'filled').length;
+  console.log(`[autobet] slip fill ${filled}/${results.length} on ${results.length ? 'book' : '-'}`);
+  return { ok: filled > 0, filled, total: results.length, results };
+}
+
 async function inject(tabId, bookmaker) {
   const file = SUPPORTED[bookmaker];
   if (!file) return;
@@ -529,6 +611,8 @@ async function handle(message) {
       return { ok: true, version: chrome.runtime.getManifest().version };
     case 'AUTOBET_START':
       return { ok: true, job: await startJob(message) };
+    case 'AUTOBET_SLIP':
+      return await fillSlip(message);
     case 'AUTOBET_GET':
       return { ok: true, job: await readJob() };
     case 'AUTOBET_REFRESH': {

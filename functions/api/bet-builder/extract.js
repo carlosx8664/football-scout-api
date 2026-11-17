@@ -1,8 +1,6 @@
 import { matchBetslipLegs, toSportyBetSelections } from "../../../shared/betslip-match.js";
-import {
-  MAX_SHARE_SELECTIONS,
-  createSportyBetShare,
-} from "../../../shared/sportybet.js";
+import { MAX_SHARE_SELECTIONS, createSportyBetShare } from "../../../shared/sportybet.js";
+import { toBetBoroSelections } from "../../../shared/betslip-betboro.js";
 import { PROMPT_VERSION } from "../../../shared/betslip-prompt.js";
 import {
   VisionError,
@@ -204,7 +202,7 @@ export async function onRequestPost(context) {
   const { matched, unresolved } = matchBetslipLegs(legs, fixtures);
 
   // --- SportyBet share code -------------------------------------------------
-  const { selections, skipped, bookings } = toSportyBetSelections(matched);
+  const { selections, skipped: sportybetSkipped, bookings } = toSportyBetSelections(matched);
   // Each matched leg carries its own booking payload, so the client can open a slip with just the
   // legs the user ticked ("Add to Slip") without re-scanning the image.
   const matchedLegs = matched.map((entry, index) =>
@@ -212,12 +210,12 @@ export async function onRequestPost(context) {
   );
   const notes = [];
 
-  if (skipped.length > 0) {
+  if (sportybetSkipped.length > 0) {
     // Workers logs: `npx wrangler pages deployment tail`. Shows exactly why a leg was not booked.
     console.log(
       "bet-builder: skipped SportyBet selections",
       JSON.stringify(
-        skipped.map(({ leg, reason }) => ({
+        sportybetSkipped.map(({ leg, reason }) => ({
           reason,
           market: leg?.market ?? null,
           selection: leg?.selection ?? null,
@@ -226,11 +224,8 @@ export async function onRequestPost(context) {
         })),
       ),
     );
-  }
-
-  if (skipped.length > 0) {
     notes.push(
-      `${skipped.length} leg${skipped.length === 1 ? "" : "s"} can't be added to a SportyBet betslip automatically.`,
+      `${sportybetSkipped.length} leg${sportybetSkipped.length === 1 ? "" : "s"} can't be added to a SportyBet betslip automatically.`,
     );
   }
 
@@ -258,6 +253,26 @@ export async function onRequestPost(context) {
     }
   }
 
+  // --- BetBoro slip payload --------------------------------------------------
+  // BetBoro has no booking API: the extension clicks each outcome, so the response carries the
+  // market/outcome pair its dictionary understands plus the fixture deep link.
+  const { legs: betboroLegs, skipped: betboroSkipped } = toBetBoroSelections(matched);
+
+  if (betboroSkipped.length > 0) {
+    // Workers logs: `npx wrangler pages deployment tail`. Shows exactly why a leg was not mapped.
+    console.log(
+      "bet-builder: skipped BetBoro selections",
+      JSON.stringify(
+        betboroSkipped.map(({ leg, reason }) => ({
+          reason,
+          market: leg?.market ?? null,
+          selection: leg?.selection ?? null,
+          rawText: leg?.rawText ?? null,
+        })),
+      ),
+    );
+  }
+
   return json({
     bookmaker: extracted.parsed.bookmaker ?? null,
     warnings: Array.isArray(extracted.parsed.warnings) ? extracted.parsed.warnings : [],
@@ -266,6 +281,10 @@ export async function onRequestPost(context) {
     sportybetAccaUrl,
     sportybetAccaCode,
     sportybetAccaWarning: notes.length > 0 ? notes.join(" ") : null,
+    betboro: {
+      legs: betboroLegs,
+      skipped: betboroSkipped.length,
+    },
     cached: extracted.cached,
     stats: {
       legs: legs.length,
@@ -273,6 +292,7 @@ export async function onRequestPost(context) {
       unresolved: unresolved.length,
       fixtures: fixtures.length,
       bookable: bookable.length,
+      betboroBookable: betboroLegs.length,
     },
   });
 }

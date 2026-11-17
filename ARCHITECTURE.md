@@ -131,7 +131,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `arbs/share.js` | `POST` — SportyBet booking codes → share URL |
 | `analysis.js` | `GET` — DeepSeek match preview w/ live search, KV-cached 6 h |
 | `standings.js` | `GET` — league table via football-data.org, KV-cached 30 min |
-| `bet-builder/extract.js` | `POST` — betslip screenshot → matched legs + deep links (KV cache by image hash) |
+| `bet-builder/extract.js` | `POST` — betslip screenshot → matched legs, SportyBet share code + BetBoro slip payload (KV cache by image hash) |
 | `wallets.js` | `GET` — wallets, liquidity, profit, cash-flow totals, pending-settlement bookies |
 | `wallets/[id].js` | `PATCH` balance · `DELETE` (not used by UI) |
 | `wallets/[id]/transfers.js` | `POST` — deposit/withdrawal with no amount cap and no rate limit (top-up limited by the Momo reserve, withdrawal by the balance); moves the Momo reserve the other way |
@@ -156,7 +156,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `leagues.js` | Single source of truth for the 16 tracked leagues |
 | `arb-key.js` | Stable arb identity shared by scanner, push sender and UI |
 | `mug-bets.js` | Mug-bet row mapping + totals |
-| `sportybet.js`, `betslip-prompt.js`, `betslip-match.js`, `vision.js` | Booking API, vision prompt, leg matching, free-tier vision adapters |
+| `sportybet.js`, `betslip-prompt.js`, `betslip-match.js`, `betslip-betboro.js`, `vision.js` | Booking API, vision prompt, leg matching, BetBoro slip mapper, free-tier vision adapters |
 
 ### Scripts — `scripts/`
 

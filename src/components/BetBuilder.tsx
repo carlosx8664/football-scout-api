@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { selectionSide } from "../../shared/betslip-match.js";
-import { extractBetslip, createSportyBetSlip } from "../lib/betBuilder";
+import { extractBetslip, addToBetBoroSlip, createSportyBetSlip } from "../lib/betBuilder";
 import type {
   BetBuilderResponse,
   Match,
@@ -101,14 +101,11 @@ const BookButton = ({
   );
 };
 
-/** The local books we convert a slip to. Order is the display order everywhere. */
+/** The two books a scanned slip can be loaded into. Order is the display order everywhere. */
 type BookKey = keyof MatchedLeg["links"];
 
 const LOCAL_BOOKS: Array<{ key: BookKey; label: string; brand?: boolean }> = [
   { key: "sportybet", label: "SportyBet", brand: true },
-  { key: "msport", label: "MSport" },
-  { key: "betpawa", label: "BetPawa" },
-  { key: "boltbet", label: "BoltBet" },
   { key: "betboro", label: "BetBoro" },
 ];
 
@@ -140,7 +137,7 @@ const MatchedRow = ({ entry }: { entry: MatchedLeg }) => {
   const prices = side
     ? {
         SportyBet: priceFor(match, side, "SportyBet"),
-        MSport: priceFor(match, side, "MSport"),
+        BetBoro: priceFor(match, side, "BetBoro"),
       }
     : null;
   const movement = prices ? oddsMovement(leg.odds, prices) : null;
@@ -317,7 +314,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  /** Book the user is converting the slip to; only SportyBet can load a slip. */
+  /** Book the user is converting the slip to: SportyBet (share code) or BetBoro (extension). */
   const [targetBook, setTargetBook] = useState<BookKey>("sportybet");
   /** rowIndexes of the legs staged for the SportyBet slip. */
   const [staged, setStaged] = useState<number[]>([]);
@@ -420,9 +417,13 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const unresolved = result?.unresolved ?? [];
   const warnings = result?.warnings ?? [];
 
+  /** SportyBet bookings for the legs the user ticked (or the whole slip when none are ticked). */
   const stagedBookings = matched
     .filter((entry) => entry.booking && staged.includes(entry.leg.rowIndex))
     .map((entry) => entry.booking as NonNullable<MatchedLeg["booking"]>);
+
+  /** Selections the extension can click into the BetBoro betslip. */
+  const betboroLegs = result?.betboro?.legs ?? [];
 
   const addStagedToSlip = async () => {
     if (stagedBookings.length === 0) return;
@@ -433,6 +434,29 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     } catch (caught) {
       setSlipError(
         caught instanceof Error ? caught.message : "Could not build the SportyBet slip.",
+      );
+    } finally {
+      setSlipBusy(false);
+    }
+  };
+
+  const addSlip = async () => {
+    if (betboroLegs.length === 0) return;
+    setSlipBusy(true);
+    setSlipError(null);
+    try {
+      const outcome = await addToBetBoroSlip(betboroLegs);
+      if (outcome.filled < outcome.total) {
+        const failed = outcome.results
+          .filter((entry) => entry.status !== "filled")
+          .map((entry) => `${entry.label}: ${entry.message || entry.status}`);
+        setSlipError(
+          `Added ${outcome.filled} of ${outcome.total}. ${failed.slice(0, 3).join(" | ")}`,
+        );
+      }
+    } catch (caught) {
+      setSlipError(
+        caught instanceof Error ? caught.message : "Could not fill the BetBoro slip.",
       );
     } finally {
       setSlipBusy(false);
@@ -578,9 +602,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                 onClick={() => void addStagedToSlip()}
                 disabled={slipBusy}
               >
-                {slipBusy
-                  ? "Building slip…"
-                  : `Add ${stagedBookings.length} to SportyBet slip`}
+                {slipBusy ? "Building slip…" : `Add ${stagedBookings.length} to SportyBet slip`}
                 <span className="bb-btn-icon" aria-hidden="true">
                   ↗
                 </span>
@@ -599,15 +621,37 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
               </button>
             ))}
 
+          {targetBook === "betboro" && betboroLegs.length > 0 && (
+            <button
+              type="button"
+              className="bb-btn bb-btn-brand bb-btn-compact"
+              onClick={() => void addSlip()}
+              disabled={slipBusy}
+            >
+              {slipBusy ? "Opening BetBoro…" : `Add ${betboroLegs.length} to BetBoro slip`}
+              <span className="bb-btn-icon" aria-hidden="true">
+                ↗
+              </span>
+            </button>
+          )}
+
           {slipError && (
             <span className="bb-acca-warn" role="alert">
               {slipError}
             </span>
           )}
 
-          {result?.sportybetAccaWarning && (
+          {targetBook === "sportybet" && result?.sportybetAccaWarning && (
             <span className="bb-acca-warn" role="status">
               {result.sportybetAccaWarning}
+            </span>
+          )}
+
+          {targetBook === "betboro" && Boolean(result?.betboro?.skipped) && (
+            <span className="bb-acca-warn" role="status">
+              {result?.betboro?.skipped} selection
+              {result?.betboro?.skipped === 1 ? "" : "s"} can&apos;t be added to BetBoro
+              automatically.
             </span>
           )}
 
@@ -658,9 +702,32 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                   Add all {result?.stats?.bookable ?? matched.length} to SportyBet betslip
                   <span className="bb-btn-icon" aria-hidden="true">↗</span>
                 </button>
+                <button
+                  type="button"
+                  className="bb-btn bb-btn-brand bb-btn-acca"
+                  onClick={() => void addSlip()}
+                  disabled={slipBusy || betboroLegs.length === 0}
+                >
+                  {slipBusy
+                    ? "Opening BetBoro…"
+                    : `Add all ${betboroLegs.length} to BetBoro betslip`}
+                  <span className="bb-btn-icon" aria-hidden="true">↗</span>
+                </button>
+                {slipError && (
+                  <span className="bb-acca-warn" role="alert">
+                    {slipError}
+                  </span>
+                )}
                 {result?.sportybetAccaWarning && (
                   <span className="bb-acca-warn" role="status">
                     {result.sportybetAccaWarning}
+                  </span>
+                )}
+                {Boolean(result?.betboro?.skipped) && (
+                  <span className="bb-acca-warn" role="status">
+                    {result?.betboro?.skipped} selection
+                    {result?.betboro?.skipped === 1 ? "" : "s"} can&apos;t be added to BetBoro
+                    automatically.
                   </span>
                 )}
               </div>

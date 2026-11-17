@@ -30,6 +30,25 @@
       verified: true,
       outcomes: { Yes: 'Yes', No: 'No' },
     },
+    // Bet Builder vocabulary (`shared/betslip-betboro.js`): plain 1X2 and double chance.
+    'Match Result': {
+      tab: '1X2',
+      verified: true,
+      legs: {
+        Home: { section: 'MATCH RESULT', outcome: 'Home' },
+        Draw: { section: 'MATCH RESULT', outcome: 'Draw' },
+        Away: { section: 'MATCH RESULT', outcome: 'Away' },
+      },
+    },
+    'Double Chance': {
+      tab: '1X2',
+      verified: true,
+      legs: {
+        'Home or Draw': { section: 'DOUBLE CHANCE', outcome: 'Home or Draw' },
+        'Home or Away': { section: 'DOUBLE CHANCE', outcome: 'Home or Away' },
+        'Draw or Away': { section: 'DOUBLE CHANCE', outcome: 'Draw or Away' },
+      },
+    },
     'Over/Under {line} Goals': overUnder('TOTAL GOALS OVER/UNDER', { tab: 'GOALS', verified: true }),
     'Over/Under {line} Corners': overUnder('TOTAL CORNERS OVER/UNDER', { tab: 'CORNERS', verified: true }),
     'Over/Under {line} Bookings': overUnder('TOTAL CARDS OVER/UNDER', { tab: 'CARDS', verified: true }),

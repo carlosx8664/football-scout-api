@@ -337,25 +337,27 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
    `city`, so the stripped names alone are not enough. Club-form words that never separate two
    teams (`BK`, `Boldklub`, `SL`, …) are ignored on both sides, which is what lets "Odense BK"
    match "Odense Boldklub".
-4. Matched legs are mapped to SportyBet booking ids (`toSportyBetSelections`): 1X2 by side,
-   `Total Goals`/`Over-Under` (line taken from the selection, "Over 1.5"), Double Chance,
-   Draw No Bet and BTTS. Team-total and other unlisted markets are skipped rather than guessed,
-   so the share code can never book a different bet than the screen shows.
-5. Every hit carries a link for each local book — `links.sportybet` / `links.msport` /
-   `links.betpawa` / `links.boltbet` / `links.betboro` from `shared/deeplinks.js`, which tries the
-   full slug path (`…/football/{league}/{home}_vs_{away}/sr:match:{id}`), then the bare Sportradar
-   id, then a Google site search (rendered with a 🔍 icon in the UI). BetBoro, BoltBet and BetPawa
-   fixture pages need their own ids, so `scripts/build-match-feed.js` attaches them as
-   `book_ids` (BoltBet joined by team names + kickoff, BetPawa by names only — its dump has no
-   kickoff and is today-only).
-6. SportyBet is the only book we can load a slip into. Each matched leg carries its own `booking`
-   payload, so "Add to Slip" opens `POST /api/arbs/share` for just the ticked legs; with nothing
-   ticked the panel falls back to the share link minted for the whole scan. Other books stay
-   deep links — they expose no booking API.
+4. Matched legs are mapped twice, once per book a slip can be loaded into:
+   `toSportyBetSelections` (`shared/betslip-match.js`) yields booking ids — 1X2 by side,
+   `Total Goals`/`Over-Under` (line taken from the selection, "Over 1.5"), Double Chance, Draw No
+   Bet and BTTS — and `toBetBoroSelections` (`shared/betslip-betboro.js`) yields the market/tile
+   pair the extension clicks. Team-total and other unlisted markets are skipped rather than
+   guessed, so neither book can end up with a different bet than the screen shows.
+5. Every hit carries a link for both books: `links.sportybet` and `links.betboro` from
+   `shared/deeplinks.js`. SportyBet uses the Sportradar id; BetBoro needs its own
+   region/competition/fixture ids, which `scripts/build-match-feed.js` attaches as
+   `book_ids.betboro`.
+6. Either book can be chosen, and each loads the slip differently:
+   - **SportyBet** — `POST /api/arbs/share` mints a booking code for the ticked legs (or the whole
+     scan), and the share link loads them into the betslip.
+   - **BetBoro** — no booking API exists, so `AUTOBET_SLIP` asks the **Odds Autobet** extension to
+     open each fixture, clear the betslip once (first leg only) and click each outcome. No stake is
+     typed.
 
 ```
 POST /api/bet-builder/extract    multipart/form-data, field "image"
-  → 200  { bookmaker, warnings, matched[], unresolved[], cached, stats }
+  → 200  { bookmaker, warnings, matched[], unresolved[], sportybetAccaUrl/Code/Warning,
+           betboro{ legs[], skipped }, cached, stats }
   → 400  no image          413  over 8 MB        415  not PNG/JPEG/WebP/GIF
   → 502/504 vision failure                     503  GEMINI_API_KEY missing
 ```

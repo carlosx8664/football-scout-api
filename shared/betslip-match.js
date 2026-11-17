@@ -22,7 +22,7 @@
  */
 
 import { normalizeTeam } from "./teams.js";
-import { BETBORO, BETPAWA, BOLTBET, MSPORT, SPORTY, directUrl } from "./deeplinks.js";
+import { BETBORO, SPORTY, directUrl } from "./deeplinks.js";
 
 /** Confidence at or above this is auto-matched. */
 const MATCH_THRESHOLD = 0.72;
@@ -263,13 +263,10 @@ function buildLinks(match) {
     ...(match?.book_ids?.betpawa ?? {}),
   };
 
-  // Every book we can actually place the bet on. The source bookmaker of the screenshot is
-  // irrelevant: the slip is being converted to these local books.
+  // The two books a slip can actually be loaded into: SportyBet through its booking API, BetBoro
+  // through the extension. The other books are no longer offered by the bet builder.
   return {
     sportybet: directUrl(SPORTY, eventId, context),
-    msport: directUrl(MSPORT, eventId, context),
-    betpawa: directUrl(BETPAWA, eventId, context),
-    boltbet: directUrl(BOLTBET, eventId, context),
     betboro: directUrl(BETBORO, eventId, context),
   };
 }

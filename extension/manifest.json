@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Odds Autobet",
-  "version": "0.1.0",
-  "description": "Fills SportyBet and BetBoro betslips from the Oddtor arb feed. Never places a bet.",
+  "version": "0.2.0",
+  "description": "Fills SportyBet and BetBoro betslips from the Oddtor arb feed and the Bet Builder. Never places a bet.",
   "minimum_chrome_version": "116",
   "permissions": ["tabs", "scripting", "storage", "alarms", "sidePanel"],
   "host_permissions": [

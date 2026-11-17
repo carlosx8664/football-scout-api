@@ -212,11 +212,16 @@
     const spec = M.resolveBetboroMarket(market, outcome);
     if (!spec.ok) return { status: 'unsupported', message: spec.reason };
 
+    // A slip job adds one selection per fixture: only the first leg clears the slip, and no stake
+    // is typed, so the user reviews the whole slip before staking anything.
+    const clearFirst = message.clearSlip !== false;
+    const wantsStake = Number(leg.stake) > 0;
+
     const matchesOutcome = (slip) => slip && namesOutcome(slip, spec);
 
     // 0. Start from an empty slip: a leftover selection would ride along with ours.
     const stale = A.findSlip();
-    if (stale) {
+    if (clearFirst && stale) {
       const cleared = await clearBetslip(stale);
       console.log(`[autobet] ${BOOK} betslip clear: ${cleared.message}`);
       if (!cleared.ok) return { status: 'failed', message: cleared.message };
@@ -234,7 +239,7 @@
       // A closed betslip unmounts its rows, so findSlip() cannot see a selection it still holds.
       // When nothing was visible to clear, the counter is the only evidence: if it reports
       // selections, open the panel and clear them instead of clicking an outcome on top of them.
-      if (!stale) {
+      if (clearFirst && !stale) {
         const counter = betBoroSlipState();
         if (counter.state === 'unknown') {
           return {
@@ -297,6 +302,15 @@
     const observed = A.readSlipOdds(slip, expected) ?? tileOdds;
     const check = A.oddsCheck(expected, observed, tolerance, message.ignoreOdds);
     if (!check.ok) return { status: 'aborted', observedOdds: observed, message: check.message };
+
+    // Slip mode: the selection is in the betslip; leave the stake for the user.
+    if (!wantsStake) {
+      return {
+        status: 'filled',
+        observedOdds: observed,
+        message: `"${outcome}" added to the ${BOOK} betslip${observed ? ` at ${observed.toFixed(2)}` : ''}.`,
+      };
+    }
 
     return A.fillSlip({
       slip,

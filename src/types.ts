@@ -541,12 +541,9 @@ export interface ExtractedLeg {
   odds: number | null;
 }
 
-/** Deep links for one fixture, on every local book. Null when that book's URL cannot be built. */
+/** Deep links for one fixture, on the two books a slip can be loaded into. */
 export interface BetslipLinks {
   sportybet: string | null;
-  msport: string | null;
-  betpawa: string | null;
-  boltbet: string | null;
   betboro: string | null;
 }
 
@@ -560,6 +557,20 @@ interface BetBuilderHit {
   /** True when the slip printed the teams in the opposite order to the feed. */
   flipped: boolean;
   links: BetslipLinks;
+}
+
+/** One selection for the BetBoro betslip, filled by the `Odds Autobet` extension. */
+export interface BetBoroSlipLeg {
+  /** BetBoro fixture deep link. */
+  url: string;
+  /** BetBoro market card, e.g. "Over/Under 2.5 Goals". */
+  market: string;
+  /** Outcome tile inside that card, e.g. "Over". */
+  outcome: string;
+  /** Price printed on the slip, when it had one. */
+  odds: number | null;
+  /** Human label for the panel/log. */
+  label: string;
 }
 
 /** SportyBet booking payload for one leg; POSTed to /api/arbs/share to mint a slip link. */
@@ -603,8 +614,14 @@ export interface BetBuilderResponse {
   /** SportyBet booking link that loads every mapped selection into the betslip. */
   sportybetAccaUrl?: string | null;
   sportybetAccaCode?: string | null;
-  /** Why the betslip is missing legs, partial, or could not be built at all. */
+  /** Why the SportyBet betslip is missing legs, partial, or could not be built at all. */
   sportybetAccaWarning?: string | null;
+  /** Selections the extension can click into a BetBoro betslip. */
+  betboro?: {
+    legs: BetBoroSlipLeg[];
+    /** Matched legs BetBoro has no market mapping for. */
+    skipped: number;
+  } | null;
   /** True when the extraction came from the KV cache. */
   cached?: boolean;
   stats?: {
@@ -614,5 +631,7 @@ export interface BetBuilderResponse {
     fixtures: number;
     /** Selections SportyBet accepted for the share code. */
     bookable?: number;
+    /** Selections BetBoro can take. */
+    betboroBookable?: number;
   };
 }
