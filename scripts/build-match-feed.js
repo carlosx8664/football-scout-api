@@ -852,12 +852,11 @@ async function main() {
   log(`Matches from ${new Date(windowStart).toISOString()} through ${new Date(windowEnd).toISOString()} (${windowDays} days): ${matches.length}.`);
 
   // --- Bet Builder fixture pool ---------------------------------------------
-  // Written before the arbitrage feed's early returns: the Builder's coverage does not depend on
-  // the tracked-league window being populated. Same fixtures, minus the league filter, in a lean
-  // shape (no odds, logos or analysis). Skipped for `--suffix` (horizon) so it cannot be overwritten
-  // by a build that only sees the horizon snapshots.
-  if (!values.suffix) {
-    const poolOut = values["pool-out"] || values.out.replace(/\.json$/, "-pool.json");
+  // Opt-in: only the dedicated `Bet Builder pool` workflow passes `--pool-out`, so the arbitrage
+  // run does no extra work and cannot be affected by this. Same fixtures, minus the league filter,
+  // in a lean shape (no odds, logos or analysis).
+  if (values["pool-out"]) {
+    const poolOut = values["pool-out"];
     const poolFixtures = [...poolBySrId.values()]
       .map((group) => mergeEvents(group))
       .filter((entry) => entry.startTime >= windowStart && entry.startTime <= windowEnd)

@@ -1,0 +1,77 @@
+name: Bet Builder pool
+
+# Separate from `Odds refresh` on purpose: the arbitrage tracker keeps its own schedule, payload and
+# failure domain. This job only widens what the Bet Builder can match — fixtures from leagues the
+# tracker does not follow — and never touches `feed-matches` or `feed-arbs`.
+#
+# The Builder needs coverage, not prices, so it runs less often than the odds refresh.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: betbuilder-pool
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  pool:
+    name: Build and publish the Bet Builder fixture pool
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DAYS: 2
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # BoltBet is deliberately skipped: its dump is ~120 MB and the pool never uses its ids.
+      - name: Fetch bookmaker dumps
+        run: |
+          node scripts/fetch-odds.js --days="$DAYS" --only=sportybet
+          node scripts/fetch-odds.js --days="$DAYS" --only=msport
+          node scripts/fetch-odds.js --days="$DAYS" --only=betboro
+
+      # `--out` is a throwaway path: this job must never rewrite the arbitrage feed.
+      - name: Build the Bet Builder pool
+        run: |
+          node scripts/build-match-feed.js --no-ai --days="$DAYS" \
+            --out /tmp/matches-unused.json \
+            --pool-out public/matches-pool.json
+
+      - name: Verify the pool was written
+        run: |
+          if [ ! -s public/matches-pool.json ]; then
+            echo "::error::public/matches-pool.json is missing or empty; refusing to overwrite KV."
+            exit 1
+          fi
+          echo "pool: $(wc -c < public/matches-pool.json) bytes"
+
+      - name: Publish the pool to KV
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          CF_API_TOKEN_CLEAN=$(printf '%s' "$CF_API_TOKEN" | tr -d '[:space:]')
+          curl -sS --fail-with-body -X PUT \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/storage/kv/namespaces/${CF_KV_NAMESPACE_ID}/values/feed-matches-pool" \
+            -H "Authorization: Bearer ${CF_API_TOKEN_CLEAN}" \
+            -H "Content-Type: application/json" \
+            --data-binary "@public/matches-pool.json"
+          echo " -> wrote feed-matches-pool"
