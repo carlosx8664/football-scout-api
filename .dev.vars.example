@@ -7,6 +7,8 @@
 GEMINI_API_KEY=
 # Optional second free provider, used when Gemini errors or is rate-limited (OpenRouter `:free`).
 # OPENROUTER_API_KEY=
+# Groq is kept as a last resort, but its free tier currently serves no vision model.
+# GROQ_API_KEY=
 # VISION_PROVIDER=gemini
 # VISION_MODEL=gemini-2.5-flash
 

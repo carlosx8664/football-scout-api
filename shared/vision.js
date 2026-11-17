@@ -6,9 +6,11 @@
  * deterministic in `betslip-match.js`, so a misread row can never book a different bet.
  *
  * Providers, tried in order:
- *   gemini      Google AI Studio free tier   GEMINI_API_KEY       (best OCR)
- *   groq        Groq free tier               GROQ_API_KEY
- *   openrouter  OpenRouter `:free` models    OPENROUTER_API_KEY
+ *   gemini      Google AI Studio free tier   GEMINI_API_KEY       (primary)
+ *   openrouter  OpenRouter `:free` models    OPENROUTER_API_KEY   (fallback)
+ *   groq        Groq free tier               GROQ_API_KEY         (last resort: its free tier is
+ *                                                                 text-only right now, so it is
+ *                                                                 only useful if that changes)
  *
  * `VISION_PROVIDER` puts one first; `VISION_MODEL` overrides the primary provider's model.
  * A couple of slips a day fits the free allowance of all three, and KV caches each image by
@@ -149,22 +151,27 @@ async function discoverVisionModel(provider) {
 export function resolveVisionChain(env) {
   const keys = {
     gemini: trim(env?.GEMINI_API_KEY),
-    groq: trim(env?.GROQ_API_KEY),
     openrouter: trim(env?.OPENROUTER_API_KEY),
+    groq: trim(env?.GROQ_API_KEY),
   };
   const requested = trim(env?.VISION_PROVIDER).toLowerCase();
-  const preferred = ["gemini", "groq", "openrouter"].filter((name) => keys[name]);
-  const order = requested && keys[requested]
-    ? [requested, ...preferred.filter((name) => name !== requested)]
-    : preferred;
+  const preferred = ["gemini", "openrouter", "groq"].filter((name) => keys[name]);
+  const order =
+    requested && keys[requested]
+      ? [requested, ...preferred.filter((name) => name !== requested)]
+      : preferred;
 
-  const overrideModel = trim(env?.VISION_MODEL);
-
-  return order.map((name) => ({
+  const chain = order.map((name) => ({
     name,
     key: keys[name],
-    model: overrideModel || (name === "gemini" ? GEMINI_DEFAULT_MODEL : OPENAI_COMPATIBLE[name].defaultModel),
+    model: name === "gemini" ? GEMINI_DEFAULT_MODEL : OPENAI_COMPATIBLE[name].defaultModel,
   }));
+
+  // `VISION_MODEL` pins the primary provider only: a Gemini model id must never be sent to Groq.
+  const overrideModel = trim(env?.VISION_MODEL);
+  if (overrideModel && chain.length > 0) chain[0].model = overrideModel;
+
+  return chain;
 }
 
 export function isVisionConfigured(env) {
@@ -320,7 +327,7 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
     response = await postOpenAiCompatible(provider, body);
   }
 
-  // 404 means the model id is gone (Groq retires ids), not that the key is wrong.
+  // 404 means the model id is gone (providers retire ids), not that the key is wrong.
   let consumedDetail = "";
   if (response.status === 404) {
     consumedDetail = await response.text().catch(() => "");
@@ -343,14 +350,21 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
       );
     }
 
-    const known = response.status === 404 ? await listModels(provider) : [];
+    if (response.status === 404) {
+      const known = await listModels(provider);
+      const vision = known.filter((id) => VISION_MODEL_HINT.test(id));
+      throw new VisionError(
+        vision.length > 0
+          ? `${provider.name} has no model "${provider.model}". Vision-capable: ${vision.slice(0, 4).join(", ")}. Set VISION_MODEL.`
+          : `${provider.name} offers no vision-capable model to this key (retired id "${provider.model}"). ` +
+              `Use GEMINI_API_KEY or OPENROUTER_API_KEY instead; this key lists: ${known.slice(0, 6).join(", ") || "unknown"}.`,
+        502,
+        detail.slice(0, 300) || null,
+      );
+    }
+
     throw new VisionError(
-      response.status === 404
-        ? `${provider.name} has no model "${provider.model}".` +
-            (known.length > 0
-              ? ` Available: ${known.slice(0, 6).join(", ")}. Set VISION_MODEL.`
-              : " Run `node scripts/vision-models.js` and set VISION_MODEL.")
-        : `Vision model responded with HTTP ${response.status} (${provider.name}/${provider.model}).`,
+      `Vision model responded with HTTP ${response.status} (${provider.name}/${provider.model}).`,
       502,
       detail.slice(0, 300) || null,
     );
