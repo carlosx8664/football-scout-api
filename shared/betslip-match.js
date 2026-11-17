@@ -364,12 +364,29 @@ function totalLine(leg) {
   return fromRaw ? fromRaw[1] : null;
 }
 
-function doubleChanceOutcome(selection) {
-  const text = String(selection ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+function doubleChanceOutcome(leg, match) {
+  const selection = String(leg?.selection ?? "");
+  const text = selection.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (text === "1x" || text.includes("homeordraw")) return "9";
   if (text === "12" || text.includes("homeoraway")) return "10";
   if (text === "x2" || text.includes("draworaway")) return "11";
-  return null;
+
+  // Bookmakers often print the club instead: "Bosnia or Draw", "Draw or Austria".
+  if (!text.includes("draw")) return null;
+
+  const teamPart = selection
+    .replace(/draw/gi, " ")
+    .replace(/\bor\b|&|\/|\+/gi, " ")
+    .trim();
+  if (!teamPart) return null;
+
+  const home = teamSimilarity(teamPart, match?.teams?.home?.name);
+  const away = teamSimilarity(teamPart, match?.teams?.away?.name);
+  const best = Math.max(home, away);
+  // Same gate as selectionSide: only when one side clearly wins, so a bad read cannot flip it.
+  if (best < 0.8 || best - Math.min(home, away) < 0.15) return null;
+
+  return home > away ? "9" : "11";
 }
 
 /** One leg -> `{ marketId, outcomeId, specifier }`, or null if it cannot be booked reliably. */
@@ -405,7 +422,7 @@ function sportybetSelection(leg, match) {
   }
 
   if (/double chance/.test(market)) {
-    const outcomeId = doubleChanceOutcome(selection);
+    const outcomeId = doubleChanceOutcome(leg, match);
     return outcomeId ? { marketId: "10", outcomeId, specifier: "" } : null;
   }
 
@@ -416,9 +433,11 @@ function sportybetSelection(leg, match) {
     return null;
   }
 
-  if (/gg\/ng|both teams/.test(market)) {
+  if (/gg\/ng|both teams|\bbtts\b/.test(market)) {
     if (/\byes\b/.test(selection)) return { marketId: "29", outcomeId: "74", specifier: "" };
     if (/\bno\b/.test(selection)) return { marketId: "29", outcomeId: "76", specifier: "" };
+    // A bet-builder row titled just "Both Teams to Score" is the Yes side.
+    if (/both teams|\bbtts\b/.test(selection)) return { marketId: "29", outcomeId: "74", specifier: "" };
     return null;
   }
 

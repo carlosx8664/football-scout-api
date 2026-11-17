@@ -21,7 +21,7 @@
 
 import { SYSTEM_PROMPT, USER_PROMPT, parseJsonContent } from "./betslip-prompt.js";
 
-export const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
+export const GEMINI_DEFAULT_MODEL = "gemma-4-26b-a4b-it";
 
 /**
  * OpenAI-compatible providers: identical request shape, different host and headers.
@@ -67,6 +67,28 @@ export class VisionError extends Error {
 }
 
 const trim = (value) => String(value ?? "").trim();
+
+/** Free tiers return these when a model is momentarily saturated, not when the request is wrong. */
+const RETRYABLE_STATUS = new Set([500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [700, 1600];
+
+/**
+ * Re-posts the same body when the provider answers "try again later". A hung slot is the norm
+ * on free tiers, and the alternative is a failed scan the user has to repeat by hand.
+ *
+ * @template {{ status: number }} T
+ * @param {() => Promise<T>} send
+ * @returns {Promise<T>}
+ */
+async function withRetry(send) {
+  let response = await send();
+  for (const delay of RETRY_DELAYS_MS) {
+    if (!RETRYABLE_STATUS.has(response.status)) return response;
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    response = await send();
+  }
+  return response;
+}
 
 /** Chunked so a multi-megabyte image does not blow the argument limit of String.fromCharCode. */
 function toBase64(bytes) {
@@ -186,37 +208,70 @@ export function visionCacheScope(env) {
 
 const GEMINI_LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 
+/** Aliases and recent ids worth trying when the configured model is gone. Cheap 404s, max 4. */
+const GEMINI_FALLBACK_MODELS = [
+  "gemini-flash-latest",
+  "gemini-3.5-flash-lite",
+  "gemma-4-31b-it",
+  "gemini-2.5-flash",
+];
+
 /**
  * A Gemini model this key can actually call, preferring full Flash (best OCR), then lite.
- * Model ids are versioned and retired, so a 404 falls back to this instead of failing.
+ * Returns the listing status too, so a failed lookup is never mistaken for "no model exists".
  *
  * @param {{ key: string }} provider
- * @returns {Promise<string | null>}
+ * @returns {Promise<{ model: string | null, status: number, detail: string }>}
  */
 async function discoverGeminiModel(provider) {
   try {
     const response = await fetch(`${GEMINI_LIST_URL}?key=${encodeURIComponent(provider.key)}`, {
       signal: AbortSignal.timeout(10_000),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      return { model: null, status: response.status, detail: detail.slice(0, 160) };
+    }
 
     const payload = await response.json().catch(() => null);
-    const ids = (payload?.models ?? [])
-      .filter((model) => (model?.supportedGenerationMethods ?? []).includes("generateContent"))
+    const models = Array.isArray(payload?.models) ? payload.models : [];
+    const usable = models
+      .filter((model) => {
+        const methods = model?.supportedGenerationMethods;
+        // Older payloads omit the field; only enforce it when it is there.
+        return Array.isArray(methods) ? methods.includes("generateContent") : true;
+      })
       .map((model) => String(model?.name ?? "").replace(/^models\//, ""))
-      .filter(Boolean);
-    const usable = ids.filter((id) => !/image|tts|audio|live|embedding|veo|imagen/i.test(id));
+      .filter((id) => id.startsWith("gemini-") && !/image|tts|audio|live|embedding|veo|imagen/i.test(id));
 
-    return (
+    const model =
       usable.find((id) => /^gemini-[0-9.]+-flash$/.test(id)) ??
       usable.find((id) => /^gemini-flash-latest$/.test(id)) ??
       usable.find((id) => /flash-lite/.test(id)) ??
       usable.find((id) => /flash/.test(id)) ??
-      null
-    );
-  } catch {
-    return null;
+      null;
+
+    return {
+      model,
+      status: response.status,
+      detail: model ? "" : `${models.length} models listed, ${usable.length} usable, none flash-like`,
+    };
+  } catch (error) {
+    return {
+      model: null,
+      status: 0,
+      detail: error instanceof Error ? error.message : String(error),
+    };
   }
+}
+
+/** Discovered model first, then a short list of known-good ids, deduped. */
+async function geminiModelCandidates(provider) {
+  const discovered = await discoverGeminiModel(provider);
+  return {
+    discovered,
+    candidates: [...new Set([discovered.model, ...GEMINI_FALLBACK_MODELS].filter(Boolean))],
+  };
 }
 
 async function postGemini({ model, key, body }) {
@@ -262,7 +317,7 @@ function geminiBody(bytes, mime) {
 
 async function callGemini(provider, { bytes, mime }) {
   const body = geminiBody(bytes, mime);
-  let response = await postGemini({ ...provider, body });
+  let response = await withRetry(() => postGemini({ ...provider, body }));
 
   if (response.status === 400) {
     const detail = await response.text().catch(() => "");
@@ -270,18 +325,37 @@ async function callGemini(provider, { bytes, mime }) {
       throw new VisionError("Vision model rejected the request.", 502, detail.slice(0, 300) || null);
     }
     delete body.generationConfig.thinkingConfig;
-    response = await postGemini({ ...provider, body });
+    response = await withRetry(() => postGemini({ ...provider, body }));
   }
 
-  // A retired or unavailable model id is a 404; ask the key what it can actually use.
+  // A retired or unavailable model id is a 404; walk the candidates before giving up.
   let consumedDetail = "";
+  let listingNote = "";
   if (response.status === 404) {
     consumedDetail = await response.text().catch(() => "");
-    const discovered = await discoverGeminiModel(provider);
-    if (discovered && discovered !== provider.model) {
-      provider.model = discovered;
-      response = await postGemini({ ...provider, body });
-      consumedDetail = "";
+    const { discovered, candidates } = await geminiModelCandidates(provider);
+
+    if (discovered.status !== 200) {
+      listingNote = `model list failed (HTTP ${discovered.status || "network"}): ${discovered.detail}`;
+    } else {
+      listingNote = discovered.model
+        ? `model list suggested ${discovered.model}`
+        : `model list: ${discovered.detail}`;
+    }
+
+    const tried = new Set([provider.model]);
+    for (const candidate of candidates) {
+      if (tried.has(candidate) || tried.size > 4) continue;
+      tried.add(candidate);
+      provider.model = candidate;
+      response = await withRetry(() => postGemini({ ...provider, body }));
+
+      if (response.status !== 404) {
+        consumedDetail = "";
+        listingNote = "";
+        break;
+      }
+      consumedDetail = await response.text().catch(() => "");
     }
   }
 
@@ -296,7 +370,7 @@ async function callGemini(provider, { bytes, mime }) {
     }
     throw new VisionError(
       response.status === 404
-        ? `Gemini has no model "${provider.model}" for this key. Run node scripts/vision-models.js and set VISION_MODEL.`
+        ? `Gemini has no model "${provider.model}" for this key (${listingNote || "no model list"}). Set VISION_MODEL to a model on your key.`
         : `Vision model responded with HTTP ${response.status} (gemini/${provider.model}).`,
       502,
       detail.slice(0, 300) || null,
@@ -362,7 +436,7 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
     ],
   };
 
-  let response = await postOpenAiCompatible(provider, body);
+  let response = await withRetry(() => postOpenAiCompatible(provider, body));
 
   // A few free models reject `response_format` with a 400 instead of ignoring it.
   if (response.status === 400) {
@@ -371,7 +445,7 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
       throw new VisionError("Vision model rejected the request.", 502, detail.slice(0, 300) || null);
     }
     delete body.response_format;
-    response = await postOpenAiCompatible(provider, body);
+    response = await withRetry(() => postOpenAiCompatible(provider, body));
   }
 
   // 404 means the model id is gone (providers retire ids), not that the key is wrong.
@@ -382,7 +456,7 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
     if (discovered && discovered !== provider.model) {
       provider.model = discovered;
       body.model = discovered;
-      response = await postOpenAiCompatible(provider, body);
+      response = await withRetry(() => postOpenAiCompatible(provider, body));
       consumedDetail = "";
     }
   }

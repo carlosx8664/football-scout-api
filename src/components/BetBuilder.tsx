@@ -506,7 +506,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
         {scanning ? (
           <div className="bb-scanning" role="status">
             <span className="bb-spinner" aria-hidden="true" />
-            <span>Scanning image… this takes about 5 seconds</span>
+            <span>Scanning image… free models take 10–30 seconds</span>
           </div>
         ) : (
           <>
