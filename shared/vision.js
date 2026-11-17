@@ -184,6 +184,41 @@ export function visionCacheScope(env) {
   return primary ? `${primary.name}-${primary.model}` : "unconfigured";
 }
 
+const GEMINI_LIST_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+
+/**
+ * A Gemini model this key can actually call, preferring full Flash (best OCR), then lite.
+ * Model ids are versioned and retired, so a 404 falls back to this instead of failing.
+ *
+ * @param {{ key: string }} provider
+ * @returns {Promise<string | null>}
+ */
+async function discoverGeminiModel(provider) {
+  try {
+    const response = await fetch(`${GEMINI_LIST_URL}?key=${encodeURIComponent(provider.key)}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+
+    const payload = await response.json().catch(() => null);
+    const ids = (payload?.models ?? [])
+      .filter((model) => (model?.supportedGenerationMethods ?? []).includes("generateContent"))
+      .map((model) => String(model?.name ?? "").replace(/^models\//, ""))
+      .filter(Boolean);
+    const usable = ids.filter((id) => !/image|tts|audio|live|embedding|veo|imagen/i.test(id));
+
+    return (
+      usable.find((id) => /^gemini-[0-9.]+-flash$/.test(id)) ??
+      usable.find((id) => /^gemini-flash-latest$/.test(id)) ??
+      usable.find((id) => /flash-lite/.test(id)) ??
+      usable.find((id) => /flash/.test(id)) ??
+      null
+    );
+  } catch {
+    return null;
+  }
+}
+
 async function postGemini({ model, key, body }) {
   try {
     return await fetch(`${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent`, {
@@ -238,8 +273,20 @@ async function callGemini(provider, { bytes, mime }) {
     response = await postGemini({ ...provider, body });
   }
 
+  // A retired or unavailable model id is a 404; ask the key what it can actually use.
+  let consumedDetail = "";
+  if (response.status === 404) {
+    consumedDetail = await response.text().catch(() => "");
+    const discovered = await discoverGeminiModel(provider);
+    if (discovered && discovered !== provider.model) {
+      provider.model = discovered;
+      response = await postGemini({ ...provider, body });
+      consumedDetail = "";
+    }
+  }
+
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
+    const detail = consumedDetail || (await response.text().catch(() => ""));
     if (response.status === 429) {
       throw new VisionError(
         "The free vision quota for today is used up. Try again tomorrow or add a second provider key.",
@@ -249,7 +296,7 @@ async function callGemini(provider, { bytes, mime }) {
     }
     throw new VisionError(
       response.status === 404
-        ? `Gemini has no model "${provider.model}" for this key. Set VISION_MODEL to a model your AI Studio project can use.`
+        ? `Gemini has no model "${provider.model}" for this key. Run node scripts/vision-models.js and set VISION_MODEL.`
         : `Vision model responded with HTTP ${response.status} (gemini/${provider.model}).`,
       502,
       detail.slice(0, 300) || null,
@@ -378,8 +425,8 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
 }
 
 /**
- * Transcribes a betslip image. Tries the primary provider, then the fallback when one is
- * configured, and throws the last error only if every provider failed.
+ * Transcribes a betslip image. Tries each configured provider in order and, when every one
+ * fails, reports **all** the failures — showing only the last hid why the primary gave up.
  *
  * @param {{ env: Record<string, unknown> | undefined, bytes: Uint8Array, mime: string }} input
  * @returns {Promise<VisionResult>}
@@ -394,7 +441,11 @@ export async function extractBetslipImage({ env, bytes, mime }) {
   }
 
   /** @type {VisionError | null} */
-  let failure = null;
+  let lastFailure = null;
+  /** First upstream snippet wins: that is the primary provider's actual complaint. */
+  let firstDetail = null;
+  /** @type {string[]} */
+  const failures = [];
 
   for (const provider of chain) {
     const call = provider.name === "gemini" ? callGemini : callOpenAiCompatible;
@@ -404,22 +455,32 @@ export async function extractBetslipImage({ env, bytes, mime }) {
       const parsed = parseJsonContent(result.text);
 
       if (!parsed || !Array.isArray(parsed.legs)) {
-        failure = new VisionError(
+        lastFailure = new VisionError(
           `Vision model did not return usable JSON (finish_reason=${result.finish})`,
           502,
           result.text.slice(0, 300) || null,
         );
+        failures.push(`${provider.name}/${provider.model}: ${lastFailure.message}`);
         continue;
       }
 
       return { parsed, provider: provider.name, model: provider.model, usage: result.usage, raw: result.raw };
     } catch (error) {
-      failure =
+      lastFailure =
         error instanceof VisionError
           ? error
           : new VisionError(error instanceof Error ? error.message : String(error));
+      failures.push(`${provider.name}/${provider.model}: ${lastFailure.message}`);
     }
+
+    if (!firstDetail && lastFailure?.detail) firstDetail = lastFailure.detail;
   }
 
-  throw failure ?? new VisionError("Could not read that betslip.");
+  if (failures.length === 0) throw lastFailure ?? new VisionError("Could not read that betslip.");
+
+  throw new VisionError(
+    failures.length === 1 ? failures[0] : `No provider could read that slip. ${failures.join(" | ")}`,
+    lastFailure?.status === 429 ? 429 : 502,
+    firstDetail ?? lastFailure?.detail ?? null,
+  );
 }
