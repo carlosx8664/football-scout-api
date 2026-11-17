@@ -31,7 +31,7 @@ from real data by an `is_simulation` flag on every table.
 | Scraping | Node 20 + `axios` (fast books) + Playwright/Chromium (SPA books: BetPawa, Soccabet) |
 | Scheduling | Cloudflare Cron Worker → GitHub Actions `workflow_dispatch` (every 15 min) |
 | Alerts | Telegram Bot API + Web Push (VAPID, `web-push`) |
-| AI | DeepSeek (match analysis + betslip vision), optional Cloudflare AI Gateway |
+| AI | Free-tier vision (Gemini, OpenRouter fallback) for betslip OCR; DeepSeek only in the disabled match-analysis endpoint |
 | Lint | Oxlint |
 | ⚠️ Not used | **React Native** — this is a web-only SPA. No mobile app exists. |
 
@@ -156,7 +156,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `leagues.js` | Single source of truth for the 16 tracked leagues |
 | `arb-key.js` | Stable arb identity shared by scanner, push sender and UI |
 | `mug-bets.js` | Mug-bet row mapping + totals |
-| `sportybet.js`, `betslip-prompt.js`, `betslip-match.js` | Booking API, vision prompt, leg matching |
+| `sportybet.js`, `betslip-prompt.js`, `betslip-match.js`, `vision.js` | Booking API, vision prompt, leg matching, free-tier vision adapters |
 
 ### Scripts — `scripts/`
 

@@ -3,18 +3,20 @@ import {
   MAX_SHARE_SELECTIONS,
   createSportyBetShare,
 } from "../../../shared/sportybet.js";
+import { PROMPT_VERSION } from "../../../shared/betslip-prompt.js";
 import {
-  PROMPT_VERSION,
-  SYSTEM_PROMPT,
-  USER_PROMPT,
-  parseJsonContent,
-} from "../../../shared/betslip-prompt.js";
+  VisionError,
+  extractBetslipImage,
+  isVisionConfigured,
+  visionCacheScope,
+} from "../../../shared/vision.js";
 
 /**
  * POST /api/bet-builder/extract
  *
- * Reads a betslip screenshot, transcribes it with DeepSeek's vision model, matches every
- * selection against the current match feed, and returns deep links per fixture.
+ * Reads a betslip screenshot, transcribes it with a free-tier vision model (see
+ * `shared/vision.js`), matches every selection against the current match feed, and returns deep
+ * links per fixture.
  *
  * The model only transcribes; the grouping/matching is deterministic (`shared/betslip-match.js`).
  * Extractions are cached in KV by image hash, since the same screenshot usually gets retried.
@@ -22,12 +24,6 @@ import {
 
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
-const DEEPSEEK_BASE = "https://api.deepseek.com";
-const CHAT_URL = `${DEEPSEEK_BASE}/chat/completions`;
-const DEFAULT_MODEL = "deepseek-flash";
-const CHAT_TIMEOUT_MS = 45_000;
-const IMAGE_DETAIL = "high";
-const MAX_TOKENS = 4000;
 
 /** Workers accept far larger bodies; 8 MB keeps vision latency and cost sane. */
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -50,16 +46,6 @@ class UpstreamError extends Error {
     this.status = status;
     this.detail = detail;
   }
-}
-
-/** Chunked so a multi-megabyte image does not blow the argument limit of String.fromCharCode. */
-function toBase64(bytes) {
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-  }
-  return btoa(binary);
 }
 
 async function sha256Hex(bytes) {
@@ -100,10 +86,13 @@ function isImageFile(value) {
 /**
  * One vision call per distinct image. Returns `{ parsed, cached }`, where `parsed` is
  * `{ bookmaker, warnings, legs }`.
+ *
+ * The KV key carries the provider and model, so switching vendors never serves a parse the old
+ * model produced.
  */
 async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
   const kv = env?.[KV_BINDING];
-  const key = `${CACHE_PREFIX}:${PROMPT_VERSION}:${cacheKey}`;
+  const key = `${CACHE_PREFIX}:${PROMPT_VERSION}:${visionCacheScope(env)}:${cacheKey}`;
 
   if (kv) {
     try {
@@ -117,69 +106,17 @@ async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
     }
   }
 
-  const model = (env?.DEEPSEEK_MODEL ?? "").trim() || DEFAULT_MODEL;
-
-  let response;
+  let result;
   try {
-    response = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0,
-        max_tokens: MAX_TOKENS,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: USER_PROMPT },
-              {
-                type: "image_url",
-                image_url: { url: `data:${mime};base64,${toBase64(bytes)}`, detail: IMAGE_DETAIL },
-              },
-            ],
-          },
-        ],
-        response_format: { type: "json_object" },
-      }),
-      signal: AbortSignal.timeout(CHAT_TIMEOUT_MS),
-    });
+    result = await extractBetslipImage({ env, bytes, mime });
   } catch (error) {
-    const timedOut = error instanceof Error && error.name === "TimeoutError";
-    throw new UpstreamError(
-      timedOut
-        ? "The vision model took too long. Try a smaller screenshot."
-        : "Could not reach the vision model.",
-      504,
-      error instanceof Error ? error.message : String(error),
-    );
+    if (error instanceof VisionError) {
+      throw new UpstreamError(error.message, error.status, error.detail);
+    }
+    throw error;
   }
 
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new UpstreamError(
-      `Vision model responded with HTTP ${response.status}`,
-      502,
-      detail.slice(0, 300) || null,
-    );
-  }
-
-  const body = await response.json().catch(() => null);
-  const choice = body?.choices?.[0];
-  const parsed = parseJsonContent(choice?.message?.content);
-
-  if (!parsed || !Array.isArray(parsed.legs)) {
-    const finish = choice?.finish_reason ?? "unknown";
-    throw new UpstreamError(
-      `Vision model did not return usable JSON (finish_reason=${finish})`,
-      502,
-      typeof choice?.message?.content === "string" ? choice.message.content.slice(0, 300) : null,
-    );
-  }
+  const parsed = result.parsed;
 
   if (kv) {
     const write = kv
@@ -193,13 +130,13 @@ async function extractLegs({ env, bytes, mime, cacheKey, waitUntil }) {
 }
 
 export async function onRequestPost(context) {
-  // AI features temporarily disabled (arbitrage-logic focus). Re-enable by removing this guard.
-  return json({ error: "AI bet-slip extraction is temporarily disabled.", disabled: true }, 503);
-
   const { request, env, waitUntil } = context;
 
-  if (!(env?.DEEPSEEK_API_KEY ?? "").trim()) {
-    return json({ error: "DEEPSEEK_API_KEY is not configured for this deployment." }, 503);
+  if (!isVisionConfigured(env)) {
+    return json(
+      { error: "No vision provider key is configured. Set GEMINI_API_KEY for this deployment." },
+      503,
+    );
   }
 
   // Reject an oversized body before buffering it. Multipart adds boundaries and headers on top

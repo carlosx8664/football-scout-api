@@ -2,31 +2,28 @@
 /**
  * Phase 1 vision spike for the bet-builder.
  *
- * Reads a betslip screenshot, asks a vision model to transcribe it into a strict JSON list of
- * legs, and prints the raw result so field accuracy can be judged before any matching code
- * exists. Read-only with respect to the app: no KV, no feed, no writing unless --out is given.
+ * Reads a betslip screenshot, asks a free-tier vision model to transcribe it into a strict JSON
+ * list of legs, and prints the raw result so field accuracy can be judged before any matching
+ * code exists. Read-only with respect to the app: no KV, no feed, no writing unless --out is given.
  *
  * Usage:
  *   node scripts/parse-betslip.js ./slip.png
- *   node scripts/parse-betslip.js ./slip.jpg --model=gpt-4o-mini --detail=high
+ *   node scripts/parse-betslip.js ./slip.jpg --model=gemini-2.5-flash-lite
  *   node scripts/parse-betslip.js ./slip.png --out=data/betslip-spike.json
  *   node scripts/parse-betslip.js --dry-run ./slip.png      # prints the request, no API call
  *
  * Env (also read from .dev.vars):
- *   DEEPSEEK_API_KEY   required for a real call
- *   DEEPSEEK_BASE_URL  default https://api.deepseek.com (OpenAI-compatible)
- *   DEEPSEEK_MODEL     default deepseek-flash (vision-capable)
+ *   GEMINI_API_KEY      free tier at https://aistudio.google.com/apikey (preferred)
+ *   OPENROUTER_API_KEY  optional fallback, see shared/vision.js
+ *   VISION_PROVIDER     "gemini" | "openrouter"
+ *   VISION_MODEL        overrides the primary provider's default model
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import {
-  LEG_SCHEMA,
-  SYSTEM_PROMPT,
-  USER_PROMPT,
-  parseJsonContent,
-} from '../shared/betslip-prompt.js';
+import { LEG_SCHEMA, SYSTEM_PROMPT } from '../shared/betslip-prompt.js';
+import { extractBetslipImage, isVisionConfigured, resolveVisionChain } from '../shared/vision.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,9 +51,9 @@ function loadDevVars() {
 
 loadDevVars();
 
-const MODEL = opt('model', process.env.DEEPSEEK_MODEL || 'deepseek-flash');
-const BASE_URL = (process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
-const DETAIL = opt('detail', 'high');
+// `--model` wins over VISION_MODEL so a single run can compare two models.
+const MODEL_OVERRIDE = opt('model', '');
+if (MODEL_OVERRIDE) process.env.VISION_MODEL = MODEL_OVERRIDE;
 const OUT_FILE = opt('out', '');
 const DRY_RUN = flag('dry-run');
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
@@ -76,15 +73,15 @@ function printUsage() {
   console.log(`Usage: node scripts/parse-betslip.js <image> [options]
 
 Options:
-  --model=<name>    vision model (default deepseek-flash)
-  --detail=high     image detail passed to the API (default high)
+  --model=<name>    overrides VISION_MODEL for this run
   --out=<file>      also write the parsed JSON to a file
   --dry-run         print the request payload summary without calling the API
 
 Environment:
-  DEEPSEEK_API_KEY   required for a real call
-  DEEPSEEK_BASE_URL  default https://api.deepseek.com
-  DEEPSEEK_MODEL     default deepseek-flash`);
+  GEMINI_API_KEY      free tier at https://aistudio.google.com/apikey (preferred)
+  OPENROUTER_API_KEY  optional fallback provider
+  VISION_PROVIDER     "gemini" | "openrouter"
+  VISION_MODEL        overrides the primary provider's default model`);
 }
 
 function readImage(file) {
@@ -104,7 +101,7 @@ function readImage(file) {
     throw new Error(`Unsupported image type "${ext}". Use one of: ${Object.keys(MIME_BY_EXT).join(', ')}`);
   }
 
-  return { base64: fs.readFileSync(file).toString('base64'), mime, bytes: stats.size };
+  return { bytes: fs.readFileSync(file), mime, size: stats.size };
 }
 
 const table = (value, width) => String(value ?? '—').slice(0, width).padEnd(width);
@@ -130,39 +127,11 @@ function printLegs(parsed) {
 }
 
 async function callModel(image) {
-  const response = await fetch(`${BASE_URL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      temperature: 0,
-      max_tokens: 4000,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: USER_PROMPT },
-            {
-              type: 'image_url',
-              image_url: { url: `data:${image.mime};base64,${image.base64}`, detail: DETAIL },
-            },
-          ],
-        },
-      ],
-      response_format: { type: 'json_object' },
-    }),
+  return extractBetslipImage({
+    env: process.env,
+    bytes: new Uint8Array(image.bytes),
+    mime: image.mime,
   });
-
-  const body = await response.text();
-  if (!response.ok) {
-    throw new Error(`API ${response.status} ${response.statusText}\n${body.slice(0, 2000)}`);
-  }
-
-  return JSON.parse(body);
 }
 
 async function main() {
@@ -173,47 +142,34 @@ async function main() {
   }
 
   const image = readImage(imageArg);
-  console.log(`image : ${imageArg} (${(image.bytes / 1024).toFixed(0)} KB, ${image.mime})`);
-  console.log(`model : ${MODEL} @ ${BASE_URL}/chat/completions`);
-  console.log(`detail: ${DETAIL}`);
+  const [primary] = resolveVisionChain(process.env);
+  console.log(`image : ${imageArg} (${(image.size / 1024).toFixed(0)} KB, ${image.mime})`);
+  console.log(`model : ${primary ? `${primary.name}/${primary.model}` : 'not configured'}`);
 
   if (DRY_RUN) {
     console.log(`\nSchema:\n${JSON.stringify(LEG_SCHEMA, null, 2)}`);
     console.log(`\nSystem prompt:\n${SYSTEM_PROMPT}`);
-    console.log(`\nDry run only — no API call made. Base64 payload: ${image.base64.length} chars.`);
+    console.log(`\nDry run only — no API call made. Image payload: ${image.size} bytes.`);
     return;
   }
 
-  if (!(process.env.DEEPSEEK_API_KEY ?? '').trim()) {
-    throw new Error('DEEPSEEK_API_KEY is not set (env or .dev.vars).');
+  if (!isVisionConfigured(process.env)) {
+    throw new Error('No vision provider key is set. Add GEMINI_API_KEY to .dev.vars (free tier).');
   }
 
   const startedAt = Date.now();
-  const response = await callModel(image);
+  const result = await callModel(image);
   const elapsed = ((Date.now() - startedAt) / 1000).toFixed(1);
-
-  const message = response?.choices?.[0]?.message ?? {};
-  const usage = response?.usage ?? {};
+  const usage = result.usage ?? {};
 
   console.log(`latency: ${elapsed} s`);
+  console.log(`provider: ${result.provider}/${result.model}`);
   console.log(
-    `tokens : ${usage.prompt_tokens ?? '?'} in / ${usage.completion_tokens ?? '?'} out` +
-      (usage.total_tokens ? ` (${usage.total_tokens} total)` : ''),
+    `tokens : ${usage.promptTokenCount ?? usage.prompt_tokens ?? '?'} in / ` +
+      `${usage.candidatesTokenCount ?? usage.completion_tokens ?? '?'} out`,
   );
 
-  if (message.refusal) {
-    console.log(`\nModel refusal: ${message.refusal}`);
-    process.exitCode = 1;
-    return;
-  }
-
-  const parsed = parseJsonContent(message.content);
-  if (parsed === null) {
-    console.log('\nModel did not return JSON. Raw content:\n');
-    console.log(message.content);
-    process.exitCode = 1;
-    return;
-  }
+  const parsed = result.parsed;
 
   console.log(`legs   : ${Array.isArray(parsed?.legs) ? parsed.legs.length : 0}`);
   if (parsed?.bookmaker) console.log(`book   : ${parsed.bookmaker}`);

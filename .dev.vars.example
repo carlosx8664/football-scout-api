@@ -1,10 +1,14 @@
 ﻿# Local-only secrets for `wrangler pages dev` / `npm run preview`.
 # Copy to `.dev.vars` (gitignored) and fill in real values.
 
-# DeepSeek (https://platform.deepseek.com/api_keys) - powers /api/analysis match write-ups.
-DEEPSEEK_API_KEY=
-# Optional: model override. Defaults to deepseek-flash.
-# DEEPSEEK_MODEL=deepseek-flash
+# Free-tier vision for the bet builder. https://aistudio.google.com/apikey
+# A busy football day is ~10 slips, far inside the free quota; repeats hit the KV cache and
+# cost nothing.
+GEMINI_API_KEY=
+# Optional second free provider, used when Gemini errors or is rate-limited (OpenRouter `:free`).
+# OPENROUTER_API_KEY=
+# VISION_PROVIDER=gemini
+# VISION_MODEL=gemini-2.5-flash
 
 # football-data.org (https://www.football-data.org/client/register) - league tables.
 FOOTBALL_DATA_ORG_TOKEN=
@@ -21,6 +25,6 @@ FOOTBALL_DATA_ORG_TOKEN=
 # VAPID_PRIVATE_KEY=
 # VAPID_SUBJECT=mailto:you@example.com
 
-# Optional: route DeepSeek calls through Cloudflare AI Gateway instead of api.deepseek.com.
+# Optional: route the disabled /api/analysis write-ups through Cloudflare AI Gateway.
 # CF_GATEWAY_ID=
 # CF_AIG_TOKEN=

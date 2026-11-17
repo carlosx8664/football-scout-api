@@ -176,6 +176,8 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 .arb-run { margin-top: 2px; }
 .arb-run button { width: 100%; }
+.arb-worst { font-weight: 700; color: #4ade80; font-size: 12px; margin-bottom: 4px; }
+.arb-worst.negative { color: #fca5a5; }
 
 .empty { color: var(--muted); text-align: center; padding: 22px 8px; }
 

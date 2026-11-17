@@ -184,6 +184,23 @@
     return opened;
   }
 
+  /**
+   * Empties the BetBoro betslip via its own clear-all trash.
+   *
+   * `.remove_btn` sits in the betslip bar inside `#myForm`, outside `#tab1`, so the slip-scoped
+   * removal controls never reach it — and the `.clear-ico` inside the row is decorative. One click
+   * empties the whole slip; `clearSlip` then runs as the verifier, because a click alone proves
+   * nothing. When the trash is absent (empty slip) this is exactly the old behaviour.
+   */
+  async function clearBetslip(slip) {
+    const [clearAll] = [...document.querySelectorAll('#myForm .remove_btn')].filter(A.visible);
+    if (clearAll) {
+      A.deepClick(clearAll);
+      await A.sleep(400);
+    }
+    return A.clearSlip(slip);
+  }
+
   async function run(message) {
     const leg = message.leg ?? {};
     const outcome = String(leg.outcome ?? '');
@@ -200,7 +217,7 @@
     // 0. Start from an empty slip: a leftover selection would ride along with ours.
     const stale = A.findSlip();
     if (stale) {
-      const cleared = await A.clearSlip(stale);
+      const cleared = await clearBetslip(stale);
       console.log(`[autobet] ${BOOK} betslip clear: ${cleared.message}`);
       if (!cleared.ok) return { status: 'failed', message: cleared.message };
       if (cleared.removed) await A.sleep(400);
@@ -234,7 +251,7 @@
             };
           }
 
-          const cleared = await A.clearSlip(hidden);
+          const cleared = await clearBetslip(hidden);
           console.log(`[autobet] ${BOOK} closed betslip clear: ${cleared.message}`);
           if (!cleared.ok) {
             return {

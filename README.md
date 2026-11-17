@@ -124,7 +124,7 @@ Simulation Wallets to 1,000 GHS" target) and `is_simulation = 0` at 0 GHS.
 Pages Functions need two more, set as Pages secrets (not Actions secrets):
 
 ```bash
-npx wrangler pages secret put DEEPSEEK_API_KEY        # match analysis + bet-builder vision
+npx wrangler pages secret put GEMINI_API_KEY          # bet-builder vision (free tier)
 npx wrangler pages secret put FOOTBALL_DATA_ORG_TOKEN # league tables
 ```
 
@@ -357,7 +357,7 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
 POST /api/bet-builder/extract    multipart/form-data, field "image"
   → 200  { bookmaker, warnings, matched[], unresolved[], cached, stats }
   → 400  no image          413  over 8 MB        415  not PNG/JPEG/WebP/GIF
-  → 502/504 vision failure                     503  DEEPSEEK_API_KEY missing
+  → 502/504 vision failure                     503  GEMINI_API_KEY missing
 ```
 
 `unresolved[]` echoes the leg with a `reason` (`missing-teams`, `no-candidates`,
@@ -366,7 +366,8 @@ The same image is never billed twice: the extraction cache is keyed on the image
 fixture feed, and matching re-runs against the live feed on every request so links stay fresh.
 
 Limits: 8 MB per image, enforced server-side from `File.size` before the bytes are read; the
-client downscales further. Requires `DEEPSEEK_API_KEY` as a Pages secret (see step 2 above).
+client downscales further. Requires `GEMINI_API_KEY` as a Pages secret (see step 2 above); a
+second free provider can be chained in with `OPENROUTER_API_KEY` (see `shared/vision.js`).
 
 ## Keeping odds fresh
 

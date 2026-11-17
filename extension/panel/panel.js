@@ -210,6 +210,29 @@ function countdown(kickoff) {
   return `${hours}h ${minutes % 60}m`;
 }
 
+/**
+ * Profit range for the exact stakes that will be typed: the smallest and largest (stake x odds)
+ * across the legs, minus the total outlay. Rounding leaves the legs slightly imbalanced, so the
+ * worst case can sit below total x profitPct — that gap is real money.
+ *
+ * @returns {{worst: number, best: number}|null} null when a leg has no usable stake or price.
+ */
+function profitRange(legs, stakes) {
+  if (!legs.length) return null;
+  const total = stakes.reduce((sum, value) => sum + (Number(value) || 0), 0);
+  if (!(total > 0)) return null;
+
+  const returns = legs.map((leg, index) => Number(stakes[index]) * (Number(leg.odds) || 0));
+  // A leg without a usable stake or price makes the range unknowable, not zero.
+  if (returns.some((value) => !(value > 0))) return null;
+  // Cents precision: float noise must not turn a break-even into a red "GHS -0.00".
+  const cents = (value) => Math.round(value * 100) / 100;
+  return {
+    worst: cents(Math.min(...returns) - total),
+    best: cents(Math.max(...returns) - total),
+  };
+}
+
 function renderArbs() {
   const arbs = activeArbs();
   ui.arbCount.textContent = `${arbs.length} arb${arbs.length === 1 ? '' : 's'}`;
@@ -236,6 +259,7 @@ function renderArbs() {
       (leg) => SUPPORTED.has(leg.bookmaker) && /^https?:\/\//i.test(String(leg.url || '')),
     );
     const profit = Number(arb.profitPct) || 0;
+    const range = profitRange(legs, stakes);
 
     const legItems = legs.map((leg, index) =>
       node(
@@ -276,7 +300,15 @@ function renderArbs() {
           text: [arb.market, arb.tournament].filter(Boolean).join(' · '),
         }),
         node('ul', { class: 'arb-legs' }, legItems),
-        node('div', { class: 'arb-run' }, [runButton]),
+        node('div', { class: 'arb-run' }, [
+          range == null
+            ? null
+            : node('div', {
+                class: `arb-worst${range.worst < 0 ? ' negative' : ''}`,
+                text: `Profit: GHS ${range.worst.toFixed(2)} (Max: GHS ${range.best.toFixed(2)})`,
+              }),
+          runButton,
+        ]),
       ]),
     );
   });

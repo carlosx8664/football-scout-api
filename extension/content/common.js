@@ -110,13 +110,17 @@
       ...document.querySelectorAll(
         '[class*="betslip" i], [data-testid*="betslip" i], [id*="betslip" i], [class*="slip" i], [class*="ticket" i]',
       ),
-    ].filter((node) => visible(node) && node.querySelector('input'));
+      // BetBoro puts `betslip-show` on <body>, so the root elements match these substrings and would
+      // otherwise win the area ranking — making every price on the page look like a selection.
+    ].filter((node) => node !== document.body && node !== document.documentElement);
+
+    const containers = nodes.filter((node) => visible(node) && node.querySelector('input'));
 
     const score = (node) => {
       const input = findStakeInput(node);
       return (input && isTopmost(input) ? 1_000_000 : 0) + area(node);
     };
-    return nodes.sort((a, b) => score(b) - score(a))[0] ?? null;
+    return containers.sort((a, b) => score(b) - score(a))[0] ?? null;
   }
 
   const describeInput = (input) =>
