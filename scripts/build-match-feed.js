@@ -311,6 +311,8 @@ function similarity(left, right) {
 
 /** Minimum average team similarity required to treat two events as the same fixture. */
 const MERGE_THRESHOLD = 0.5;
+/** Hard cap on the Bet Builder pool: keeps the KV value far below the namespace limits. */
+const POOL_MAX_ENTRIES = 800;
 
 function mergeEvents(events) {
   const [first] = events;
@@ -682,6 +684,8 @@ async function main() {
       out: { type: "string", default: OUTPUT_FILE },
       // The feed the last run published; its in-play fixtures are carried into this build.
       prev: { type: "string", default: "" },
+      // Bet Builder pool path; defaults to the `--out` file with a `-pool` suffix.
+      "pool-out": { type: "string", default: "" },
       suffix: { type: "string", default: "" },
       "no-ai": { type: "boolean", default: false },
       help: { type: "boolean", default: false },
@@ -692,7 +696,7 @@ async function main() {
 
   if (values.help) {
     console.log(
-      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--prev path] [--suffix=-horizon] [--no-ai]\n\n" +
+      "Usage: node scripts/build-match-feed.js [--days 2] [--out public/matches.json] [--pool-out path] [--prev path] [--suffix=-horizon] [--no-ai]\n\n" +
         "Reads data/sportybet.json, data/msport.json and data/betboro.json for fixtures and odds,\n" +
         "plus data/boltbet.json for its fixture-page ids. Missing optional source files are skipped.\n" +
         "`--prev` points at the feed the last run published; its in-play fixtures are carried over.\n" +
@@ -713,6 +717,9 @@ async function main() {
   // bucket with name similarity stays as a fallback for events without an id.
   const bySrId = new Map();
   const buckets = new Map();
+  // Bet Builder coverage pool: same events, no league filter. Kept separate so the arbitrage feed
+  // below stays byte-for-byte identical.
+  const poolBySrId = new Map();
 
   for (const source of sources) {
     let json;
@@ -730,10 +737,22 @@ async function main() {
       if (!event.home || !event.away || !Number.isFinite(event.startTime)) continue;
 
       const league = leagueIndex.get(event.competition);
+      const srId = String(event.srId ?? "");
+
+      // Collected before the league filter: the Bet Builder can match any league the books price.
+      if (/^sr:match:\d+$/.test(srId)) {
+        const group = poolBySrId.get(srId) ?? [];
+        group.push({
+          ...event,
+          league: league ?? { id: null, name: event.competition ?? "Football", logo: null },
+          source: source.name,
+        });
+        poolBySrId.set(srId, group);
+      }
+
       if (!league) continue;
 
       const enriched = { ...event, league, source: source.name };
-      const srId = String(event.srId ?? "");
 
       if (/^sr:match:\d+$/.test(srId)) {
         const group = bySrId.get(srId) ?? [];
@@ -831,6 +850,54 @@ async function main() {
     });
 
   log(`Matches from ${new Date(windowStart).toISOString()} through ${new Date(windowEnd).toISOString()} (${windowDays} days): ${matches.length}.`);
+
+  // --- Bet Builder fixture pool ---------------------------------------------
+  // Written before the arbitrage feed's early returns: the Builder's coverage does not depend on
+  // the tracked-league window being populated. Same fixtures, minus the league filter, in a lean
+  // shape (no odds, logos or analysis). Skipped for `--suffix` (horizon) so it cannot be overwritten
+  // by a build that only sees the horizon snapshots.
+  if (!values.suffix) {
+    const poolOut = values["pool-out"] || values.out.replace(/\.json$/, "-pool.json");
+    const poolFixtures = [...poolBySrId.values()]
+      .map((group) => mergeEvents(group))
+      .filter((entry) => entry.startTime >= windowStart && entry.startTime <= windowEnd)
+      .sort((a, b) => a.startTime - b.startTime)
+      .slice(0, POOL_MAX_ENTRIES)
+      .map((entry) => {
+        const bookIds = toBookIds(entry);
+        return {
+          id: fixtureId(entry.key),
+          sr_id: /^sr:match:\d+$/.test(entry.srId) ? entry.srId : null,
+          kickoff: new Date(entry.startTime).toISOString(),
+          league: entry.league?.name ?? "",
+          home: entry.home,
+          away: entry.away,
+          ...(bookIds?.betboro ? { betboro: bookIds.betboro } : {}),
+        };
+      })
+      // Without a Sportradar id there is nothing to book on, so it would only add noise.
+      .filter((entry) => entry.sr_id);
+
+    if (poolFixtures.length > 0) {
+      await writeFile(
+        poolOut,
+        `${JSON.stringify(
+          {
+            generated_at: new Date().toISOString(),
+            window: { from: start, to: windowTo },
+            count: poolFixtures.length,
+            fixtures: poolFixtures,
+          },
+          null,
+          2,
+        )}\n`,
+        "utf8",
+      );
+      log(`Wrote ${poolOut} (${poolFixtures.length} fixtures for the Bet Builder).`);
+    } else {
+      log(`::warning::No Bet Builder fixtures in the window; leaving ${poolOut} untouched.`);
+    }
+  }
 
   await attachBoltBetIds(matches, log);
   if (matches.length === 0) {

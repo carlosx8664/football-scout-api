@@ -127,3 +127,8 @@ jobs:
           upload "feed-matches" "public/matches.json"
           upload "feed-arbs" "public/arbs.json"
           upload "feed-arbs-history" "data/arbs-history.json"
+          # Bet Builder coverage pool: best effort, so a problem here can never block the odds feed.
+          if [ -s public/matches-pool.json ]; then
+            upload "feed-matches-pool" "public/matches-pool.json" \
+              || echo "::warning::Bet Builder pool upload failed; the Builder falls back to tracked leagues."
+          fi

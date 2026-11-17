@@ -22,6 +22,8 @@ import {
 
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
+/** Every fixture the books price, tracked league or not (written by the same workflow run). */
+const POOL_KEY = "feed-matches-pool";
 
 /** Workers accept far larger bodies; 8 MB keeps vision latency and cost sane. */
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -79,6 +81,42 @@ async function loadMatches({ request, env }) {
 
 function isImageFile(value) {
   return Boolean(value) && typeof value === "object" && typeof value.arrayBuffer === "function";
+}
+
+/**
+ * Bet Builder coverage pool: fixtures outside the tracked leagues, in the lean shape the build
+ * script writes. Any failure returns an empty list — a broken pool must never block a scan.
+ *
+ * @returns {Promise<Array<object>>}
+ */
+async function loadPool({ env }) {
+  const kv = env?.[KV_BINDING];
+  if (!kv) return [];
+
+  try {
+    const raw = await kv.get(POOL_KEY);
+    if (!raw) return [];
+
+    const pool = JSON.parse(raw);
+    if (!Array.isArray(pool?.fixtures)) return [];
+
+    return pool.fixtures.map((row) => ({
+      fixture: { id: Number(row.id), date: row.kickoff ?? null },
+      sr_id: row.sr_id ?? null,
+      book_ids: row.betboro ? { betboro: row.betboro } : null,
+      league: { id: null, name: row.league ?? "", logo: null },
+      teams: {
+        home: { name: row.home, logo: null },
+        away: { name: row.away, logo: null },
+      },
+      goals: null,
+      odds: null,
+      book_odds: null,
+      ai_analysis: null,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -196,6 +234,18 @@ export async function onRequestPost(context) {
     fixtures = await loadMatches({ request, env });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : String(error) }, 502);
+  }
+
+  // Wider coverage: the tracked feed wins, the pool fills in leagues it does not follow. Duplicate
+  // fixtures are dropped by Sportradar id so a match can never be scored twice.
+  if (env?.[KV_BINDING]) {
+    const pool = await loadPool({ env });
+    if (pool.length > 0) {
+      const seen = new Set(fixtures.map((match) => match?.sr_id).filter(Boolean));
+      fixtures = fixtures.concat(
+        pool.filter((match) => match.sr_id && !seen.has(match.sr_id)),
+      );
+    }
   }
 
   const legs = Array.isArray(extracted.parsed.legs) ? extracted.parsed.legs : [];
