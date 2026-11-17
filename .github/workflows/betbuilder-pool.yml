@@ -4,11 +4,14 @@ name: Bet Builder pool
 # failure domain. This job only widens what the Bet Builder can match — fixtures from leagues the
 # tracker does not follow — and never touches `feed-matches` or `feed-arbs`.
 #
-# The Builder needs coverage, not prices, so it runs less often than the odds refresh.
+# The Builder needs coverage, not prices, so this runs once a day rather than with the odds refresh.
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # Twice a day: kickoff times and team names do not move every 30 minutes, and the pool carries
+    # no odds. 06:00 UTC covers the day's card, 14:00 UTC picks up late fixture-list additions.
+    # Run it manually after a big fixture-list update.
+    - cron: "0 6,14 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -25,7 +28,8 @@ jobs:
     timeout-minutes: 30
 
     env:
-      DAYS: 2
+      # Three days of fixtures, so tomorrow's late additions are already in the daily build.
+      DAYS: 3
 
     steps:
       - name: Checkout
