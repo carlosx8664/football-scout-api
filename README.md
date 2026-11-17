@@ -337,22 +337,24 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
    `city`, so the stripped names alone are not enough. Club-form words that never separate two
    teams (`BK`, `Boldklub`, `SL`, …) are ignored on both sides, which is what lets "Odense BK"
    match "Odense Boldklub".
-4. Matched legs are mapped twice, once per book a slip can be loaded into:
+4. Matched legs are mapped twice, once per book the Builder offers:
    `toSportyBetSelections` (`shared/betslip-match.js`) yields booking ids — 1X2 by side,
    `Total Goals`/`Over-Under` (line taken from the selection, "Over 1.5"), Double Chance, Draw No
-   Bet and BTTS — and `toBetBoroSelections` (`shared/betslip-betboro.js`) yields the market/tile
-   pair the extension clicks. Team-total and other unlisted markets are skipped rather than
-   guessed, so neither book can end up with a different bet than the screen shows.
+   Bet and BTTS — and `toBetBoroSelections` (`shared/betslip-betboro.js`) yields the BetBoro
+   market/tile pair plus the fixture link. Team-total and other unlisted markets are skipped rather
+   than guessed, so neither book can end up with a different bet than the screen shows.
 5. Every hit carries a link for both books: `links.sportybet` and `links.betboro` from
    `shared/deeplinks.js`. SportyBet uses the Sportradar id; BetBoro needs its own
    region/competition/fixture ids, which `scripts/build-match-feed.js` attaches as
    `book_ids.betboro`.
-6. Either book can be chosen, and each loads the slip differently:
+6. Either book can be chosen, and the two behave differently:
    - **SportyBet** — `POST /api/arbs/share` mints a booking code for the ticked legs (or the whole
      scan), and the share link loads them into the betslip.
-   - **BetBoro** — no booking API exists, so `AUTOBET_SLIP` asks the **Odds Autobet** extension to
-     open each fixture, clear the betslip once (first leg only) and click each outcome. No stake is
-     typed.
+   - **BetBoro** — no booking API exists, so the Builder sends `AUTOBET_SLIP` through the dashboard
+     bridge (`extension/content/bridge.js`) to the **Odds Autobet** extension: it opens each
+     fixture, clears the betslip once (first leg only) and clicks each outcome, then replies with
+     `filled/total`. No stake is typed, and the button shows elapsed time while it runs because the
+     extension answers only when the whole job is done.
 
 ```
 POST /api/bet-builder/extract    multipart/form-data, field "image"

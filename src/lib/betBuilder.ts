@@ -1,4 +1,4 @@
-import type { BetBuilderResponse, BetBoroSlipLeg, SportyBetBooking } from "../types";
+﻿import type { BetBuilderResponse, BetBoroSlipLeg, SportyBetBooking } from "../types";
 
 /**
  * Client for POST /api/bet-builder/extract.
@@ -120,9 +120,9 @@ export async function createSportyBetSlip(
 }
 
 /** The bridge announces itself on load; this is how long we wait before calling it absent. */
-const BRIDGE_TIMEOUT_MS = 1_500;
-/** Filling a slip opens one tab per fixture, so a 20-leg slip is minutes, not seconds. */
-const SLIP_TIMEOUT_MS = 10 * 60_000;
+const BRIDGE_TIMEOUT_MS = 2_000;
+/** One BetBoro tab per fixture, so a 20-leg slip is minutes, not seconds. */
+const SLIP_TIMEOUT_MS = 8 * 60_000;
 
 export interface BetBoroFillResult {
   filled: number;
@@ -131,10 +131,16 @@ export interface BetBoroFillResult {
 }
 
 /**
- * Talks to the `Odds Autobet` extension through the dashboard bridge (`extension/content/bridge.js`).
- * Rejects with a readable message when the extension is missing or stops answering.
+ * Talks to the `Odds Autobet` extension through the dashboard bridge
+ * (`extension/content/bridge.js`). The extension is the only actor allowed to click inside a
+ * betboro.com.gh tab, so it does the work and reports back here.
  */
-function bridgeRequest<T>(type: string, payload: Record<string, unknown>, timeoutMs: number) {
+function bridgeRequest<T>(
+  type: string,
+  payload: Record<string, unknown>,
+  timeoutMs: number,
+  timeoutMessage: string,
+) {
   return new Promise<T>((resolve, reject) => {
     const requestId = `bb-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     let settled = false;
@@ -154,10 +160,7 @@ function bridgeRequest<T>(type: string, payload: Record<string, unknown>, timeou
       else resolve(value as T);
     };
 
-    const timer = window.setTimeout(
-      () => finish(new Error("The extension stopped responding while filling the slip.")),
-      timeoutMs,
-    );
+    const timer = window.setTimeout(() => finish(new Error(timeoutMessage)), timeoutMs);
 
     function onMessage(event: MessageEvent) {
       if (event.source !== window || event.origin !== window.location.origin) return;
@@ -200,10 +203,11 @@ function bridgeRequest<T>(type: string, payload: Record<string, unknown>, timeou
 }
 
 /**
- * Adds the scanned selections to a BetBoro betslip.
+ * Loads the scanned selections into a BetBoro betslip.
  *
- * BetBoro has no booking API, so the extension opens each fixture, clicks the outcome and — on the
- * first leg only — clears whatever was already in the slip. No stake is typed.
+ * BetBoro has no booking API: the extension opens each fixture, clears the betslip once (first leg
+ * only) and clicks each outcome. It answers only when the whole job is done, so the caller shows
+ * elapsed time rather than a fake percentage.
  */
 export async function addToBetBoroSlip(legs: BetBoroSlipLeg[]): Promise<BetBoroFillResult> {
   if (legs.length === 0) {
@@ -222,6 +226,7 @@ export async function addToBetBoroSlip(legs: BetBoroSlipLeg[]): Promise<BetBoroF
       })),
     },
     SLIP_TIMEOUT_MS,
+    "The extension never reported back. Check chrome://extensions that Odds Autobet is 0.2.0 and reloaded, then refresh this page.",
   );
 
   return {

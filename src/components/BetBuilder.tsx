@@ -319,6 +319,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   /** rowIndexes of the legs staged for the SportyBet slip. */
   const [staged, setStaged] = useState<number[]>([]);
   const [slipBusy, setSlipBusy] = useState(false);
+  const [slipStatus, setSlipStatus] = useState<string | null>(null);
   const [slipError, setSlipError] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -412,8 +413,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     );
   };
 
-  const scanning = phase === "scanning";
-  const matched = result?.matched ?? [];
+  const scanning = phase === "scanning";  const matched = result?.matched ?? [];
   const unresolved = result?.unresolved ?? [];
   const warnings = result?.warnings ?? [];
 
@@ -440,10 +440,24 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     }
   };
 
+  // The extension replies once, when the whole job is done, so show elapsed time rather than a
+  // percentage we cannot know. The starting label is set by the click, not here.
+  useEffect(() => {
+    if (!slipBusy) return;
+
+    const startedAt = Date.now();
+    const id = window.setInterval(() => {
+      setSlipStatus(`Opening BetBoro… ${Math.round((Date.now() - startedAt) / 1000)}s`);
+    }, 1000);
+
+    return () => window.clearInterval(id);
+  }, [slipBusy]);
+
   const addSlip = async () => {
     if (betboroLegs.length === 0) return;
     setSlipBusy(true);
     setSlipError(null);
+    setSlipStatus("Opening BetBoro… 0s");
     try {
       const outcome = await addToBetBoroSlip(betboroLegs);
       if (outcome.filled < outcome.total) {
@@ -460,6 +474,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
       );
     } finally {
       setSlipBusy(false);
+      setSlipStatus(null);
     }
   };
 
@@ -628,7 +643,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
               onClick={() => void addSlip()}
               disabled={slipBusy}
             >
-              {slipBusy ? "Opening BetBoro…" : `Add ${betboroLegs.length} to BetBoro slip`}
+              {slipBusy ? slipStatus ?? "Opening BetBoro…" : `Add ${betboroLegs.length} to BetBoro slip`}
               <span className="bb-btn-icon" aria-hidden="true">
                 ↗
               </span>
@@ -709,7 +724,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                   disabled={slipBusy || betboroLegs.length === 0}
                 >
                   {slipBusy
-                    ? "Opening BetBoro…"
+                    ? slipStatus ?? "Opening BetBoro…"
                     : `Add all ${betboroLegs.length} to BetBoro betslip`}
                   <span className="bb-btn-icon" aria-hidden="true">↗</span>
                 </button>
