@@ -164,7 +164,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 Over/Under mapping + history + Telegram +
 push) · `build-match-feed.js` · `push-notify.js` (Web Push fan-out) · `generate-vapid-keys.js` ·
 plus debug/probe utilities (`probe-betboro.js`, `debug-sportybet-markets.js`, `check-*.js`,
-`test-scroll.js`, `arb-scraper.js`, `parse-betslip.js`).
+`test-scroll.js`, `arb-scraper.js`, `parse-betslip.js`, `vision-models.js`).
 
 ### Database — `migrations/`
 

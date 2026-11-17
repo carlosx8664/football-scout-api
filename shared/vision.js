@@ -28,11 +28,13 @@ export const GEMINI_DEFAULT_MODEL = "gemini-2.5-flash";
 const OPENAI_COMPATIBLE = {
   groq: {
     url: "https://api.groq.com/openai/v1/chat/completions",
+    modelsUrl: "https://api.groq.com/openai/v1/models",
     defaultModel: "meta-llama/llama-4-scout-17b-16e-instruct",
     headers: {},
   },
   openrouter: {
     url: "https://openrouter.ai/api/v1/chat/completions",
+    modelsUrl: "https://openrouter.ai/api/v1/models",
     defaultModel: "google/gemma-4-31b-it:free",
     headers: {
       // OpenRouter attributes free-tier traffic by these two headers.
@@ -72,6 +74,70 @@ function toBase64(bytes) {
     binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
   }
   return btoa(binary);
+}
+
+/** Model ids churn (Groq retires them, OpenRouter renames `:free` variants). */
+const VISION_MODEL_HINT = /-vl(?:[-:]|$)|vision|scout|maverick|gemma|multimodal|llava|pixtral|omni/i;
+
+/**
+ * Model ids the key can actually use. Cached per provider+key for the isolate's lifetime so a
+ * retry does not pay for the listing again.
+ *
+ * @type {Map<string, string[]>}
+ */
+const modelCache = new Map();
+
+/**
+ * Model listing with the provider's own answer, so a bad key is never mistaken for a bad network.
+ *
+ * @param {{ name: string, key: string }} provider
+ * @returns {Promise<{ ids: string[], ok: boolean, status: number, error: string }>}
+ */
+export async function probeModels(provider) {
+  const config = OPENAI_COMPATIBLE[provider.name];
+  if (!config?.modelsUrl) {
+    return { ids: [], ok: false, status: 0, error: `${provider.name} does not expose a model list` };
+  }
+
+  const cacheKey = `${provider.name}:${provider.key.slice(-8)}`;
+  const cached = modelCache.get(cacheKey);
+  if (cached) return { ids: cached, ok: true, status: 200, error: "" };
+
+  try {
+    const response = await fetch(config.modelsUrl, {
+      headers: { Authorization: `Bearer ${provider.key}`, ...config.headers },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      const detail = await response.text().catch(() => "");
+      return { ids: [], ok: false, status: response.status, error: detail.slice(0, 200) };
+    }
+
+    const payload = await response.json().catch(() => null);
+    const ids = (payload?.data ?? [])
+      .map((row) => String(row?.id ?? ""))
+      .filter(Boolean)
+      .sort();
+    // Only successes are cached: a transient failure must not stick to the isolate.
+    modelCache.set(cacheKey, ids);
+    return { ids, ok: true, status: response.status, error: "" };
+  } catch (error) {
+    return { ids: [], ok: false, status: 0, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+/**
+ * @param {{ name: string, key: string }} provider
+ * @returns {Promise<string[]>}
+ */
+export async function listModels(provider) {
+  return (await probeModels(provider)).ids;
+}
+
+/** First model id on this key that looks vision-capable. */
+async function discoverVisionModel(provider) {
+  const ids = await listModels(provider);
+  return ids.find((id) => VISION_MODEL_HINT.test(id)) ?? null;
 }
 
 /**
@@ -167,12 +233,18 @@ async function callGemini(provider, { bytes, mime }) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
-    const status = response.status === 429 ? 429 : 502;
+    if (response.status === 429) {
+      throw new VisionError(
+        "The free vision quota for today is used up. Try again tomorrow or add a second provider key.",
+        429,
+        detail.slice(0, 300) || null,
+      );
+    }
     throw new VisionError(
-      status === 429
-        ? "The free vision quota for today is used up. Try again tomorrow or add a second provider key."
-        : `Vision model responded with HTTP ${response.status}`,
-      status,
+      response.status === 404
+        ? `Gemini has no model "${provider.model}" for this key. Set VISION_MODEL to a model your AI Studio project can use.`
+        : `Vision model responded with HTTP ${response.status} (gemini/${provider.model}).`,
+      502,
       detail.slice(0, 300) || null,
     );
   }
@@ -248,14 +320,38 @@ async function callOpenAiCompatible(provider, { bytes, mime }) {
     response = await postOpenAiCompatible(provider, body);
   }
 
+  // 404 means the model id is gone (Groq retires ids), not that the key is wrong.
+  let consumedDetail = "";
+  if (response.status === 404) {
+    consumedDetail = await response.text().catch(() => "");
+    const discovered = await discoverVisionModel(provider);
+    if (discovered && discovered !== provider.model) {
+      provider.model = discovered;
+      body.model = discovered;
+      response = await postOpenAiCompatible(provider, body);
+      consumedDetail = "";
+    }
+  }
+
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    const status = response.status === 429 ? 429 : 502;
+    const detail = consumedDetail || (await response.text().catch(() => ""));
+    if (response.status === 429) {
+      throw new VisionError(
+        "The free vision quota for today is used up. Try again tomorrow or add a second provider key.",
+        429,
+        detail.slice(0, 300) || null,
+      );
+    }
+
+    const known = response.status === 404 ? await listModels(provider) : [];
     throw new VisionError(
-      status === 429
-        ? "The free vision quota for today is used up. Try again tomorrow or add a second provider key."
-        : `Vision model responded with HTTP ${response.status}`,
-      status,
+      response.status === 404
+        ? `${provider.name} has no model "${provider.model}".` +
+            (known.length > 0
+              ? ` Available: ${known.slice(0, 6).join(", ")}. Set VISION_MODEL.`
+              : " Run `node scripts/vision-models.js` and set VISION_MODEL.")
+        : `Vision model responded with HTTP ${response.status} (${provider.name}/${provider.model}).`,
+      502,
       detail.slice(0, 300) || null,
     );
   }

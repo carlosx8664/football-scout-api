@@ -367,7 +367,12 @@ fixture feed, and matching re-runs against the live feed on every request so lin
 
 Limits: 8 MB per image, enforced server-side from `File.size` before the bytes are read; the
 client downscales further. Requires `GEMINI_API_KEY` as a Pages secret (see step 2 above); a
-second free provider can be chained in with `OPENROUTER_API_KEY` (see `shared/vision.js`).
+second free provider can be chained in with `OPENROUTER_API_KEY` or `GROQ_API_KEY` (see
+`shared/vision.js`).
+
+Free tiers retire model ids without notice: a `404` from the provider is retried once against the
+first vision-looking model the key lists, and the error names the model when nothing fits. Run
+`node scripts/vision-models.js` to see what a key can use, then pin it with `VISION_MODEL`.
 
 ## Keeping odds fresh
 
