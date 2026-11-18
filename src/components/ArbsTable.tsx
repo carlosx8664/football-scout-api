@@ -6,7 +6,9 @@ import { useNotifications } from "../lib/notifications";
 import { useSimulation } from "../lib/simulation";
 // Shared with scripts/push-notify.js so a notification tap finds the same card.
 import { arbDeepLinkKey } from "../../shared/arb-key.js";
+import { fetchActiveBets } from "../lib/bets";
 import type {
+  ActiveBetRecord,
   ArbHistoryLeg,
   ArbHistoryRecord,
   ArbLeg,
@@ -212,6 +214,37 @@ function arbKey(arb: ArbOpportunity, legs: ArbLeg[]): string {
   return `${base}|${arb.market}|${legPart}`;
 }
 
+const normalizeLabel = (value: string): string =>
+  value.trim().toLowerCase().replace(/\s+/g, " ");
+
+/** eventName is "<home> vs <away> — <market>"; older rows have no market part. */
+function eventNameMarket(eventName: string): string | null {
+  const separator = eventName.lastIndexOf(" — ");
+  if (separator === -1) return null;
+  const market = normalizeLabel(eventName.slice(separator + 3));
+  return market === "" || market === "arbitrage" ? null : market;
+}
+
+/** True when this live arb is already sitting in Active Bets (same fixture and market). */
+function alreadyInActiveBets(bets: ActiveBetRecord[], arb: ArbOpportunity): boolean {
+  const fixture = normalizeLabel(`${arb.home} vs ${arb.away}`);
+  const market = normalizeLabel(arb.market ?? "");
+
+  return bets.some((bet) => {
+    if (bet.kind !== "arb") return false;
+    const name = normalizeLabel(bet.eventName);
+    const sameFixture =
+      bet.srEventId && arb.eventId
+        ? bet.srEventId === arb.eventId
+        : name.startsWith(fixture);
+    if (!sameFixture) return false;
+
+    const betMarket = eventNameMarket(name);
+    if (!market || !betMarket) return true;
+    return betMarket === market;
+  });
+}
+
 const ClockIcon = () => (
   <svg className="arb-clock" viewBox="0 0 16 16" aria-hidden="true">
     <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -279,6 +312,10 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     real: [],
   });
   const [toast, setToast] = useState<string | null>(null);
+  // Arbs already written to D1 (logged earlier, possibly on another device), so they can be
+  // marked without this session's local `loggedKeys`.
+  const [activeBetRows, setActiveBetRows] = useState<ActiveBetRecord[] | null>(null);
+  const [betsRefreshToken, setBetsRefreshToken] = useState(0);
 
   useEffect(() => {
     const onFocus = () => restorePageTitle();
@@ -340,6 +377,22 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
     const timer = setTimeout(() => setToast(null), 3200);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  // Deepen the rows whose arb is already in Active Bets. Reloaded with the feed and after a log
+  // so settling a bet (which clears it from the ledger) releases the mark.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    void fetchActiveBets(simulation, controller.signal)
+      .then((payload) => setActiveBetRows(payload.activeBets))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        console.warn("Could not load active bets for the arbs table.", error);
+        setActiveBetRows((previous) => previous ?? []);
+      });
+
+    return () => controller.abort();
+  }, [simulation, feed?.generatedAt, betsRefreshToken]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -608,14 +661,17 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const rowClass = arbIndex % 2 === 1 ? "arb-row-alt" : undefined;
                       const rowKey = arbKey(arb, legs);
                       const deepKey = arbDeepLinkKey(arb);
+                      const modeKey = simulation ? "sim" : "real";
+                      const inActiveBets = alreadyInActiveBets(activeBetRows ?? [], arb);
+                      const logged =
+                        inActiveBets || loggedKeys[modeKey].includes(rowKey);
                       const rowClasses = [
                         rowClass,
                         highlightKey === deepKey ? "arb-row-highlight" : null,
+                        logged ? "arb-row-bet" : null,
                       ]
                         .filter(Boolean)
                         .join(" ");
-                      const modeKey = simulation ? "sim" : "real";
-                      const logged = loggedKeys[modeKey].includes(rowKey);
 
                       const rawStakes = legs.map((leg) =>
                         typeof leg.stake === "number"
@@ -948,6 +1004,8 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
             }));
             setLogTarget(null);
             setToast("Arb logged successfully.");
+            // The new row is in Active Bets now, so pick it up for the deepened style.
+            setBetsRefreshToken((current) => current + 1);
             // Stakes were just debited, so re-run the balance alerts.
             refreshNotifications();
           }}

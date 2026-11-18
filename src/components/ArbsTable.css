@@ -156,6 +156,16 @@
   background: var(--color-brand-weak);
 }
 
+/* An arb already in Active Bets reads as a deeper row so it cannot be logged twice. */
+.arbs-table tbody tr.arb-row-bet td,
+.arbs-table tbody tr.arb-row-alt.arb-row-bet td {
+  background: var(--color-neutral-3);
+}
+
+.arbs-table tbody tr.arb-row-bet:hover td {
+  background: var(--color-neutral-4);
+}
+
 /*
  * Card targeted by a push notification (?arb=<key>). Fades out over the last second so the
  * scroll target is obvious without leaving the table permanently marked.
