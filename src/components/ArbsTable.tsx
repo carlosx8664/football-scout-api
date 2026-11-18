@@ -217,31 +217,30 @@ function arbKey(arb: ArbOpportunity, legs: ArbLeg[]): string {
 const normalizeLabel = (value: string): string =>
   value.trim().toLowerCase().replace(/\s+/g, " ");
 
-/** eventName is "<home> vs <away> — <market>"; older rows have no market part. */
-function eventNameMarket(eventName: string): string | null {
-  const separator = eventName.lastIndexOf(" — ");
-  if (separator === -1) return null;
-  const market = normalizeLabel(eventName.slice(separator + 3));
-  return market === "" || market === "arbitrage" ? null : market;
-}
+const bookiePair = (names: string[]): string =>
+  names.map(normalizeLabel).sort().join("|");
 
-/** True when this live arb is already sitting in Active Bets (same fixture and market). */
-function alreadyInActiveBets(bets: ActiveBetRecord[], arb: ArbOpportunity): boolean {
+/**
+ * True when this live arb is already covered by an Active Bets row: same fixture and the same
+ * two bookmakers. A different market at the same bookies still counts (the cash is already
+ * laid on those books), but an arb on a different pair of bookies is a separate opportunity.
+ */
+function alreadyInActiveBets(
+  bets: ActiveBetRecord[],
+  arb: ArbOpportunity,
+  legs: ArbLeg[],
+): boolean {
   const fixture = normalizeLabel(`${arb.home} vs ${arb.away}`);
-  const market = normalizeLabel(arb.market ?? "");
+  const bookies = bookiePair(legs.map((leg) => leg.bookmaker));
 
   return bets.some((bet) => {
     if (bet.kind !== "arb") return false;
-    const name = normalizeLabel(bet.eventName);
     const sameFixture =
       bet.srEventId && arb.eventId
         ? bet.srEventId === arb.eventId
-        : name.startsWith(fixture);
+        : normalizeLabel(bet.eventName).includes(fixture);
     if (!sameFixture) return false;
-
-    const betMarket = eventNameMarket(name);
-    if (!market || !betMarket) return true;
-    return betMarket === market;
+    return bookiePair([bet.legA.name, bet.legB.name]) === bookies;
   });
 }
 
@@ -662,7 +661,11 @@ const ArbsTable = ({ now }: ArbsTableProps) => {
                       const rowKey = arbKey(arb, legs);
                       const deepKey = arbDeepLinkKey(arb);
                       const modeKey = simulation ? "sim" : "real";
-                      const inActiveBets = alreadyInActiveBets(activeBetRows ?? [], arb);
+                      const inActiveBets = alreadyInActiveBets(
+                        activeBetRows ?? [],
+                        arb,
+                        legs,
+                      );
                       const logged =
                         inActiveBets || loggedKeys[modeKey].includes(rowKey);
                       const rowClasses = [
