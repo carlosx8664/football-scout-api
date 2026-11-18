@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import { fetchTransfers, formatAmount } from "../lib/wallets";
-import type { TransfersPayload, Wallet } from "../types";
+import type { TransfersPayload, Wallet, WalletTransfer } from "../types";
 import "./CashFlowPanel.css";
 
 interface CashFlowPanelProps {
@@ -21,6 +21,8 @@ interface CashFlowPanelProps {
   /** Portfolio floor: the take may never drop the wallets below this. */
   bankroll: number;
   onWithdraw: (allocations: Array<{ walletId: string; amount: number }>) => Promise<void>;
+  /** Reverses a capital injection logged by mistake; rejects so the panel can show why. */
+  onReverse: (transfer: WalletTransfer) => Promise<void>;
 }
 
 const when = (iso: string) =>
@@ -46,6 +48,7 @@ const CashFlowPanel = ({
   cashInWallets,
   bankroll,
   onWithdraw,
+  onReverse,
 }: CashFlowPanelProps) => {
   const [result, setResult] = useState<{ key: string; payload: TransfersPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
@@ -54,6 +57,8 @@ const CashFlowPanel = ({
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
+  const [reversing, setReversing] = useState<string | null>(null);
+  const [reverseError, setReverseError] = useState<string | null>(null);
 
   const key = simulation ? "sim" : "real";
 
@@ -121,6 +126,18 @@ const CashFlowPanel = ({
     setOpen(false);
     setAmounts({});
     setFormError(null);
+  };
+
+  const reverse = async (transfer: WalletTransfer) => {
+    setReversing(transfer.id);
+    setReverseError(null);
+    try {
+      await onReverse(transfer);
+    } catch (err) {
+      setReverseError((err as Error).message);
+    } finally {
+      setReversing(null);
+    }
   };
 
   const submit = async () => {
@@ -280,6 +297,11 @@ const CashFlowPanel = ({
         </p>
       ) : (
         <>
+          {reverseError && (
+            <p className="cashflow-error" role="alert">
+              {reverseError}
+            </p>
+          )}
           <ul className="cashflow-list">
             {visible.map((transfer) => (
               <li className="cashflow-row" key={transfer.id}>
@@ -304,6 +326,18 @@ const CashFlowPanel = ({
                   {formatAmount(transfer.amount)}
                 </span>
                 <span className="cashflow-when">{when(transfer.createdAt)}</span>
+                {transfer.type === "CAPITAL_INJECTION" && (
+                  <button
+                    type="button"
+                    className="cashflow-reverse"
+                    title="Reverse this capital injection"
+                    aria-label={`Reverse the ${formatAmount(transfer.amount)} capital injection`}
+                    disabled={reversing === transfer.id}
+                    onClick={() => void reverse(transfer)}
+                  >
+                    ×
+                  </button>
+                )}
               </li>
             ))}
           </ul>

@@ -94,6 +94,7 @@
   overflow-y: auto;
 }
 .cashflow-row {
+  position: relative;
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr) 120px 130px;
   align-items: center;
@@ -120,6 +121,40 @@
   font-size: 0.72rem;
   text-align: right;
   white-space: nowrap;
+}
+
+/* Hover-only × on a capital injection: reverses the deposit and takes the cash out of MOMO. */
+.cashflow-reverse {
+  position: absolute;
+  top: 50%;
+  right: -6px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-neutral-1);
+  color: var(--color-neutral-6);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.cashflow-row:hover .cashflow-reverse,
+.cashflow-reverse:focus-visible {
+  opacity: 1;
+}
+.cashflow-reverse:hover {
+  color: #c20a0a;
+}
+.cashflow-reverse:disabled {
+  opacity: 1;
+  cursor: progress;
 }
 
 @media (max-width: 720px) {

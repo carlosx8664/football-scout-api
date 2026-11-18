@@ -13,11 +13,17 @@ import {
   cashOutWeeklyProfits,
   createCapitalInjection,
   createTransfer,
+  deleteCapitalInjection,
   fetchWallets,
   formatAmount,
   refreshWallets,
 } from "../lib/wallets";
-import type { CancelBetResult, SettleBetResult, WalletsPayload } from "../types";
+import type {
+  CancelBetResult,
+  SettleBetResult,
+  WalletTransfer,
+  WalletsPayload,
+} from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
 import CashFlowPanel from "./CashFlowPanel";
@@ -149,6 +155,24 @@ const WalletsDashboard = () => {
     [applyPayload, enabled, setSettings, settings],
   );
 
+  /** A mistaken injection can be reversed: the cash comes back out of MOMO and the bankroll shrinks. */
+  const handleReverseInjection = useCallback(
+    async (transfer: WalletTransfer) => {
+      const next = await deleteCapitalInjection(transfer.id, enabled);
+      const bankroll =
+        Math.round(Math.max(0, settings.bankroll - transfer.amount) * 100) / 100;
+      const stakeRatio = settings.bankroll > 0 ? settings.stake / settings.bankroll : 0;
+      const stake = Math.round(bankroll * stakeRatio * 100) / 100;
+      setSettings({ ...settings, bankroll, stake });
+      applyPayload(next);
+      setRefreshToken((current) => current + 1);
+      setToast(
+        `Reversed capital injection: ${formatAmount(transfer.amount)} returned out of MOMO.`,
+      );
+    },
+    [applyPayload, enabled, setSettings, settings],
+  );
+
   /** Reset: wipe this mode's ledger and re-open every selected wallet from a new bankroll. */
   const handleReset = useCallback(
     async (bankroll: number) => {
@@ -253,6 +277,7 @@ const WalletsDashboard = () => {
           cashInWallets={payload?.liquidity.totalBalance ?? 0}
           bankroll={settings.bankroll}
           onWithdraw={handleProfitTake}
+          onReverse={handleReverseInjection}
         />
         <MugBetsPanel
           simulation={enabled}

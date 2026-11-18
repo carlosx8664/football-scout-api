@@ -139,6 +139,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `wallets/cash-out.js` | `POST` — profit withdrawal: per-bookie amounts capped at `balance − locked`, remaining lifetime profit and the bankroll floor, logged as `PROFIT_WITHDRAWAL` |
 | `wallets/recycle.js` | `POST` — move capital bookie → bookie (one withdrawal + one deposit, atomic) |
 | `transfers.js` | `GET` — cash-flow ledger + totals |
+| `transfers/[id].js` | `DELETE` — reverses a `CAPITAL_INJECTION`: deletes the ledger row and takes the amount back out of the MOMO reserve (refused if the cash has already moved to bookies) |
 | `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; the "muggy acca per bookie today" arb gate is currently disabled by `MUG_GATE_ENABLED = false`) |
 | `active-bets/[id].js` | `DELETE` — cancel + refund both stakes + zero-profit `cancelled` history row |
 | `active-bets/[id]/settle.js` | `POST` — win / void / cash-out settlement with credits batch |

@@ -119,6 +119,29 @@ export async function createCapitalInjection(
   return payload;
 }
 
+/** Reverses a capital injection: the ledger row goes and the cash comes back out of MOMO. */
+export async function deleteCapitalInjection(
+  id: string,
+  simulation: boolean,
+): Promise<WalletsPayload> {
+  const response = await fetch(
+    `/api/transfers/${encodeURIComponent(id)}?simulation=${simulation ? 1 : 0}`,
+    { method: "DELETE" },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | (WalletsPayload & { error?: string })
+    | null;
+
+  if (!response.ok || !payload?.wallets) {
+    throw new Error(
+      payload?.error ?? `Could not reverse the injection (HTTP ${response.status}).`,
+    );
+  }
+
+  return payload;
+}
+
 export async function fetchTransfers(
   simulation: boolean,
   signal?: AbortSignal,
