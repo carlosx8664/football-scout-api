@@ -14,6 +14,9 @@ const MAX_STAKE = 1_000_000;
 const KINDS = new Set(["arb", "muggy", "free"]);
 const SPORTS = new Set(["football", "horse-racing"]);
 /** A local calendar day is at most 25h once a DST shift is accounted for. */
+/** Set to true to require a muggy acca per bookie before an arb can be logged. */
+const MUG_GATE_ENABLED = false;
+
 const MAX_DAY_MS = 27 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -206,7 +209,7 @@ export async function onRequestPost({ request, env }) {
     // Any bet still open on that bookie — an arb for a future match included — already keeps the
     // account active, so it bypasses the daily mug-bet gate. Only a bookie with no open position
     // and no mug bet logged today is asked for one.
-    if (kind === "arb") {
+    if (kind === "arb" && MUG_GATE_ENABLED) {
       const { start, end } = localDayWindow(body);
       const mode = modeValue(simulation);
       const mugged = new Set();
