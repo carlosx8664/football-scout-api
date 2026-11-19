@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Side panel UI.
  *
  * Shows the live arb feed (same KV payload the dashboard reads), previews the exact stakes that
@@ -14,7 +14,13 @@ const $ = (id) => document.getElementById(id);
 const ui = {
   feedDot: $('feedDot'),
   refreshBtn: $('refreshBtn'),
+  themeBtn: $('themeBtn'),
   settingsBtn: $('settingsBtn'),
+  tabAutobet: $('tabAutobet'),
+  tabBuilder: $('tabBuilder'),
+  viewAutobet: $('viewAutobet'),
+  viewBuilder: $('viewBuilder'),
+  builderProgress: $('builderProgress'),
   setup: $('setup'),
   apiBaseInput: $('apiBaseInput'),
   useTabBtn: $('useTabBtn'),
@@ -27,6 +33,11 @@ const ui = {
   cancelBtn: $('cancelBtn'),
   retryBtn: $('retryBtn'),
   dismissBtn: $('dismissBtn'),
+  builderDrop: $('builderDrop'),
+  builderFile: $('builderFile'),
+  builderStatus: $('builderStatus'),
+  builderResult: $('builderResult'),
+  pickImageBtn: $('pickImageBtn'),
   settings: $('settings'),
   stakeInput: $('stakeInput'),
   stepInput: $('stepInput'),
@@ -50,6 +61,9 @@ const state = {
   starting: false,
   refreshing: false,
   aborter: null,
+  builder: null,
+  builderBusy: false,
+  tab: 'autobet',
 };
 
 function node(tag, props = {}, children = []) {
@@ -72,6 +86,28 @@ function node(tag, props = {}, children = []) {
 const say = (text) => {
   ui.statusLine.textContent = text;
 };
+
+// ---------------------------------------------------------------- theme
+
+const THEME_KEY = 'theme';
+
+/** Dark is the default; the choice is stored so the panel opens in the same theme. */
+function applyTheme(theme) {
+  const light = theme === 'light';
+  document.documentElement.dataset.theme = light ? 'light' : 'dark';
+  if (ui.themeBtn) {
+    ui.themeBtn.textContent = light ? '☾' : '☀';
+    const label = light ? 'Switch to dark mode' : 'Switch to light mode';
+    ui.themeBtn.title = label;
+    ui.themeBtn.setAttribute('aria-label', label);
+  }
+}
+
+ui.themeBtn?.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(next);
+  chrome.storage.local.set({ [THEME_KEY]: next }).catch(() => {});
+});
 
 // ---------------------------------------------------------------- settings
 
@@ -105,7 +141,7 @@ async function saveBase(raw) {
   try {
     await chrome.permissions.request({ origins: [`${apiBase}/*`] });
   } catch {
-    /* already granted, or a chrome:// page — the fetch below reports the real problem */
+    /* already granted, or a chrome:// page â€” the fetch below reports the real problem */
   }
 
   await chrome.storage.local.set({ apiBase });
@@ -118,19 +154,51 @@ async function saveBase(raw) {
 
 // ---------------------------------------------------------------- feed
 
+/**
+ * A degraded payload must not wait for the normal poll (15 s minimum, 60 s default), but a
+ * persistent outage must not turn into a 10 s hammer either. Escalate once per failure.
+ */
+const FEED_RETRY_STEPS_MS = [10_000, 30_000, 60_000];
+let feedRetryTimer = null;
+let feedRetryStep = 0;
+
+function scheduleFeedRetry() {
+  if (feedRetryTimer) clearTimeout(feedRetryTimer);
+  const wait = FEED_RETRY_STEPS_MS[Math.min(feedRetryStep, FEED_RETRY_STEPS_MS.length - 1)];
+  feedRetryStep += 1;
+  feedRetryTimer = setTimeout(() => {
+    feedRetryTimer = null;
+    if (document.visibilityState === 'visible') refreshFeed();
+  }, wait);
+}
+
+function clearFeedRetry() {
+  feedRetryStep = 0;
+  if (!feedRetryTimer) return;
+  clearTimeout(feedRetryTimer);
+  feedRetryTimer = null;
+}
+
 /** Applies a feed payload to the panel: dot, meta line and the arb list. */
 function applyFeed(feed) {
   state.feed = feed;
   state.feedError = null;
   state.feedAt = new Date();
-  const age = feed.generatedAt ? Date.parse(feed.generatedAt) : null;
-  const stale = Number.isFinite(age) && Date.now() - age > 25 * 60_000;
-  ui.feedDot.className = `dot ${stale ? 'stale' : 'live'}`;
-  renderFeedMeta(
-    `Feed ${feed.generatedAt ? new Date(feed.generatedAt).toLocaleTimeString() : 'just now'}${
-      stale ? ' · stale' : ''
-    }`,
-  );
+
+  const generatedAt = feed.generatedAt ? Date.parse(feed.generatedAt) : NaN;
+  const stale = Number.isFinite(generatedAt) && Date.now() - generatedAt > 25 * 60_000;
+  const offline = feed.source === 'static';
+  const degraded = stale || offline;
+
+  ui.feedDot.className = `dot ${degraded ? 'stale' : 'live'}`;
+  const stamp = Number.isFinite(generatedAt)
+    ? new Date(generatedAt).toLocaleTimeString()
+    : 'just now';
+  renderFeedMeta(`${offline ? 'Offline snapshot' : 'Feed'} ${stamp}${stale ? ' Â· stale' : ''}`);
+
+  if (degraded) scheduleFeedRetry();
+  else clearFeedRetry();
+
   renderArbs();
 }
 
@@ -154,6 +222,8 @@ async function refreshFeed() {
     ui.feedDot.className = 'dot off';
     renderFeedMeta(state.feedError);
     renderArbs();
+    console.warn('[oddtor] feed fetch failed:', error?.message || error);
+    scheduleFeedRetry();
   }
 }
 
@@ -167,17 +237,17 @@ async function refreshNow() {
 
   const label = ui.refreshBtn.textContent;
   ui.refreshBtn.disabled = true;
-  ui.refreshBtn.textContent = 'Refreshing…';
+  ui.refreshBtn.textContent = 'Refreshingâ€¦';
   ui.feedDot.className = 'dot stale';
 
   try {
     const response = await chrome.runtime.sendMessage({ type: 'AUTOBET_REFRESH' });
     if (response?.ok && response.feed) {
       applyFeed(response.feed);
-      say(`Feed refreshed · ${activeArbs().length} arb(s).`);
+      say(`Feed refreshed Â· ${activeArbs().length} arb(s).`);
     } else {
       await refreshFeed();
-      say(response?.error ? `Worker: ${response.error} — fetched directly.` : 'Feed refreshed.');
+      say(response?.error ? `Worker: ${response.error} â€” fetched directly.` : 'Feed refreshed.');
     }
   } catch (error) {
     await refreshFeed();
@@ -213,7 +283,7 @@ function countdown(kickoff) {
 /**
  * Profit range for the exact stakes that will be typed: the smallest and largest (stake x odds)
  * across the legs, minus the total outlay. Rounding leaves the legs slightly imbalanced, so the
- * worst case can sit below total x profitPct — that gap is real money.
+ * worst case can sit below total x profitPct â€” that gap is real money.
  *
  * @returns {{worst: number, best: number}|null} null when a leg has no usable stake or price.
  */
@@ -266,7 +336,7 @@ function renderArbs() {
         'li',
         {
           class: `arb-leg${SUPPORTED.has(leg.bookmaker) ? '' : ' unsupported'}`,
-          title: SUPPORTED.has(leg.bookmaker) ? leg.url ?? '' : 'Not auto-filled — open manually',
+          title: SUPPORTED.has(leg.bookmaker) ? leg.url ?? '' : 'Not auto-filled â€” open manually',
         },
         [
           node('span', { class: 'book', text: leg.bookmaker }),
@@ -297,7 +367,7 @@ function renderArbs() {
         node('div', { class: 'arb-teams', text: `${arb.home} vs ${arb.away}` }),
         node('div', {
           class: 'arb-market',
-          text: [arb.market, arb.tournament].filter(Boolean).join(' · '),
+          text: [arb.market, arb.tournament].filter(Boolean).join(' Â· '),
         }),
         node('ul', { class: 'arb-legs' }, legItems),
         node('div', { class: 'arb-run' }, [
@@ -332,9 +402,9 @@ async function startJob(arb, button) {
   state.starting = true;
   if (button) {
     button.disabled = true;
-    button.textContent = 'Starting…';
+    button.textContent = 'Startingâ€¦';
   }
-  say('Opening both bookmakers…');
+  say('Opening both bookmakersâ€¦');
 
   try {
     // Send the exact stakes the card is showing, so the worker never re-derives them.
@@ -396,7 +466,7 @@ function renderJob() {
     job.error ? job.error : '',
   ]
     .filter(Boolean)
-    .join(' · ');
+    .join(' Â· ');
 
   ui.jobLegs.replaceChildren(
     ...job.legs.map((leg) =>
@@ -404,7 +474,7 @@ function renderJob() {
         node('div', { class: 'leg-top' }, [
           node('span', {
             class: 'leg-book',
-            text: `${leg.bookmaker} · ${leg.outcome}`,
+            text: `${leg.bookmaker} Â· ${leg.outcome}`,
           }),
           node('span', {
             class: 'leg-status',
@@ -414,9 +484,9 @@ function renderJob() {
         node('div', { class: 'muted' }, [
           node('span', { text: `${Number(leg.expectedOdds).toFixed(2)}` }),
           leg.observedOdds
-            ? node('span', { text: ` → ${Number(leg.observedOdds).toFixed(2)}` })
+            ? node('span', { text: ` â†’ ${Number(leg.observedOdds).toFixed(2)}` })
             : null,
-          node('span', { text: ` · GHS ${Number(leg.stake).toFixed(2)}` }),
+          node('span', { text: ` Â· GHS ${Number(leg.stake).toFixed(2)}` }),
         ]),
         leg.message ? node('div', { class: 'leg-msg', text: leg.message }) : null,
         leg.tabId
@@ -439,7 +509,7 @@ function renderJob() {
 }
 
 async function retryFailed() {
-  say('Retrying unfilled legs…');
+  say('Retrying unfilled legsâ€¦');
   try {
     const response = await chrome.runtime.sendMessage({
       type: 'AUTOBET_RETRY',
@@ -453,6 +523,523 @@ async function retryFailed() {
   }
 }
 
+// ---------------------------------------------------------------- tabs
+
+function setTab(name) {
+  const builder = name === 'builder';
+  state.tab = builder ? 'builder' : 'autobet';
+  ui.tabAutobet.classList.toggle('active', !builder);
+  ui.tabBuilder.classList.toggle('active', builder);
+  ui.tabAutobet.setAttribute('aria-selected', String(!builder));
+  ui.tabBuilder.setAttribute('aria-selected', String(builder));
+  ui.viewAutobet.hidden = builder;
+  ui.viewBuilder.hidden = !builder;
+  chrome.storage.session.set({ panelTab: state.tab }).catch(() => {});
+}
+
+ui.tabAutobet.addEventListener('click', () => setTab('autobet'));
+ui.tabBuilder.addEventListener('click', () => setTab('builder'));
+
+// ---------------------------------------------------------------- bet builder
+
+/** Longest edge after downscaling; matches the web client's limits. */
+const BUILDER_MAX_EDGE = 1600;
+const BUILDER_JPEG_QUALITY = 0.85;
+const BUILDER_SKIP_BYTES = 400 * 1024;
+const BUILDER_MAX_BYTES = 8 * 1024 * 1024;
+
+const UNRESOLVED_LABEL = {
+  'missing-teams': 'No teams printed',
+  'no-candidates': 'No fixture in the feed',
+  'low-confidence': 'Weak name match',
+  ambiguous: 'Several fixtures fit',
+};
+
+function builderSay(text, tone = '') {
+  ui.builderStatus.hidden = !text;
+  ui.builderStatus.textContent = text || '';
+  if (text) ui.builderStatus.dataset.tone = tone;
+  else delete ui.builderStatus.dataset.tone;
+}
+
+/**
+ * Indeterminate bar plus elapsed seconds: the scan is one POST whose length the panel cannot
+ * predict, so a real percentage would be a lie. The clock alone is what tells a user it is
+ * still working.
+ */
+function startBuilderProgress(label) {
+  const startedAt = Date.now();
+  ui.builderProgress.hidden = false;
+  builderSay(`${label} 0s`);
+
+  const id = setInterval(() => {
+    builderSay(`${label} ${Math.round((Date.now() - startedAt) / 1000)}s`);
+  }, 1000);
+
+  return () => {
+    clearInterval(id);
+    ui.builderProgress.hidden = true;
+  };
+}
+
+function mimeFromName(name) {
+  const ext = String(name || '').toLowerCase().split('.').pop();
+  return (
+    { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[
+      ext
+    ] || ''
+  );
+}
+
+function imageNameFromUrl(url) {
+  try {
+    const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || '');
+    if (/\.(png|jpe?g|webp|gif)$/i.test(name)) return name;
+  } catch {
+    /* fall through to the generic name */
+  }
+  return 'betslip.jpg';
+}
+
+/** X serves scaled copies by default; `name=orig` is the image the tipster uploaded. */
+function originalImageUrl(raw) {
+  let value = String(raw || '').trim();
+  if (!value) return '';
+  if (value.startsWith('//')) value = `https:${value}`;
+  try {
+    const url = new URL(value);
+    if (!/^https?:$/.test(url.protocol)) return '';
+    if (/(^|\.)pbs\.twimg\.com$/.test(url.hostname) && url.searchParams.has('name')) {
+      url.searchParams.set('name', 'orig');
+    }
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Reads an image URL out of a drop that came from a page (not the OS).
+ * Drag from an image element carries `text/html` (`<img src=â€¦>`) and `text/uri-list`;
+ * browsers that only know the link put it in `text/plain`.
+ */
+function imageUrlFromDrop(dataTransfer) {
+  const html = dataTransfer.getData('text/html');
+  if (html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const fromHtml = originalImageUrl(doc.querySelector('img[src]')?.getAttribute('src'));
+    if (fromHtml) return fromHtml;
+  }
+
+  const uriList = dataTransfer.getData('text/uri-list');
+  const firstUri = uriList
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith('#'));
+
+  return originalImageUrl(firstUri) || originalImageUrl(dataTransfer.getData('text/plain'));
+}
+
+/**
+ * Extension pages can only read another origin's bytes when that origin is granted. Ask while the
+ * drop gesture is still live; a denial is not fatal because the origin may already be covered.
+ */
+async function allowImageOrigin(url) {
+  try {
+    const { origin, protocol } = new URL(url);
+    if (!/^https?:$/.test(protocol)) return false;
+    await chrome.permissions.request({ origins: [`${origin}/*`] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function prepareImage(blob) {
+  if (!blob || !String(blob.type).startsWith('image/')) {
+    throw new Error('That drop is not an image.');
+  }
+  if (blob.size > BUILDER_MAX_BYTES) {
+    throw new Error(`Image is ${(blob.size / 1024 / 1024).toFixed(1)} MB; the limit is 8 MB.`);
+  }
+  if (typeof createImageBitmap !== 'function') return blob;
+
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(blob);
+  } catch {
+    // HEIC/SVG and friends fall through to the API, which reports a real message.
+    return blob;
+  }
+
+  const longest = Math.max(bitmap.width, bitmap.height);
+  const scale = longest > BUILDER_MAX_EDGE ? BUILDER_MAX_EDGE / longest : 1;
+
+  if (scale === 1 && blob.size <= BUILDER_SKIP_BYTES) {
+    bitmap.close?.();
+    return blob;
+  }
+
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    bitmap.close?.();
+    return blob;
+  }
+
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close?.();
+
+  const encoded = await new Promise((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', BUILDER_JPEG_QUALITY);
+  });
+  return encoded || blob;
+}
+
+async function scanImage(blob, name) {
+  if (state.builderBusy) return;
+  if (!state.settings.apiBase) {
+    builderSay('Set your dashboard URL in Settings before scanning.', 'bad');
+    return;
+  }
+
+  state.builderBusy = true;
+  state.builder = null;
+  ui.builderResult.replaceChildren();
+  const stopProgress = startBuilderProgress('Reading the slipâ€¦');
+
+  try {
+    let source = blob;
+    if (!String(source.type).startsWith('image/')) {
+      const type = mimeFromName(name);
+      if (type) source = new File([source], name, { type });
+    }
+
+    const image = await prepareImage(source);
+    const body = new FormData();
+    body.append(
+      'image',
+      image,
+      name || (image.type === 'image/jpeg' ? 'betslip.jpg' : 'betslip.png'),
+    );
+
+    const response = await fetch(`${state.settings.apiBase}/api/bet-builder/extract`, {
+      method: 'POST',
+      body,
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok || !payload || !Array.isArray(payload.matched)) {
+      const detail = payload?.detail ? ` (${payload.detail})` : '';
+      throw new Error(payload?.error || `Scan failed with HTTP ${response.status}${detail}.`);
+    }
+
+    state.builder = payload;
+    renderBuilder();
+
+    const matched = payload.matched.length;
+    const unresolved = Array.isArray(payload.unresolved) ? payload.unresolved.length : 0;
+    builderSay(
+      `${matched} matched Â· ${unresolved} unresolved${payload.cached ? ' Â· cached' : ''}.`,
+      matched ? 'good' : 'warn',
+    );
+  } catch (error) {
+    const message = String(error?.message || error);
+    builderSay(
+      /failed to fetch/i.test(message)
+        ? 'Could not reach the dashboard. Check its URL in Settings and allow that host.'
+        : message,
+      'bad',
+    );
+  } finally {
+    stopProgress();
+    state.builderBusy = false;
+  }
+}
+
+/** A click is an unambiguous gesture, so it can grant access even if the drop's was spent. */
+function builderAllowPrompt(url) {
+  let host = 'the image host';
+  try {
+    host = new URL(url).host;
+  } catch {
+    /* keep the placeholder */
+  }
+
+  builderSay('Chrome needs permission to download that image.', 'warn');
+  ui.builderResult.replaceChildren(
+    node('div', { class: 'row bb-actions' }, [
+      node('button', { text: `Allow ${host} & scan`, onclick: () => scanImageFromUrl(url) }),
+    ]),
+  );
+}
+
+async function scanImageFromUrl(url) {
+  if (state.builderBusy) return;
+  const stopProgress = startBuilderProgress('Fetching imageâ€¦');
+
+  // Keep this first: chrome.permissions.request needs the drop gesture to still be live.
+  await allowImageOrigin(url);
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`The image host answered HTTP ${response.status}.`);
+    const blob = await response.blob();
+    if (!String(blob.type).startsWith('image/')) throw new Error('That link is not an image.');
+    stopProgress();
+    await scanImage(blob, imageNameFromUrl(url));
+  } catch (error) {
+    stopProgress();
+    const message = String(error?.message || error);
+    if (/failed to fetch/i.test(message)) builderAllowPrompt(url);
+    else builderSay(message, 'bad');
+  }
+}
+
+/**
+ * The matcher's score is a name/price similarity, not a probability, so it is shown as a tier
+ * rather than a percentage that would read as certainty. Anything under 0.72 never reaches here.
+ */
+function confidenceTier(confidence) {
+  const score = Number(confidence) || 0;
+  if (score >= 0.9) return 'strong';
+  if (score >= 0.8) return 'good';
+  return 'weak';
+}
+
+function builderRow(entry) {
+  const home = entry.match?.teams?.home?.name || entry.leg?.home || '?';
+  const away = entry.match?.teams?.away?.name || entry.leg?.away || '?';
+  const odds = Number(entry.leg?.odds);
+  const tier = confidenceTier(entry.confidence);
+
+  return node('li', { class: 'bb-row' }, [
+    node('div', { class: 'bb-row-top' }, [
+      node('span', { class: 'bb-teams', text: `${home} vs ${away}` }),
+      node('span', { class: 'bb-odds', text: Number.isFinite(odds) ? odds.toFixed(2) : 'â€”' }),
+    ]),
+    node('div', {
+      class: 'bb-pick',
+      text: `${entry.leg?.market || 'Selection'} Â· ${entry.leg?.selection || ''}`,
+    }),
+    node('div', { class: 'muted bb-meta' }, [
+      `${entry.leg?.leagueHint || entry.match?.league?.name || 'Feed fixture'} Â· `,
+      node('span', { class: `bb-tier bb-tier-${tier}`, text: tier.toUpperCase() }),
+    ]),
+    node('div', { class: 'bb-links' }, [
+      entry.links?.sportybet
+        ? node('button', {
+            class: 'ghost',
+            text: 'SportyBet',
+            onclick: () => chrome.tabs.create({ url: entry.links.sportybet }),
+          })
+        : null,
+      entry.links?.betboro
+        ? node('button', {
+            class: 'ghost',
+            text: 'BetBoro',
+            onclick: () => chrome.tabs.create({ url: entry.links.betboro }),
+          })
+        : null,
+    ]),
+  ]);
+}
+
+function unresolvedRow(entry) {
+  const teams =
+    entry.leg?.home && entry.leg?.away
+      ? `${entry.leg.home} vs ${entry.leg.away}`
+      : entry.leg?.rawText || 'Unreadable selection';
+  const closest = (Array.isArray(entry.candidates) ? entry.candidates : [])
+    .slice(0, 2)
+    .map((candidate) => {
+      const match = candidate.match;
+      return `${match?.teams?.home?.name || '?'} vs ${match?.teams?.away?.name || '?'}`;
+    })
+    .join(', ');
+
+  return node('li', { class: 'bb-row bb-row-bad' }, [
+    node('div', { class: 'bb-teams', text: teams }),
+    node('div', {
+      class: 'bb-pick',
+      text: `${entry.leg?.market || ''} ${entry.leg?.selection || ''}`.trim(),
+    }),
+    node('div', {
+      class: 'muted',
+      text: `${UNRESOLVED_LABEL[entry.reason] || entry.reason || 'Unresolved'}${closest ? ` Â· closest: ${closest}` : ''}`,
+    }),
+  ]);
+}
+
+function renderBuilder() {
+  const result = state.builder;
+  ui.builderResult.replaceChildren();
+  if (!result) return;
+
+  const matched = Array.isArray(result.matched) ? result.matched : [];
+  const unresolved = Array.isArray(result.unresolved) ? result.unresolved : [];
+  const warnings = Array.isArray(result.warnings) ? result.warnings : [];
+  const betboroLegs = Array.isArray(result.betboro?.legs) ? result.betboro.legs : [];
+
+  // `append()` stringifies null/undefined into text nodes, which is how "nullnullnull" got in.
+  const parts = [
+    node('div', { class: 'bb-summary' }, [
+      node('span', { text: `${matched.length} matched Â· ${unresolved.length} unresolved` }),
+      result.cached ? node('span', { class: 'pill', text: 'cached' }) : null,
+    ]),
+    node('div', { class: 'row bb-actions' }, [
+      result.sportybetAccaUrl
+        ? node('button', {
+            text: 'Open SportyBet slip',
+            onclick: () => chrome.tabs.create({ url: result.sportybetAccaUrl }),
+          })
+        : null,
+      betboroLegs.length
+        ? node('button', {
+            class: 'ghost',
+            text: `Fill BetBoro (${betboroLegs.length})`,
+            onclick: fillBetBoro,
+          })
+        : null,
+    ]),
+    matched.length ? node('ul', { class: 'bb-list' }, matched.map(builderRow)) : null,
+    unresolved.length ? node('ul', { class: 'bb-list' }, unresolved.map(unresolvedRow)) : null,
+    result.sportybetAccaWarning
+      ? node('p', { class: 'hint', text: result.sportybetAccaWarning })
+      : null,
+    warnings.length ? node('p', { class: 'hint', text: warnings.join(' Â· ') }) : null,
+  ];
+
+  ui.builderResult.append(...parts.filter(Boolean));
+}
+
+async function fillBetBoro() {
+  const legs = Array.isArray(state.builder?.betboro?.legs) ? state.builder.betboro.legs : [];
+  if (!legs.length) return;
+
+  builderSay(`Filling ${legs.length} BetBoro leg(s)â€¦`);
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: 'AUTOBET_SLIP',
+      legs: legs.map((leg) => ({
+        bookmaker: 'BetBoro',
+        url: leg.url,
+        market: leg.market,
+        outcome: leg.outcome,
+        label: leg.label,
+      })),
+    });
+
+    if (!response || response.error) {
+      throw new Error(response?.error || 'Could not fill the BetBoro slip.');
+    }
+
+    const failed = (response.results || []).filter((entry) => entry.status !== 'filled');
+    builderSay(
+      failed.length
+        ? `Added ${response.filled}/${response.total}. ${failed
+            .slice(0, 2)
+            .map((entry) => `${entry.label}: ${entry.message || entry.status}`)
+            .join(' | ')}`
+        : `Added ${response.filled}/${response.total} to BetBoro. Verify the slip.`,
+      failed.length ? 'warn' : 'good',
+    );
+  } catch (error) {
+    builderSay(String(error?.message || error), 'bad');
+  }
+}
+
+function pickImage() {
+  ui.builderFile.click();
+}
+
+function scanDroppedFile(file) {
+  scanImage(file, file.name).catch((error) => builderSay(String(error?.message || error), 'bad'));
+}
+
+function setDropState(active) {
+  ui.builderDrop.classList.toggle('over', Boolean(active));
+}
+
+ui.builderDrop.addEventListener('dragenter', (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  setDropState(true);
+});
+
+ui.builderDrop.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  setDropState(true);
+});
+
+ui.builderDrop.addEventListener('dragleave', (event) => {
+  if (!ui.builderDrop.contains(event.relatedTarget)) setDropState(false);
+});
+
+ui.builderDrop.addEventListener('drop', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  setDropState(false);
+
+  const dataTransfer = event.dataTransfer;
+  if (!dataTransfer) return;
+
+  const file = Array.from(dataTransfer.files || []).find(
+    (entry) =>
+      String(entry.type).startsWith('image/') ||
+      /\.(png|jpe?g|webp|gif)$/i.test(String(entry.name || '')),
+  );
+  if (file) {
+    scanDroppedFile(file);
+    return;
+  }
+
+  const url = imageUrlFromDrop(dataTransfer);
+  if (!url) {
+    builderSay('That drop carried no image. Save the picture and drop the file instead.', 'bad');
+    return;
+  }
+  scanImageFromUrl(url);
+});
+
+// Dropping just outside the zone must not navigate the panel away from the UI.
+document.addEventListener('dragover', (event) => event.preventDefault());
+document.addEventListener('drop', (event) => event.preventDefault());
+
+// Paste is the fallback when a page will not hand its image over a drag.
+// Also the primary path for a Win+Shift+S snip, which lands on the clipboard as an image.
+document.addEventListener('paste', (event) => {
+  if (ui.viewBuilder.hidden) return;
+  const item = Array.from(event.clipboardData?.items || []).find((entry) =>
+    String(entry.type).startsWith('image/'),
+  );
+  const file = item?.getAsFile();
+  if (!file) return;
+  event.preventDefault();
+  scanDroppedFile(file);
+});
+
+ui.builderDrop.addEventListener('click', pickImage);
+ui.builderDrop.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    pickImage();
+  }
+});
+ui.pickImageBtn.addEventListener('click', pickImage);
+
+ui.builderFile.addEventListener('change', () => {
+  const file = ui.builderFile.files?.[0];
+  ui.builderFile.value = '';
+  if (file) scanDroppedFile(file);
+});
+
 // ---------------------------------------------------------------- wiring
 
 chrome.runtime.onMessage.addListener((message) => {
@@ -461,9 +1048,9 @@ chrome.runtime.onMessage.addListener((message) => {
   renderJob();
   renderArbs();
 
-  if (message.job.status === 'ready') say('Both slips filled — verify and click Place Bet.');
+  if (message.job.status === 'ready') say('Both slips filled â€” verify and click Place Bet.');
   else if (message.job.status === 'failed') say('Some legs need attention. See the job card.');
-  else if (message.job.status === 'running') say('Filling…');
+  else if (message.job.status === 'running') say('Fillingâ€¦');
 });
 
 function connectPort() {
@@ -487,6 +1074,7 @@ ui.refreshBtn.addEventListener('click', () => {
 });
 
 ui.settingsBtn.addEventListener('click', () => {
+  setTab('autobet');
   ui.settings.hidden = !ui.settings.hidden;
 });
 
@@ -552,7 +1140,7 @@ ui.dismissBtn.addEventListener('click', async () => {
     state.job = null;
     renderJob();
     renderArbs();
-    say('Job cleared. You can run Autobet again.');
+    say('Job cleared. You can start another run.');
   } catch (error) {
     say(String(error?.message || error));
   }
@@ -574,8 +1162,15 @@ document.addEventListener('visibilitychange', () => {
 setInterval(refreshLabels, 30_000);
 
 (async function init() {
+  const storedTheme = await chrome.storage.local.get(THEME_KEY).catch(() => null);
+  applyTheme(storedTheme?.[THEME_KEY] === 'light' ? 'light' : 'dark');
+
   connectPort();
   await loadSettings();
+
+  const storedTab = await chrome.storage.session.get('panelTab').catch(() => null);
+  setTab(storedTab?.panelTab === 'builder' ? 'builder' : 'autobet');
+
   chrome.runtime
     .sendMessage({ type: 'AUTOBET_PING' })
     .then((response) => {

@@ -3,15 +3,64 @@
   --card: #131c31;
   --card-2: #182238;
   --line: #24314b;
+  --line-strong: #33507a;
   --text: #e6edf7;
   --muted: #8fa1bd;
   --good: #16a34a;
   --bad: #dc2626;
   --warn: #d97706;
   --accent: #0ea5e9;
+  --accent-2: #38bdf8;
+  --accent-soft: #0d2235;
+  --good-text: #4ade80;
+  --warn-text: #fbbf24;
+  --bad-text: #fca5a5;
+  --bad-border: #4a1d1d;
+  --good-shadow: rgba(22, 163, 74, 0.18);
+  --job-border: #1e3a5f;
+  --job-from: #101d33;
+  --button-text: #04121d;
+}
+
+:root[data-theme="light"] {
+  --bg: #f2f5fa;
+  --card: #ffffff;
+  --card-2: #eef2f9;
+  --line: #d5deea;
+  --line-strong: #9fb4cf;
+  --text: #14203a;
+  --muted: #5b6b85;
+  --good: #15803d;
+  --bad: #b91c1c;
+  --warn: #b45309;
+  --accent: #0284c7;
+  --accent-2: #0ea5e9;
+  --accent-soft: #e0f2fe;
+  --good-text: #15803d;
+  --warn-text: #a16207;
+  --bad-text: #b91c1c;
+  --bad-border: #f3c7c7;
+  --good-shadow: rgba(21, 128, 61, 0.18);
+  --job-border: #bfdbfe;
+  --job-from: #eff6ff;
+  --button-text: #ffffff;
 }
 
 * { box-sizing: border-box; }
+
+html {
+  width: 100%;
+  /* A scrollbar appearing (e.g. when Settings expands) would narrow the panel by ~15px. The
+     wheel and trackpad still scroll; only the gutter is hidden. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
 
 html, body {
   margin: 0;
@@ -19,6 +68,9 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* A stable floor: neither tab may shrink or grow the side panel as its content changes. */
+  width: 100%;
+  min-width: 340px;
 }
 
 body {
@@ -26,7 +78,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-x: hidden;
+  /* Content must never contribute to the panel's width, so opening Settings cannot resize it. */
+  contain: inline-size;
 }
+
+body > * { max-width: 100%; }
 
 .bar {
   position: sticky;
@@ -59,7 +116,7 @@ body {
   background: var(--muted);
   display: inline-block;
 }
-.dot.live { background: var(--good); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18); }
+.dot.live { background: var(--good); box-shadow: 0 0 0 3px var(--good-shadow); }
 .dot.stale { background: var(--warn); }
 .dot.off { background: var(--bad); }
 
@@ -71,7 +128,7 @@ button {
   border-radius: 8px;
   border: 1px solid transparent;
   background: var(--accent);
-  color: #04121d;
+  color: var(--button-text);
   font-weight: 600;
   padding: 6px 10px;
 }
@@ -84,7 +141,7 @@ button.ghost {
   color: var(--text);
   font-weight: 500;
 }
-button.danger { color: #fca5a5; border-color: #4a1d1d; }
+button.danger { color: var(--bad-text); border-color: var(--bad-border); }
 
 input, select {
   font: inherit;
@@ -122,10 +179,10 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
   white-space: nowrap;
 }
 
-.job { border-color: #1e3a5f; background: linear-gradient(180deg, #101d33, var(--card)); }
+.job { border-color: var(--job-border); background: linear-gradient(180deg, var(--job-from), var(--card)); }
 .job-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
 .job-title { font-weight: 650; }
-.job-title .profit { color: #4ade80; }
+.job-title .profit { color: var(--good-text); }
 
 .legs { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 
@@ -161,8 +218,150 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 .arb { display: flex; flex-direction: column; gap: 6px; }
 .arb-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.arb-profit { font-weight: 700; color: #4ade80; }
-.arb-profit.low { color: #fbbf24; }
+.arb-profit { font-weight: 700; color: var(--good-text); }
+.arb-profit.low { color: var(--warn-text); }
+
+/* ---------------------------------------------------------------- tabs */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1 1 0;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 7px;
+}
+
+.tab.active {
+  background: var(--card-2);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  /* A flex child defaults to min-width:auto, so long team names could widen the whole panel. */
+  min-width: 0;
+}
+
+.view[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- bet builder */
+
+.builder-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.dropzone {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+  padding: 16px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--card-2);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dropzone:hover { border-color: var(--line-strong); }
+.dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+.hidden-file { display: none; }
+
+#builderStatus[data-tone="good"] { color: var(--good-text); }
+#builderStatus[data-tone="warn"] { color: var(--warn-text); }
+#builderStatus[data-tone="bad"] { color: var(--bad-text); }
+
+.bb-summary {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.bb-actions { margin-top: 8px; flex-wrap: wrap; }
+
+.bb-list {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bb-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: var(--card-2);
+  border-left: 3px solid var(--good);
+}
+
+.bb-row-bad { border-left-color: var(--bad); }
+.bb-row-top { display: flex; justify-content: space-between; gap: 8px; }
+.bb-row-top > * { min-width: 0; }
+.bb-teams { font-weight: 600; overflow-wrap: anywhere; }
+.bb-odds { font-variant-numeric: tabular-nums; flex: 0 0 auto; }
+.bb-meta { overflow-wrap: anywhere; }
+
+.bb-tier { font-weight: 700; letter-spacing: 0.4px; }
+.bb-tier-strong { color: var(--good-text); }
+.bb-tier-good { color: var(--accent); }
+.bb-tier-weak { color: var(--warn-text); }
+.bb-pick { font-size: 12px; }
+.bb-links { display: flex; gap: 6px; margin-top: 4px; }
+.bb-links button { padding: 3px 8px; font-size: 11px; }
+
+.progress {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--card-2);
+  overflow: hidden;
+}
+
+.progress[hidden] { display: none; }
+
+.progress-bar {
+  height: 100%;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  animation: progress-slide 1.1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar { animation-duration: 2.4s; }
+}
+
+@keyframes progress-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
 .arb-time { font-size: 11px; color: var(--muted); }
 .arb-teams { font-weight: 600; }
 .arb-market { font-size: 11.5px; color: var(--muted); }
@@ -176,8 +375,8 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 .arb-run { margin-top: 2px; }
 .arb-run button { width: 100%; }
-.arb-worst { font-weight: 700; color: #4ade80; font-size: 12px; margin-bottom: 4px; }
-.arb-worst.negative { color: #fca5a5; }
+.arb-worst { font-weight: 700; color: var(--good-text); font-size: 12px; margin-bottom: 4px; }
+.arb-worst.negative { color: var(--bad-text); }
 
 .empty { color: var(--muted); text-align: center; padding: 22px 8px; }
 

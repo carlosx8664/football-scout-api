@@ -1,7 +1,7 @@
 /**
  * Bet-builder -> BetBoro betslip mapper.
  *
- * BetBoro has no booking/share API, so a slip is loaded by the `Odds Autobet` extension clicking
+ * BetBoro has no booking/share API, so a slip is loaded by the `Oddtor` extension clicking
  * each outcome on the fixture page. This module turns matched slip legs into the market/outcome
  * vocabulary of `extension/shared/betboro-markets.js`:
  *

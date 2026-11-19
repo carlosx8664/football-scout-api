@@ -559,7 +559,7 @@ interface BetBuilderHit {
   links: BetslipLinks;
 }
 
-/** One selection for the BetBoro betslip, filled by the `Odds Autobet` extension. */
+/** One selection for the BetBoro betslip, filled by the `Oddtor` extension. */
 export interface BetBoroSlipLeg {
   /** BetBoro fixture deep link. */
   url: string;

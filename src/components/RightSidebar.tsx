@@ -1,7 +1,6 @@
 import { formatKickoff } from "../lib/format";
 import { bookQuotes, sortedQuotes } from "../lib/odds";
 import type { Match } from "../types";
-import BetBuilder from "./BetBuilder";
 import LeagueTable from "./LeagueTable";
 import "./RightSidebar.css";
 
@@ -171,10 +170,6 @@ const RightSidebar = ({ matches, date, selectedMatch = null }: RightSidebarProps
               No book is pricing above the market consensus right now.
             </p>
           )}
-        </section>
-
-        <section className="bet-builder-container">
-          <BetBuilder compact />
         </section>
       </div>
     </aside>

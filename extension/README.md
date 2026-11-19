@@ -1,7 +1,8 @@
-# Odds Autobet (Chrome extension)
+# Oddtor (Chrome extension)
 
-Loads the Oddtor arb feed in a side panel, opens both bookmaker fixture pages and types the
-stakes into each betslip. It **never** clicks "Place Bet" — that stays a human click.
+Loads the Oddtor arb feed in a side panel, scans tipster slip images with the Bet Builder, opens
+both bookmaker fixture pages and types the stakes into each betslip. It **never** clicks
+"Place Bet" — that stays a human click.
 
 No build step: plain JS, loaded straight from this folder. `tsc -b` / Vite ignore `extension/`
 because `tsconfig.app.json` only includes `src`.
@@ -14,6 +15,9 @@ because `tsconfig.app.json` only includes `src`.
    *Use open dashboard tab*) and **Save**. Approve the host-permission prompt for a custom domain.
 4. Sign in to SportyBet and BetBoro in this Chrome profile. The extension reuses those cookies.
 
+The ☀/☾ button beside **Refresh** switches the panel between dark and light. The choice is stored
+in `chrome.storage.local` and restored on open; dark is the default.
+
 ## Use it
 
 Pick a row → **Run Autobet**. Both tabs open in one window, load, then pair into Chrome's native
@@ -24,6 +28,38 @@ the stake is typed. Verify both slips yourself, then click Place Bet on each.
 
 **Retry unfilled legs** re-runs only the legs that did not fill, with the odds check bypassed —
 use it after you have seen why the first attempt stopped.
+
+## Scan a tipster image
+
+The side panel has two tabs: **Autobet** (feed, stakes, job progress) and **Bet Builder**. The
+builder is not mixed into the arb list.
+
+Three ways to get a slip in, all on the **Bet Builder** tab:
+
+1. **Paste (usual path).** Press **Win+Shift+S**, drag a box around the slip, then click the panel
+   and press **Ctrl+V**. The clipboard image is scanned directly.
+2. **Drag.** Drag the image element from Telegram, X, WhatsApp Web or any page onto the drop zone.
+3. **Choose.** Drop a saved file or click *Choose…*.
+
+The panel downscales it and posts it to the same `/api/bet-builder/extract` endpoint the dashboard
+uses, then lists the matched fixtures with SportyBet/BetBoro links, the SportyBet share code, and a
+*Fill BetBoro* button that runs through the existing slip job.
+
+- Paste and file drops carry the bytes, so they need no host permission and work on any site.
+- The first time you drag an image from a new host, Chrome asks to read that host. Approving lets
+  the panel download the original bytes; a denial leaves the drag URL unusable, so snip or paste
+  instead.
+- X's `name=small|medium` renditions are upgraded to `name=orig` before download, so the model
+  reads the uploaded image rather than the timeline thumbnail.
+- Images over 8 MB are rejected by the API; the panel recompresses to a 1600 px JPEG first, so
+  that only happens for unusual formats it cannot decode.
+
+Scans show an indeterminate progress bar with elapsed seconds while the vision request runs.
+
+Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
+the fixture-matching confidence (team-name similarity, blended with a 1X2 price comparison when one
+exists) — a sign of how well the leg matched the feed, not a probability of the bet winning.
+STRONG ≥ 0.90, GOOD ≥ 0.80, WEAK ≥ the 0.72 acceptance floor.
 
 ## What it will not do
 
@@ -76,11 +112,11 @@ listed before the handler in `manifest.json` and in `background.js`'s `inject()`
 | `content/sportybet.js` | Deep-link-first fill: dictionary lookup → section scroll → tile click, then verify/type |
 | `content/betboro.js` | Dictionary-driven click path: market tab → market header → outcome tile, then verify/type |
 | `content/bridge.js` | Dashboard ⇄ extension relay (`window.postMessage` + `chrome.runtime`) |
-| `panel/` | Side panel UI: feed list, stake preview, job progress |
+| `panel/` | Side panel UI: Autobet/Bet Builder tabs, feed and job views, paste/drag/drop slip scanner |
 | `shared/markets.js` | SportyBet market dictionary + alias-aware outcome matcher |
 | `shared/betboro-markets.js` | BetBoro market dictionary (tab → section → tile) |
 | `shared/stakes.js` | Stake split/rounding shared by the panel preview and the worker |
-| `shared/feed.js` | `/api/arbs` → `/arbs.json` fallback reader |
+| `shared/feed.js` | `/api/arbs` reader with two quick retries; `/arbs.json` accepted only when recent and non-empty |
 
 ## Dashboard trigger (optional)
 

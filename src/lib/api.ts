@@ -47,19 +47,64 @@ export async function fetchSnapshot(signal?: AbortSignal): Promise<SnapshotData>
   return feed;
 }
 
-// 1. KV feed FIRST (live production), Static file SECOND (fallback).
-const ARBS_SOURCES = ["/api/arbs", "/arbs.json"];
+/** A single cold-edge or KV hiccup is the usual cause of a miss; retry before falling back. */
+const ARBS_RETRY_DELAYS_MS = [300, 1000];
+/** Older than this and the static file is stale by definition. */
+const ARBS_STATIC_MAX_AGE_MS = 30 * 60_000;
 
-/** KV-backed arbitrage feed first, static file second. Returns null when neither answers. */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    let timer = 0;
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    timer = window.setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+/**
+ * KV-backed arbitrage feed. `/arbs.json` is a build-time placeholder that CI updates only inside
+ * the runner (to publish KV), so the deployed copy can be weeks old. It is accepted only when it
+ * is recent and non-empty: a transient API miss must surface as "unavailable" rather than a
+ * believable "0 arbs" snapshot.
+ */
 export async function fetchArbsJson(signal?: AbortSignal): Promise<unknown | null> {
-  for (const url of ARBS_SOURCES) {
+  for (let attempt = 0; attempt <= ARBS_RETRY_DELAYS_MS.length; attempt += 1) {
     try {
-      const response = await fetch(url, { cache: "no-store", signal });
-      if (!response.ok) continue;
-      return await response.json();
+      const response = await fetch("/api/arbs", { cache: "no-store", signal });
+      if (response.ok) {
+        const payload = (await response.json().catch(() => null)) as { arbs?: unknown } | null;
+        if (payload && typeof payload === "object" && Array.isArray(payload.arbs)) return payload;
+      }
     } catch (error) {
       if (signal?.aborted) throw error;
     }
+    if (attempt < ARBS_RETRY_DELAYS_MS.length) await delay(ARBS_RETRY_DELAYS_MS[attempt], signal);
   }
-  return null;
+
+  try {
+    const response = await fetch("/arbs.json", { cache: "no-store", signal });
+    if (!response.ok) return null;
+    const payload = (await response.json().catch(() => null)) as
+      | { generatedAt?: unknown; arbs?: unknown }
+      | null;
+    if (!payload || !Array.isArray(payload.arbs) || payload.arbs.length === 0) return null;
+    const generatedAt = Date.parse(String(payload.generatedAt ?? ""));
+    if (!Number.isFinite(generatedAt) || Date.now() - generatedAt > ARBS_STATIC_MAX_AGE_MS) {
+      return null;
+    }
+    return payload;
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    return null;
+  }
 }

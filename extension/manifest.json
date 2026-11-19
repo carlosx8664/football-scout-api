@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Odds Autobet",
-  "version": "0.2.0",
-  "description": "Fills SportyBet and BetBoro betslips from the Oddtor arb feed and the Bet Builder. Never places a bet.",
+  "name": "Oddtor",
+  "version": "0.3.0",
+  "description": "Scans tipster slip images and fills SportyBet and BetBoro betslips from the Oddtor feed and Bet Builder. Never places a bet.",
   "minimum_chrome_version": "116",
   "permissions": ["tabs", "scripting", "storage", "alarms", "sidePanel"],
   "host_permissions": [
@@ -22,7 +22,7 @@
   },
   "background": { "service_worker": "background.js", "type": "module" },
   "action": {
-    "default_title": "Odds Autobet",
+    "default_title": "Oddtor",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

@@ -320,11 +320,12 @@ above **Top Picks** and disappears when the row is collapsed.
 
 ## Bet builder
 
-The **Bet Builder** in the home page's right sidebar (under Top Picks) turns a betslip
-screenshot into matched fixtures with deep links, through `POST /api/bet-builder/extract`:
+The **Bet Builder** lives in the Oddtor extension's side panel (it is no longer on the dashboard
+home page). It turns a betslip screenshot — pasted, dragged or picked — into matched fixtures with
+deep links, through `POST /api/bet-builder/extract`:
 
-1. The browser downscales the image to ≤1600 px and re-encodes it as JPEG at 0.85
-   (`src/lib/betBuilder.ts`), so a 4 MB screenshot uploads at 150–400 KB.
+1. The extension downscales the image to ≤1600 px and re-encodes it as JPEG at 0.85
+   (`extension/panel/panel.js`), so a 4 MB screenshot uploads at 150–400 KB.
 2. The Function caches the extraction in KV by SHA-256 of the image (`betslip:v2:<hash>`, 24 h),
    then calls `deepseek-flash` with a strict `json_object` prompt (`shared/betslip-prompt.js`).
    DeepSeek rejects `json_schema`, so the shape is spelled out in the prompt. The prompt
@@ -351,7 +352,7 @@ screenshot into matched fixtures with deep links, through `POST /api/bet-builder
    - **SportyBet** — `POST /api/arbs/share` mints a booking code for the ticked legs (or the whole
      scan), and the share link loads them into the betslip.
    - **BetBoro** — no booking API exists, so the Builder sends `AUTOBET_SLIP` through the dashboard
-     bridge (`extension/content/bridge.js`) to the **Odds Autobet** extension: it opens each
+     bridge (`extension/content/bridge.js`) to the **Oddtor** extension: it opens each
      fixture, clears the betslip once (first leg only) and clicks each outcome, then replies with
      `filled/total`. No stake is typed, and the button shows elapsed time while it runs because the
      extension answers only when the whole job is done.
@@ -525,7 +526,7 @@ live, not the runtime.
   seven days from now, each day grouped by league, plus a league filter. Live
   fixtures are not repeated in the day lists; dates with no fixtures remain selectable. Expanding a
   fixture opens its odds and shows that league's standings above **Top Picks** in the right
-  sidebar, which also carries the **Bet Builder** (betslip screenshot → matches).
+  sidebar. The betslip **Bet Builder** now lives in the Oddtor extension's side panel.
 - `/arbs` — live + past arbitrage tables. Each live arb has a **Ledger** checkbox that opens the
   **Log Arb** modal: the computed stakes are pre-filled and can be rounded by hand, and "Save to
   Ledger" inserts them into `active_bets` with `is_simulation` set from the current mode.
