@@ -690,7 +690,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
             </span>
           )}
 
-          {targetBook === "sportybet" && result?.sportybetAccaWarning && (
+          {targetBook === "sportybet" && !slipError && result?.sportybetAccaWarning && (
             <span className="bb-acca-warn" role="status">
               {result.sportybetAccaWarning}
             </span>
@@ -772,7 +772,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                     {slipNotice}
                   </span>
                 )}
-                {result?.sportybetAccaWarning && (
+                {!slipError && result?.sportybetAccaWarning && (
                   <span className="bb-acca-warn" role="status">
                     {result.sportybetAccaWarning}
                   </span>

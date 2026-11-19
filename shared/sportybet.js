@@ -109,6 +109,16 @@ export async function createSportyBetShare(selections) {
   const unavailable = Array.isArray(data.unavailableOutcomes) ? data.unavailableOutcomes : [];
 
   if (!url) {
+    // SportyBet returns 200 with no link when it refuses, and the reason lives only in the body.
+    // Workers logs: `npx wrangler pages deployment tail --project-name football-scout-api`.
+    console.log(
+      "sportybet: booking refused",
+      JSON.stringify({
+        selections: selections.length,
+        unavailable: unavailable.length,
+        body: text.slice(0, 800),
+      }),
+    );
     throw new Error("SportyBet did not return a share link; the odds may have been suspended.");
   }
 
@@ -166,7 +176,13 @@ export async function createSportyBetShareSkippingUnavailable(selections) {
   }
 
   if (accepted.length === 0) {
-    throw new Error(skipped[0]?.reason ?? SKIP_REASON);
+    console.log(
+      "sportybet: every selection refused",
+      JSON.stringify(skipped.map(({ selection, reason }) => ({ ...selection, reason }))),
+    );
+    throw new Error(
+      `SportyBet isn't offering any of these ${list.length} selections yet. Markets usually open nearer kickoff.`,
+    );
   }
 
   const share = await createSportyBetShare(accepted);
