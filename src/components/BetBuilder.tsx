@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { selectionSide } from "../../shared/betslip-match.js";
 import { extractBetslip, addToBetBoroSlip, createSportyBetSlip } from "../lib/betBuilder";
+import type { SportyBetSkippedLeg } from "../lib/betBuilder";
 import type {
   BetBuilderResponse,
   Match,
@@ -321,6 +322,8 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   const [slipBusy, setSlipBusy] = useState(false);
   const [slipStatus, setSlipStatus] = useState<string | null>(null);
   const [slipError, setSlipError] = useState<string | null>(null);
+  /** Which ticked legs SportyBet would not take, named for the user. */
+  const [slipNotice, setSlipNotice] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -355,6 +358,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
       setResult(null);
       setStaged([]);
       setSlipError(null);
+      setSlipNotice(null);
       setPhase("scanning");
 
       abortRef.current?.abort();
@@ -401,6 +405,7 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
     setError(null);
     setStaged([]);
     setSlipError(null);
+    setSlipNotice(null);
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -425,12 +430,35 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
   /** Selections the extension can click into the BetBoro betslip. */
   const betboroLegs = result?.betboro?.legs ?? [];
 
+  /** Names a refused selection the way the user sees it in the list. */
+  const describeSkipped = (skipped: SportyBetSkippedLeg) => {
+    const entry = matched.find((row) => {
+      const booking = row.booking;
+      if (!booking) return false;
+      return (
+        booking.eventId === skipped.eventId &&
+        booking.marketId === skipped.marketId &&
+        booking.outcomeId === skipped.outcomeId &&
+        booking.specifier === skipped.specifier
+      );
+    });
+    if (!entry) return skipped.reason;
+    return `${entry.leg.market || "Selection"} · ${entry.match.teams.home.name} vs ${entry.match.teams.away.name}`;
+  };
+
   const addStagedToSlip = async () => {
     if (stagedBookings.length === 0) return;
     setSlipBusy(true);
     setSlipError(null);
+    setSlipNotice(null);
     try {
-      openLink(await createSportyBetSlip(stagedBookings));
+      const slip = await createSportyBetSlip(stagedBookings);
+      if (slip.skipped.length > 0) {
+        setSlipNotice(
+          `SportyBet isn't offering ${slip.skipped.length === 1 ? "1 leg" : `${slip.skipped.length} legs`} yet, so the slip omits: ${slip.skipped.map(describeSkipped).join("; ")}.`,
+        );
+      }
+      openLink(slip.url);
     } catch (caught) {
       setSlipError(
         caught instanceof Error ? caught.message : "Could not build the SportyBet slip.",
@@ -656,6 +684,12 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
             </span>
           )}
 
+          {slipNotice && (
+            <span className="bb-acca-warn" role="status">
+              {slipNotice}
+            </span>
+          )}
+
           {targetBook === "sportybet" && result?.sportybetAccaWarning && (
             <span className="bb-acca-warn" role="status">
               {result.sportybetAccaWarning}
@@ -731,6 +765,11 @@ const BetBuilder = ({ compact = false }: BetBuilderProps) => {
                 {slipError && (
                   <span className="bb-acca-warn" role="alert">
                     {slipError}
+                  </span>
+                )}
+                {slipNotice && (
+                  <span className="bb-acca-warn" role="status">
+                    {slipNotice}
                   </span>
                 )}
                 {result?.sportybetAccaWarning && (

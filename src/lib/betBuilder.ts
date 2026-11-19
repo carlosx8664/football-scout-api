@@ -92,14 +92,35 @@ export async function extractBetslip(
 }
 
 /**
+ * A selection SportyBet refused to book. Mirrors `{ eventId, marketId, outcomeId, specifier }`,
+ * which is enough to find the leg the user ticked and name it back to them.
+ */
+export interface SportyBetSkippedLeg {
+  eventId: string;
+  marketId: string;
+  outcomeId: string;
+  specifier: string;
+  reason: string;
+}
+
+export interface SportyBetSlip {
+  url: string;
+  /** Outcomes SportyBet is not offering yet; the slip was built without them. */
+  skipped: SportyBetSkippedLeg[];
+}
+
+/**
  * Mints a SportyBet share link for the legs the user ticked. SportyBet and BetBoro are the two
  * books a scanned slip can be loaded into; BetBoro goes through the extension instead.
+ *
+ * Uses the Bet Builder's own endpoint so a leg the book has not opened yet is dropped from the
+ * slip instead of failing it — the arbitrage endpoint stays all-or-nothing.
  */
 export async function createSportyBetSlip(
   selections: SportyBetBooking[],
   signal?: AbortSignal,
-): Promise<string> {
-  const response = await fetch("/api/arbs/share", {
+): Promise<SportyBetSlip> {
+  const response = await fetch("/api/bet-builder/share", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ selections }),
@@ -107,7 +128,7 @@ export async function createSportyBetSlip(
   });
 
   const payload = (await response.json().catch(() => null)) as
-    | { shareURL?: string; error?: string }
+    | { shareURL?: string; error?: string; skipped?: SportyBetSkippedLeg[] }
     | null;
 
   if (!response.ok || !payload?.shareURL) {
@@ -116,7 +137,7 @@ export async function createSportyBetSlip(
     );
   }
 
-  return String(payload.shareURL);
+  return { url: String(payload.shareURL), skipped: payload.skipped ?? [] };
 }
 
 /** The bridge announces itself on load; this is how long we wait before calling it absent. */

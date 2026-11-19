@@ -573,7 +573,7 @@ export interface BetBoroSlipLeg {
   label: string;
 }
 
-/** SportyBet booking payload for one leg; POSTed to /api/arbs/share to mint a slip link. */
+/** SportyBet booking payload for one leg; POSTed to `/api/bet-builder/share` to mint a slip link. */
 export interface SportyBetBooking {
   eventId: string;
   marketId: string;

@@ -1,5 +1,5 @@
 import { matchBetslipLegs, toSportyBetSelections } from "../../../shared/betslip-match.js";
-import { MAX_SHARE_SELECTIONS, createSportyBetShare } from "../../../shared/sportybet.js";
+import { MAX_SHARE_SELECTIONS, createSportyBetShareSkippingUnavailable } from "../../../shared/sportybet.js";
 import { toBetBoroSelections } from "../../../shared/betslip-betboro.js";
 import { PROMPT_VERSION } from "../../../shared/betslip-prompt.js";
 import {
@@ -286,16 +286,19 @@ export async function onRequestPost(context) {
 
   let sportybetAccaUrl = null;
   let sportybetAccaCode = null;
+  let sportybetBookable = 0;
 
   if (bookable.length > 0) {
     try {
-      const share = await createSportyBetShare(bookable);
+      // Outcomes the book has not opened yet are dropped rather than failing the whole slip.
+      const share = await createSportyBetShareSkippingUnavailable(bookable);
       sportybetAccaUrl = share.url;
       sportybetAccaCode = share.code;
+      sportybetBookable = share.booked;
 
-      if (share.unavailable.length > 0) {
+      if (share.skipped.length > 0) {
         notes.push(
-          `${share.unavailable.length} outcome${share.unavailable.length === 1 ? " was" : "s were"} unavailable, so the betslip may load partially.`,
+          `${share.skipped.length} selection${share.skipped.length === 1 ? " is" : "s are"} not open on SportyBet yet, so the betslip loads without ${share.skipped.length === 1 ? "it" : "them"}.`,
         );
       }
     } catch (error) {
@@ -341,7 +344,7 @@ export async function onRequestPost(context) {
       matched: matched.length,
       unresolved: unresolved.length,
       fixtures: fixtures.length,
-      bookable: bookable.length,
+      bookable: sportybetAccaUrl ? sportybetBookable : bookable.length,
       betboroBookable: betboroLegs.length,
     },
   });

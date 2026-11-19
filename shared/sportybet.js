@@ -114,3 +114,61 @@ export async function createSportyBetShare(selections) {
 
   return { url: String(url), code: code == null ? null : String(code), unavailable };
 }
+
+/** Probing a refusal costs one request per leg, so keep the batch small. */
+const PROBE_CONCURRENCY = 4;
+const SKIP_REASON = "SportyBet is not offering this outcome yet.";
+
+async function probeSelection(selection) {
+  try {
+    await createSportyBetShare([selection]);
+    return null;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+}
+
+/**
+ * Mints a share code for as many selections as SportyBet will take.
+ *
+ * SportyBet refuses the *entire* betslip when one outcome is unavailable — a market that has not
+ * opened yet (corners days before kickoff), suspended odds, a postponed fixture — and answers
+ * without a `shareURL`. So a single bad leg used to kill the whole slip. Here the legs are probed
+ * one at a time, the refused ones are dropped with their reason, and the rest are booked.
+ *
+ * Only the failure path pays for extra requests. The probes do mint throwaway share codes on
+ * SportyBet's side; nothing is staked, and the code the caller gets back is minted last.
+ *
+ * @param {Array<{ eventId: string, marketId: string, outcomeId: string, specifier: string }>} selections
+ * @returns {Promise<{ url: string, code: string | null, booked: number, skipped: Array<{ selection: object, reason: string }> }>}
+ */
+export async function createSportyBetShareSkippingUnavailable(selections) {
+  const list = selections.slice(0, MAX_SHARE_SELECTIONS);
+
+  try {
+    const share = await createSportyBetShare(list);
+    return { url: share.url, code: share.code, booked: list.length, skipped: [] };
+  } catch (error) {
+    // Nothing to salvage from a single leg: the caller shows the book's own reason.
+    if (list.length <= 1) throw error;
+  }
+
+  const accepted = [];
+  const skipped = [];
+
+  for (let index = 0; index < list.length; index += PROBE_CONCURRENCY) {
+    const batch = list.slice(index, index + PROBE_CONCURRENCY);
+    const reasons = await Promise.all(batch.map(probeSelection));
+    batch.forEach((selection, offset) => {
+      if (reasons[offset] === null) accepted.push(selection);
+      else skipped.push({ selection, reason: reasons[offset] ?? SKIP_REASON });
+    });
+  }
+
+  if (accepted.length === 0) {
+    throw new Error(skipped[0]?.reason ?? SKIP_REASON);
+  }
+
+  const share = await createSportyBetShare(accepted);
+  return { url: share.url, code: share.code, booked: accepted.length, skipped };
+}
