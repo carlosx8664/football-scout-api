@@ -8,9 +8,10 @@
  * Providers, tried in order:
  *   gemini      Google AI Studio free tier   GEMINI_API_KEY       (primary)
  *   openrouter  OpenRouter `:free` models    OPENROUTER_API_KEY   (fallback)
- *   groq        Groq free tier               GROQ_API_KEY         (last resort: its free tier is
- *                                                                 text-only right now, so it is
- *                                                                 only useful if that changes)
+ *   groq        Groq free tier               GROQ_API_KEY         (only when VISION_PROVIDER=groq:
+ *                                                                 its free tier lists no vision
+ *                                                                 model, so by default it would
+ *                                                                 just waste a round trip)
  *
  * `VISION_PROVIDER` puts one first; `VISION_MODEL` overrides the primary provider's model.
  * A couple of slips a day fits the free allowance of all three, and KV caches each image by
@@ -47,8 +48,14 @@ const OPENAI_COMPATIBLE = {
 };
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
-/** Free-tier Flash models answer a slip in a few seconds; this only backstops a hung call. */
-const TIMEOUT_MS = 60_000;
+/**
+ * Free-tier Gemma answers a slip in ~15-25 s, so a longer wait than this means the model has
+ * hung. Failing at 40 s keeps the request inside the platform's wall clock and leaves room for a
+ * fallback provider instead of burning the whole budget on one hung call.
+ */
+const TIMEOUT_MS = 40_000;
+/** The retry after a timeout gets a tighter budget so two slow calls cannot run back to back. */
+const ALTERNATE_TIMEOUT_MS = 25_000;
 /** A 20-leg slip lands well under this once thinking is off. */
 const MAX_OUTPUT_TOKENS = 8192;
 
@@ -177,7 +184,11 @@ export function resolveVisionChain(env) {
     groq: trim(env?.GROQ_API_KEY),
   };
   const requested = trim(env?.VISION_PROVIDER).toLowerCase();
-  const preferred = ["gemini", "openrouter", "groq"].filter((name) => keys[name]);
+  // Groq's free tier lists no vision model, so trying it by default costs a round trip and adds a
+  // confusing line to the failure report. It only runs when named in VISION_PROVIDER.
+  const usable = ["gemini", "openrouter"].filter((name) => keys[name]);
+  if (requested === "groq" && keys.groq) usable.unshift("groq");
+  const preferred = usable;
   const order =
     requested && keys[requested]
       ? [requested, ...preferred.filter((name) => name !== requested)]
@@ -274,13 +285,13 @@ async function geminiModelCandidates(provider) {
   };
 }
 
-async function postGemini({ model, key, body }) {
+async function postGemini({ model, key, body, timeoutMs = TIMEOUT_MS }) {
   try {
     return await fetch(`${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
     const timedOut = error instanceof Error && error.name === "TimeoutError";
@@ -317,7 +328,21 @@ function geminiBody(bytes, mime) {
 
 async function callGemini(provider, { bytes, mime }) {
   const body = geminiBody(bytes, mime);
-  let response = await withRetry(() => postGemini({ ...provider, body }));
+  let response;
+  try {
+    response = await withRetry(() => postGemini({ ...provider, body }));
+  } catch (error) {
+    // A hung model is worth one different id before failing over: the free Gemma variants answer
+    // the same request at very different speeds. The retry gets a tighter budget so one hung
+    // call cannot eat the whole request.
+    if (!(error instanceof VisionError) || error.status !== 504) throw error;
+    const alternate = GEMINI_FALLBACK_MODELS.find((id) => id !== provider.model);
+    if (!alternate) throw error;
+    provider.model = alternate;
+    response = await withRetry(() =>
+      postGemini({ ...provider, body, timeoutMs: ALTERNATE_TIMEOUT_MS }),
+    );
+  }
 
   if (response.status === 400) {
     const detail = await response.text().catch(() => "");
@@ -552,9 +577,24 @@ export async function extractBetslipImage({ env, bytes, mime }) {
 
   if (failures.length === 0) throw lastFailure ?? new VisionError("Could not read that betslip.");
 
+  const status = lastFailure?.status === 429 ? 429 : 502;
+
+  if (failures.length === 1) {
+    // A lone slow provider with nothing behind it deserves a hint the user can act on.
+    const hint =
+      lastFailure?.status === 504 && !trim(env?.OPENROUTER_API_KEY)
+        ? " Add a free OPENROUTER_API_KEY so a slow response does not fail the whole scan."
+        : "";
+    throw new VisionError(
+      `${failures[0]}${hint}`,
+      status,
+      firstDetail ?? lastFailure?.detail ?? null,
+    );
+  }
+
   throw new VisionError(
-    failures.length === 1 ? failures[0] : `No provider could read that slip. ${failures.join(" | ")}`,
-    lastFailure?.status === 429 ? 429 : 502,
+    `No provider could read that slip. ${failures.join(" | ")}`,
+    status,
     firstDetail ?? lastFailure?.detail ?? null,
   );
 }

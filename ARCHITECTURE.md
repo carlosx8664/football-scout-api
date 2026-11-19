@@ -31,7 +31,7 @@ from real data by an `is_simulation` flag on every table.
 | Scraping | Node 20 + `axios` (fast books) + Playwright/Chromium (SPA books: BetPawa, Soccabet) |
 | Scheduling | Cloudflare Cron Worker → GitHub Actions `workflow_dispatch` (every 15 min) |
 | Alerts | Telegram Bot API + Web Push (VAPID, `web-push`) |
-| AI | Free-tier vision (Gemini, OpenRouter fallback) for betslip OCR; DeepSeek only in the disabled match-analysis endpoint |
+| AI | Free-tier vision (Gemini primary, OpenRouter fallback) for betslip OCR; DeepSeek only in the disabled match-analysis endpoint |
 | Lint | Oxlint |
 | ⚠️ Not used | **React Native** — this is a web-only SPA. No mobile app exists. |
 
@@ -361,4 +361,11 @@ a fine-grained PAT.
 - **Behaviour change.** SportyBet refuses the *entire* betslip when one outcome is unavailable — a corners market three days before kickoff, suspended odds, a postponed fixture — and answers without a `shareURL`, so a single bad leg used to kill a nine-leg slip. `shared/sportybet.js` now exposes `createSportyBetShareSkippingUnavailable`, which mints the full slip first and, only if that is refused, probes each leg on its own, drops the refused ones with their reason and books the rest. The user gets a partial slip plus a named list of what was left out, instead of a dead end.
 - **Files created/modified.** New: `functions/api/bet-builder/share.js` (`POST`, returns `{ shareURL, shareCode, booked, skipped }`). Modified: `shared/sportybet.js` (the resilient helper; `createSportyBetShare` is unchanged), `functions/api/bet-builder/extract.js` (the scan-time acca uses the same helper, so `stats.bookable` counts what will actually load), `src/lib/betBuilder.ts` (`createSportyBetSlip` returns `{ url, skipped }` from the new endpoint), `src/components/BetBuilder.tsx` (names each refused leg in `slipNotice`), `src/types.ts` (comment), `ARCHITECTURE.md`.
 - **How it connects.** `/api/arbs/share` is deliberately **not** touched: the arbitrage flow stays strict all-or-nothing, because an arb with a missing leg is worth nothing. Only the Bet Builder salvages a partial slip. The probes mint throwaway share codes — nothing is staked — and a 20-leg worst case costs 22 SportyBet requests, well inside Workers' subrequest budget. When *every* leg is refused (usually a card several days out whose markets have not opened) the error says so plainly, and the refused body is logged as `sportybet: booking refused` / `sportybet: every selection refused` for `npx wrangler pages deployment tail`. The scan-time warning is suppressed once the click has produced its own error, so the same refusal is never printed twice.
+
+## 19. Vision Timeout and Fallback Discipline
+
+- **Behaviour change.** A hung free-tier Gemma call used to block a scan for a full minute and then fail, because Groq (which lists no vision model on its free tier) was still tried afterwards and padded the error with a useless line. Three fixes in `shared/vision.js`: Groq now runs **only** when `VISION_PROVIDER=groq`; the per-call timeout is 40 s, and a timeout retries one different Gemma id on a 25 s budget before giving up, so a single hung model no longer costs the whole request; and when the lone failure is a timeout with no `OPENROUTER_API_KEY` set, the message tells the user to add one.
+- **Files created/modified.** Modified: `shared/vision.js` (provider chain, `TIMEOUT_MS` / `ALTERNATE_TIMEOUT_MS`, the alternate-model retry in `callGemini`, the actionable single-failure hint), `.dev.vars.example` (Groq documented as opt-in, `VISION_MODEL` example corrected to `gemma-4-26b-a4b-it`), `ARCHITECTURE.md`.
+- **How it connects.** Gemini stays the primary because it is the only free tier that both answers a slip in ~15-25 s and accepts images; OpenRouter is the real fallback and the one worth setting. Because the KV cache key includes provider and model, a fallback that serves a scan writes its own cache entry rather than poisoning the Gemini one.
+
 
