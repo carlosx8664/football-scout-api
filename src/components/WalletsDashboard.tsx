@@ -28,6 +28,7 @@ import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
 import BookieHealthPanel from "./BookieHealthPanel";
 import CashFlowPanel from "./CashFlowPanel";
+import CommittedFloat from "./CommittedFloat";
 import MugBetsPanel from "./MugBetsPanel";
 import RebalancingHints from "./RebalancingHints";
 import Toast from "./Toast";
@@ -258,6 +259,7 @@ const WalletsDashboard = () => {
           onError={reportError}
         />
         <RebalancingHints payload={payload} error={error} loading={loading} />
+        <CommittedFloat simulation={enabled} refreshToken={refreshToken} />
         <BookieHealthPanel simulation={enabled} refreshToken={refreshToken} />
       </div>
       <aside className="right-sidebar wallets-aside">

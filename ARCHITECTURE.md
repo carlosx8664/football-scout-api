@@ -139,9 +139,11 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `wallets/refresh.js` | `POST` — **Start afresh**: wipes bets/history/cash-flow, funds only the selected bookies (logging their opening deposits), zeroes the rest, seeds the Momo reserve with the unallocated leftover |
 | `wallets/cash-out.js` | `POST` — profit withdrawal: per-bookie amounts capped at `balance − locked`, remaining lifetime profit and the bankroll floor, logged as `PROFIT_WITHDRAWAL` |
 | `wallets/recycle.js` | `POST` — move capital bookie → bookie (one withdrawal + one deposit, atomic) |
+| `wallets/committed-float.js` | `GET` — free cash vs stakes parked on unsettled bets, per bookie, plus a release schedule by kickoff date |
 | `transfers.js` | `GET` — cash-flow ledger + totals |
 | `transfers/[id].js` | `DELETE` — reverses a `CAPITAL_INJECTION`: deletes the ledger row and takes the amount back out of the MOMO reserve (refused if the cash has already moved to bookies) |
-| `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; the "muggy acca per bookie today" arb gate is currently disabled by `MUG_GATE_ENABLED = false`) |
+| `active-bets.js` | `GET` list · `POST` log (`kind`: arb / muggy / free; a free bet only debits the hedge; the "muggy acca per bookie today" arb gate is disabled by `MUG_GATE_ENABLED = false` — mug debt is advisory via `mug-status.js` instead) |
+| `mug-status.js` | `GET` — which funded bookies still owe today's camouflage mug bet (advisory only; never blocks an arb) |
 | `active-bets/[id].js` | `DELETE` — cancel + refund both stakes + zero-profit `cancelled` history row |
 | `active-bets/[id]/settle.js` | `POST` — win / void / cash-out settlement with credits batch |
 | `history.js` | `GET` — settled arbs by date range + weekly outlay |
@@ -414,3 +416,17 @@ a fine-grained PAT.
 - **How it connects.** `GET /api/wallets/bookie-stats?simulation=` aggregates `wallet_transfers`, `history` (muggy only) and `active_bets` (via `loadLockedByBookie`), then joins them onto `loadWallets` by bookie name, so the MOMO pseudo-bookie in `wallet_transfers` never appears as a row.
 
 
+
+## 25. Mug Tax Badge (advisory)
+
+- **Behaviour change.** The daily mug-bet gate no longer blocks an arb. Grabbing a live arb comes first and the acca gets placed minutes later, so `MUG_GATE_ENABLED` stays `false` and the debt is surfaced instead of enforced. The old gate could never have enforced the new order anyway: it ran before the insert and counted any open position as coverage, so the first logged arb exempted both its bookies.
+- **New endpoint.** `GET /api/mug-status?simulation=&from=&to=` returns every funded bookie (`wallets.balance > 0`) with `muggedToday`, plus an `owed` list. A mug bet counts for the day it was logged, open (`active_bets.kind = 'muggy'`, `created_at` in window) or settled (`history.kind = 'muggy'`, `logged_at` in window, not cancelled). The window is the browser's local midnight-to-midnight pair from `localDayWindow`.
+- **UI.** `src/components/MugOwedBadge.tsx` sits in `App.tsx`'s `Shell`, so it shows on every route, refreshes every 60s and on tab focus, and renders nothing once every funded bookie has had its mug bet. It links to Wallets → Mug Bets.
+- **Files created/modified.** New: `functions/api/mug-status.js`, `src/lib/mugStatus.ts`, `src/components/MugOwedBadge.tsx`, `src/components/MugOwedBadge.css`. Modified: `src/App.tsx`, `ARCHITECTURE.md`.
+
+## 26. Committed Float View
+
+- **New feature.** Stakes are debited the moment a bet is logged, so a wallet's `balance` is only the free cash — nothing on the page said where the rest was or when it returned. The Wallets page now has a **Committed Float** card: free / committed / account total, the per-bookie split, the amount settling today, and a "coming back" schedule grouped by kickoff day. It also reports `freeFloor` (the smallest funded balance) as the biggest per-leg stake the next arb can safely use, which is the binding number on a two-bookie, five-leg budget.
+- **Release date.** `date(kickoff)`, falling back to `date(created_at)` when a bet has no kickoff (mug bets logged from the panel do not carry one). A bet is assumed to free its stakes after its match settles.
+- **Files created/modified.** New: `functions/api/wallets/committed-float.js`, `src/lib/committedFloat.ts`, `src/components/CommittedFloat.tsx`, `src/components/CommittedFloat.css`. Modified: `src/components/WalletsDashboard.tsx` (card above Bookie Health, keyed on the same `refreshToken`), `ARCHITECTURE.md`.
+- **How it connects.** Read-only over `wallets` + `active_bets` in the selected mode; no writes, no new bindings. Refreshes every 60s and on tab focus so a settlement shows up without a reload.

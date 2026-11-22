@@ -4,6 +4,7 @@ import ArbsTable from "./components/ArbsTable";
 import Header from "./components/Header";
 import LoadingOverlay from "./components/LoadingOverlay";
 import MainFeed from "./components/MainFeed";
+import MugOwedBadge from "./components/MugOwedBadge";
 import RightSidebar from "./components/RightSidebar";
 import Sidebar from "./components/Sidebar";
 import SimulationBanner from "./components/SimulationBanner";
@@ -22,6 +23,7 @@ const Shell = ({ children }: { children: ReactNode }) => (
   <div className="app-container">
     <Header />
     <SimulationBanner />
+    <MugOwedBadge />
     {children}
   </div>
 );
