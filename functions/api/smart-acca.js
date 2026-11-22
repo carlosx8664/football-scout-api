@@ -449,8 +449,11 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
         "avoid coin-flip fixtures merely for a bigger return. " +
         "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
         "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
-        "Do not change a match's outcome or invent facts. Return JSON only: " +
-        '{"picks":[{"index":0,"confidence":0}]}. ' +
+        "Do not change a match's outcome or invent facts. Return JSON only in this exact shape: " +
+        '{"picks":[{"index":0,"confidence":88}]}. ' +
+        "Use each candidate's position in the input array as index. Confidence is an integer from " +
+        "50 to 99 scoring how strong that pick is relative to the other candidates — never 0, 1 or " +
+        "a 0-1 fraction. Do not copy the example number; score each pick on its own merits. " +
         "Confidence is your comparative assessment between these candidates, not a probability " +
         "or a guarantee.",
     },
@@ -478,82 +481,115 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
   ];
 
   const models = [...new Set([preferredModel, ...GROQ_MODELS].filter(Boolean))];
-  let response = null;
-  let lastError = "";
 
-  // Groq retires model ids (404/400 model_not_found), so fall through the known-good list
-  // instead of failing the whole refresh.
-  for (const model of models) {
-    response = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        max_tokens: 1600,
-        response_format: { type: "json_object" },
-        messages,
-      }),
-      signal: AbortSignal.timeout(25_000),
+  const callGroq = async (extra) => {
+    const send = extra ? [...messages, ...extra] : messages;
+    let lastError = "";
+    let response = null;
+
+    // Groq retires model ids (404/400 model_not_found), so fall through the known-good list
+    // instead of failing the whole refresh.
+    for (const model of models) {
+      response = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.2,
+          max_tokens: 1600,
+          response_format: { type: "json_object" },
+          messages: send,
+        }),
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (response.ok) break;
+
+      const detail = await response.text().catch(() => "");
+      lastError = detail.slice(0, 240);
+      const modelProblem =
+        (response.status === 404 || response.status === 400) && /model/i.test(detail);
+      if (!modelProblem) break;
+    }
+
+    if (!response?.ok) {
+      throw new Error(
+        `Groq analysis failed (HTTP ${response?.status ?? 0})${lastError ? `: ${lastError}` : "."}`,
+      );
+    }
+    const payload = await response.json().catch(() => null);
+    const content = payload?.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || !content.trim()) {
+      throw new Error("Groq returned an empty analysis.");
+    }
+
+    try {
+      return JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
+    } catch {
+      throw new Error("Groq returned an unreadable analysis.");
+    }
+  };
+
+  let result = await callGroq(null);
+  let picks = toPicks(result);
+  if (picks.every((pick) => pick.confidence === picks[0].confidence)) {
+    // A model that scores all four identically has not done the comparison; ask once more.
+    try {
+      const retried = toPicks(
+        await callGroq([
+          {
+            role: "user",
+            content:
+              "Every pick was given the same confidence. Score each of the four separately on its " +
+              "own merits using the data supplied, integers 50-99, and return the JSON again.",
+          },
+        ]),
+      );
+      if (!retried.every((pick) => pick.confidence === retried[0].confidence)) picks = retried;
+    } catch {
+      // Keep the first answer rather than failing the refresh.
+    }
+  }
+  return picks;
+
+  function toPicks(body) {
+    if (!Array.isArray(body?.picks) || body.picks.length !== 4) {
+      throw new Error("Groq did not return exactly four predictions. Refresh to try again.");
+    }
+
+    const seen = new Set();
+    const seenFixtures = new Set();
+    const normalizeConfidence = (value) => {
+      const raw = Number(value);
+      if (!Number.isFinite(raw)) return null;
+      // Models sometimes answer on a 0-1 scale (or copy the example literally), so widen those.
+      const scaled = raw > 0 && raw <= 1 ? raw * 100 : raw;
+      return Math.min(99, Math.max(1, Math.round(scaled)));
+    };
+
+    return body.picks.map((pick) => {
+      const index = Number(pick?.index);
+      const confidence = normalizeConfidence(pick?.confidence);
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= matches.length ||
+        seen.has(index) ||
+        confidence === null
+      ) {
+        throw new Error("Groq returned invalid or duplicate prediction indexes.");
+      }
+      const fixtureKey = `${matches[index].home.toLowerCase()}|${matches[index].away.toLowerCase()}`;
+      if (seenFixtures.has(fixtureKey)) {
+        throw new Error("Groq selected the same fixture more than once.");
+      }
+      seen.add(index);
+      seenFixtures.add(fixtureKey);
+      return { ...matches[index], confidence };
     });
-    if (response.ok) break;
-
-    const detail = await response.text().catch(() => "");
-    lastError = detail.slice(0, 240);
-    const modelProblem =
-      (response.status === 404 || response.status === 400) && /model/i.test(detail);
-    if (!modelProblem) break;
   }
-
-  if (!response?.ok) {
-    throw new Error(
-      `Groq analysis failed (HTTP ${response?.status ?? 0})${lastError ? `: ${lastError}` : "."}`,
-    );
-  }
-  const payload = await response.json().catch(() => null);
-  const content = payload?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) {
-    throw new Error("Groq returned an empty analysis.");
-  }
-
-  let result;
-  try {
-    result = JSON.parse(content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, ""));
-  } catch {
-    throw new Error("Groq returned an unreadable analysis.");
-  }
-
-  if (!Array.isArray(result?.picks) || result.picks.length !== 4) {
-    throw new Error("Groq did not return exactly four predictions. Refresh to try again.");
-  }
-
-  const seen = new Set();
-  const seenFixtures = new Set();
-  return result.picks.map((pick) => {
-    const index = Number(pick?.index);
-    const confidence = Number(pick?.confidence);
-    if (
-      !Number.isInteger(index) ||
-      index < 0 ||
-      index >= matches.length ||
-      seen.has(index) ||
-      !Number.isFinite(confidence) ||
-      confidence < 0 ||
-      confidence > 100
-    ) {
-      throw new Error("Groq returned invalid or duplicate prediction indexes.");
-    }
-    const fixtureKey = `${matches[index].home.toLowerCase()}|${matches[index].away.toLowerCase()}`;
-    if (seenFixtures.has(fixtureKey)) {
-      throw new Error("Groq selected the same fixture more than once.");
-    }
-    seen.add(index);
-    seenFixtures.add(fixtureKey);
-    return { ...matches[index], confidence };
-  });
 }
 
 export async function onRequestPost({ request, env }) {

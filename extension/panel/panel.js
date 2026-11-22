@@ -956,7 +956,9 @@ function updateSmartAccaTotals() {
 }
 
 function confidenceBar(confidence) {
-  const pct = Math.max(0, Math.min(100, Number(confidence) || 0));
+  const raw = Number(confidence);
+  // Groq answers on a 0-1 scale (0.9 = 90%), so widen fractions before drawing the bar.
+  const pct = Math.max(0, Math.min(100, Number.isFinite(raw) ? (raw > 0 && raw <= 1 ? raw * 100 : raw) : 0));
   return node('div', { class: 'smart-acca-confidence' }, [
     node('div', { class: 'confidence-track' }, [
       node('span', { class: 'confidence-knob', style: `left: ${pct}%` }),
