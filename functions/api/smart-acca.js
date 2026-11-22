@@ -1,14 +1,14 @@
 import { matchBetslipLegs, toSportyBetSelections } from "../../shared/betslip-match.js";
 
-const FOOTYSTATS_URL = "https://footystats.org/predictions/1x2";
+const SPORTYTRADER_URL = "https://www.sportytrader.com/en/betting-tips/football/today/";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
 const POOL_KEY = "feed-matches-pool";
 const MONTHS = {
-  january: 1, february: 2, march: 3, april: 4, may: 5, june: 6,
-  july: 7, august: 8, september: 9, october: 10, november: 11, december: 12,
+  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
 };
 
 function json(body, status = 200) {
@@ -60,55 +60,77 @@ function divBlock(markup, className) {
   return "";
 }
 
-function parsePredictions(html, day) {
-  const predictionList = divBlock(html, "predictionsList");
-  if (!predictionList) throw new Error("FootyStats predictions list was not found.");
+function resultSelection(tip, home, away) {
+  const normalize = (value) =>
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  const prediction = normalize(tip);
+  if (["draw", "matchdraw", "endsinadraw"].includes(prediction)) return "Draw";
+  if (["homewin", "homewins", "hometowin", "1"].includes(prediction)) return "Home Win";
+  if (["awaywin", "awaywins", "awaytowin", "2"].includes(prediction)) return "Away Win";
 
-  const starts = [...predictionList.matchAll(/<div class=['"]betWrapper\b[^>]*>/gi)].map(
-    (match) => match.index,
-  );
+  const team = prediction.replace(/(?:wins?|towin)$/, "");
+  if (team && team === normalize(home)) return "Home Win";
+  if (team && team === normalize(away)) return "Away Win";
+  return null;
+}
+
+function parsePredictions(html, day) {
+  if (/cf-chl-|Just a moment\.\.\.|Enable JavaScript and cookies/i.test(html)) {
+    throw new Error("SportyTrader blocked the server-side page request.");
+  }
+
+  const predictionList = divBlock(html, "pronostics-wrapper");
+  if (!predictionList) throw new Error("SportyTrader's today's predictions list was not found.");
+
+  const starts = [
+    ...predictionList.matchAll(
+      /<div\b(?=[^>]*data-navigation-url-value=['"][^'"]*\/en\/betting-tips\/[^'"]+['"])(?=[^>]*class=['"][^'"]*\bcard\b[^'"]*['"])[^>]*>/gi,
+    ),
+  ].map((match) => match.index);
   const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   const matches = [];
   const seenFixtures = new Set();
 
   for (const [index, start] of starts.entries()) {
     const card = predictionList.slice(start, starts[index + 1] ?? predictionList.length);
-    const market = classTexts(card, "market")[0];
-    if (!["Home Win", "Draw", "Away Win"].includes(market)) continue;
-
-    const data = classTexts(divBlock(card, "matchData"), "data");
-    const [fixture, dateText, league] = data;
-    const pair = fixture?.split(/\s+vs\.?\s+/i);
-    const dateParts = /(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)/i.exec(dateText ?? "");
-    if (!dateParts || !date || !pair || pair.length !== 2) continue;
-    const fixtureKey = `${pair[0].trim().toLowerCase()}|${pair[1].trim().toLowerCase()}`;
-    if (seenFixtures.has(fixtureKey)) continue;
+    const teamNames = classTexts(card, "font-semibold");
+    const [home, away] = teamNames;
+    const dateText = classTexts(card, "font-bold")[0] ?? "";
+    const dateParts = /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s*(\d{2}:\d{2})/.exec(dateText);
+    const league = classTexts(card, "text-sm")[0] ?? "";
+    const tipMatch =
+      /<a\b[^>]*data-trans=['"]tips\.our\.tip\.card[^'"]*['"][^>]*>[\s\S]*?<\/a>\s*<p\b[^>]*>([\s\S]*?)<\/p>/i.exec(
+        card,
+      );
+    const tip = tipMatch ? text(tipMatch[1]) : "";
+    const selection = resultSelection(tip, home, away);
+    if (!dateParts || !date || !home || !away || !selection) continue;
 
     const month = MONTHS[dateParts[2].toLowerCase()];
-    if (Number(dateParts[1]) !== Number(date[3]) || month !== Number(date[2])) continue;
-
-    const odds = Number(classTexts(card, "betHeaderMeta")[0]?.match(/\d+(?:\.\d+)?/)?.[0]);
-    if (!Number.isFinite(odds) || odds <= 1) continue;
-    seenFixtures.add(fixtureKey);
-
-    const statTitles = classTexts(card, "statTitle");
-    const statValues = classTexts(card, "statData");
-    const stats = {};
-    for (let stat = 0; stat < statTitles.length; stat += 1) {
-      stats[statTitles[stat]] = {
-        home: statValues[stat * 2] ?? "",
-        away: statValues[stat * 2 + 1] ?? "",
-      };
+    if (
+      Number(dateParts[1]) !== Number(date[3]) ||
+      month !== Number(date[2]) ||
+      Number(dateParts[3]) !== Number(date[1])
+    ) {
+      continue;
     }
 
+    const fixtureKey = `${home.toLowerCase()}|${away.toLowerCase()}`;
+    if (seenFixtures.has(fixtureKey)) continue;
+    seenFixtures.add(fixtureKey);
+
     matches.push({
-      home: pair[0].trim(),
-      away: pair[1].trim(),
-      league: league ?? "",
-      market,
-      odds,
+      home,
+      away,
+      league,
+      market: "1X2",
+      selection,
+      sourceTip: tip,
       kickoff: dateText,
-      stats,
     });
   }
 
@@ -177,14 +199,27 @@ async function rankWithGroq(matches, apiKey) {
         {
           role: "system",
           content:
-            "Select exactly four distinct football matches from the supplied FootyStats 1X2 predictions. " +
-            "Rank for the strongest evidence using the supplied outcome, odds, and team stats. " +
+            "Select exactly four distinct football matches from the supplied SportyTrader predictions. " +
+            "Rank the explicit 1X2 selections using the editorial tip and live SportyBet odds. " +
             "Do not invent facts or change a match's outcome. Prefer evidence-backed selections and " +
             "reasonable odds, not simply the shortest price. Return JSON only: " +
             '{"picks":[{"index":0,"confidence":0,"reason":"brief evidence-based reason"}]}. ' +
             "Confidence is your comparative assessment, not a probability or guarantee.",
         },
-        { role: "user", content: JSON.stringify(matches) },
+        {
+          role: "user",
+          content: JSON.stringify(
+            matches.map(({ home, away, league, selection, sourceTip, odds, kickoff }) => ({
+              home,
+              away,
+              league,
+              selection,
+              sourceTip,
+              sportyBetOdds: odds,
+              kickoff,
+            })),
+          ),
+        },
       ],
     }),
     signal: AbortSignal.timeout(20_000),
@@ -263,19 +298,47 @@ export async function onRequestPost({ request, env }) {
   );
 
   try {
-    const response = await fetch(FOOTYSTATS_URL, {
+    const response = await fetch(SPORTYTRADER_URL, {
       headers: {
-        Accept: "text/html",
-        "User-Agent": "Mozilla/5.0 (compatible; Oddtor/1.0; +https://footystats.org)",
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        Referer: "https://www.sportytrader.com/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       },
       signal: AbortSignal.timeout(15_000),
     });
-    if (!response.ok) throw new Error(`FootyStats returned HTTP ${response.status}.`);
+    if (!response.ok) throw new Error(`SportyTrader returned HTTP ${response.status}.`);
     const html = await response.text();
-    const matches = parsePredictions(html, day);
+    const scrapedMatches = parsePredictions(html, day);
+    const fixtures = [...(await loadFixtures({ request, env })), ...(await loadPool(env))];
+    const matches = scrapedMatches.flatMap((pick) => {
+      const leg = {
+        home: pick.home,
+        away: pick.away,
+        market: "1X2",
+        selection: pick.selection,
+      };
+      const result = matchBetslipLegs([leg], fixtures);
+      const entry = result.matched[0];
+      if (!entry) return [];
+
+      const side =
+        pick.selection === "Home Win" ? "home" : pick.selection === "Away Win" ? "away" : "draw";
+      const odds = Number(entry.match?.book_odds?.[side]?.books?.SportyBet);
+      if (!Number.isFinite(odds) || odds <= 1) return [];
+
+      const booking = toSportyBetSelections([entry]).bookings[0];
+      if (!booking) return [];
+      return [{ ...pick, odds, booking }];
+    });
     if (matches.length < 4) {
       return json(
-        { error: `FootyStats has only ${matches.length} readable 1X2 predictions for ${day}.` },
+        {
+          error:
+            `SportyTrader has ${scrapedMatches.length} readable 1X2 tips for ${day}, but only ` +
+            `${matches.length} also have matching SportyBet fixtures and prices.`,
+        },
         422,
       );
     }
@@ -285,26 +348,13 @@ export async function onRequestPost({ request, env }) {
     );
     const candidates = alternatives.length >= 4 ? alternatives : matches;
     const picks = await rankWithGroq(candidates, env.SMART_ACCA_GROQ_API_KEY);
-    const fixtures = [...(await loadFixtures({ request, env })), ...(await loadPool(env))];
-    const matchedPicks = picks.map((pick) => {
-      const leg = {
-        home: pick.home,
-        away: pick.away,
-        market: "1X2",
-        selection: pick.market,
-      };
-      const result = matchBetslipLegs([leg], fixtures);
-      const entry = result.matched[0];
-      const booking = entry ? toSportyBetSelections([entry]).bookings[0] : null;
-      return { ...pick, booking: booking ?? null };
-    });
 
     return json({
       day,
-      source: FOOTYSTATS_URL,
-      scrapedCount: matches.length,
+      source: SPORTYTRADER_URL,
+      scrapedCount: scrapedMatches.length,
       analyzedCount: candidates.length,
-      matches: matchedPicks,
+      matches: picks,
     });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : String(error) }, 502);

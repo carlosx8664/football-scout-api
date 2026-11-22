@@ -56,11 +56,12 @@ uses, then lists the matched fixtures with SportyBet/BetBoro links, the SportyBe
 
 Scans show an indeterminate progress bar with elapsed seconds while the vision request runs.
 
-SmartACCA scrapes today's public FootyStats 1X2 predictions, asks the dashboard server's Groq
-free-tier key to rank four, calculates combined odds and the GHS 22.50 default stake's potential
-return, and can open a SportyBet share slip or log it as a Muggy Bet. Set `SMART_ACCA_GROQ_API_KEY` as a
-Cloudflare Pages secret (or in local `.dev.vars`) to enable it; the key is never sent to the
-extension. Add-to-SportyBet is disabled for any pick that cannot be matched to a live fixture.
+SmartACCA scrapes today's SportyTrader result tips, asks the dashboard server's Groq key to rank
+four supported 1X2 picks, and uses the matching live SportyBet prices to calculate combined odds
+and the GHS 22.50 default stake's potential return. It can open a SportyBet share slip or log the
+acca as a Muggy Bet. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local
+`.dev.vars`) to enable it; the key is never sent to the extension. Picks without a matching fixture
+and SportyBet price are excluded.
 
 Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
 the fixture-matching confidence (team-name similarity, blended with a 1X2 price comparison when one

@@ -980,7 +980,7 @@ function renderSmartAcca() {
         ]),
         node('div', {
           class: 'bb-meta muted',
-          text: `${match.league || 'Football'} · ${match.market} · ${match.kickoff || ''}`,
+          text: `${match.league || 'Football'} · ${match.selection} · ${match.kickoff || ''}`,
         }),
         node('div', {
           class: 'bb-meta',
@@ -1098,7 +1098,7 @@ async function logSmartAccaMuggy() {
   smartAccaSay('Logging SmartACCA as a Muggy Bet…');
   try {
     const selection = matches
-      .map((match) => `${match.home} ${match.market}`)
+      .map((match) => `${match.home} ${match.selection}`)
       .join(' · ')
       .slice(0, 200);
     const response = await fetch(`${state.settings.apiBase}/api/active-bets`, {
