@@ -1,126 +1,189 @@
+/* Where the float is parked: same card chrome and table language as Bookie Health. */
 .committed-float {
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.committed-float-header {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-.committed-float-head h3 {
-  margin: 0 0 4px;
-  font-size: 15px;
+.committed-float-header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
-.committed-float-sub {
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.45;
+.committed-float-subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
 }
 
 .committed-float-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
+  margin-bottom: 16px;
 }
 
-.committed-float-summary > div {
+.committed-float-tile {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 9px 11px;
-  border-radius: 9px;
-  background: var(--card-2);
-  border: 1px solid var(--line);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-neutral-2);
+  border: 1px solid var(--color-neutral-3);
 }
 
 .committed-float-label {
-  font-size: 11px;
-  letter-spacing: 0.3px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--color-neutral-6);
 }
 
-.committed-float-summary strong {
-  font-size: 15px;
+.committed-float-value {
+  font-size: 0.95rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-7);
 }
 
 .committed-float-hint {
-  font-size: 10.5px;
-  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+}
+
+.committed-float-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 10px;
 }
 
 .committed-float-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 0.72rem;
 }
 
-.committed-float-table th {
-  text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--muted);
+.committed-float-table thead th {
+  padding: 8px 6px;
+  text-align: right;
+  background: var(--color-neutral-2);
+  font-size: 0.6rem;
   font-weight: 600;
-  padding: 0 8px 6px 0;
-  border-bottom: 1px solid var(--line);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+  box-shadow: inset 0 -1px 0 var(--color-neutral-4);
 }
 
-.committed-float-table td {
-  padding: 7px 8px 7px 0;
-  border-bottom: 1px solid var(--line);
+.committed-float-table th:first-child,
+.committed-float-table td:first-child {
+  padding-left: 10px;
+  text-align: left;
+}
+
+.committed-float-table th:last-child,
+.committed-float-table td:last-child {
+  padding-right: 10px;
+}
+
+.committed-float-table tbody td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--color-neutral-3);
+  text-align: right;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.committed-float-bets,
-.committed-float-legs {
-  color: var(--muted);
-  font-size: 11px;
+.committed-float-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.committed-float-schedule h4 {
-  margin: 0 0 6px;
-  font-size: 12px;
+.committed-float-table tbody tr:hover {
+  background: var(--color-neutral-2);
+}
+
+.committed-float-name {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.committed-float-muted {
+  color: var(--color-neutral-6);
+}
+
+.committed-float-schedule {
+  margin-top: 16px;
+}
+
+.committed-float-schedule h3 {
+  margin-bottom: 8px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: var(--muted);
+  color: var(--color-neutral-6);
 }
 
 .committed-float-schedule ul {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .committed-float-schedule li {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  font-size: 12.5px;
-  padding: 5px 9px;
-  border-radius: 7px;
-  background: var(--card-2);
+  gap: 12px;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+  background: var(--color-neutral-1);
+}
+
+.committed-float-schedule li + li {
+  border-top: 1px solid var(--color-neutral-3);
 }
 
 .committed-float-day {
-  min-width: 88px;
-  font-weight: 600;
+  min-width: 96px;
+  font-weight: 700;
 }
 
 .committed-float-amount {
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.committed-float-legs {
+  margin-left: auto;
+  color: var(--color-neutral-6);
+  font-size: 0.6rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .committed-float-empty {
   margin: 0;
-  font-size: 12.5px;
-  color: var(--muted);
+  padding: 12px 0;
+  color: var(--color-neutral-6);
+  font-size: 0.85rem;
+  line-height: 1.5;
 }

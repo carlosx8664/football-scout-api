@@ -68,7 +68,11 @@ const CommittedFloat = ({ simulation, refreshToken = 0 }: CommittedFloatProps) =
   if (error) {
     return (
       <section className="committed-float">
-        <h3>💧 Committed Float</h3>
+        <header className="committed-float-header">
+          <div>
+            <h2>💧 Committed Float</h2>
+          </div>
+        </header>
         <p className="committed-float-empty">{error}</p>
       </section>
     );
@@ -77,7 +81,11 @@ const CommittedFloat = ({ simulation, refreshToken = 0 }: CommittedFloatProps) =
   if (!payload) {
     return (
       <section className="committed-float">
-        <h3>💧 Committed Float</h3>
+        <header className="committed-float-header">
+          <div>
+            <h2>💧 Committed Float</h2>
+          </div>
+        </header>
         <p className="committed-float-empty">Loading…</p>
       </section>
     );
@@ -88,30 +96,32 @@ const CommittedFloat = ({ simulation, refreshToken = 0 }: CommittedFloatProps) =
 
   return (
     <section className="committed-float">
-      <header className="committed-float-head">
-        <h3>💧 Committed Float</h3>
-        <p className="committed-float-sub">
-          Stakes leave the wallet when a bet is logged. Free cash is what you can bet with now;
-          committed is what comes back after each kickoff.
-        </p>
+      <header className="committed-float-header">
+        <div>
+          <h2>💧 Committed Float</h2>
+          <p className="committed-float-subtitle">
+            Stakes leave the wallet when a bet is logged. Free cash is what you can bet with now;
+            committed is what comes back after each kickoff.
+          </p>
+        </div>
       </header>
 
       <div className="committed-float-summary">
-        <div>
+        <div className="committed-float-tile">
           <span className="committed-float-label">Free now</span>
-          <strong>{formatAmount(totals.free)}</strong>
+          <span className="committed-float-value">{formatAmount(totals.free)}</span>
         </div>
-        <div>
+        <div className="committed-float-tile">
           <span className="committed-float-label">Committed</span>
-          <strong>{formatAmount(totals.committed)}</strong>
+          <span className="committed-float-value">{formatAmount(totals.committed)}</span>
         </div>
-        <div>
+        <div className="committed-float-tile">
           <span className="committed-float-label">Account total</span>
-          <strong>{formatAmount(totals.exposure)}</strong>
+          <span className="committed-float-value">{formatAmount(totals.exposure)}</span>
         </div>
-        <div>
+        <div className="committed-float-tile">
           <span className="committed-float-label">Biggest safe leg</span>
-          <strong>{formatAmountWhole(totals.freeFloor)}</strong>
+          <span className="committed-float-value">{formatAmountWhole(totals.freeFloor)}</span>
           <span className="committed-float-hint">smallest funded balance</span>
         </div>
       </div>
@@ -119,37 +129,41 @@ const CommittedFloat = ({ simulation, refreshToken = 0 }: CommittedFloatProps) =
       {free.length === 0 ? (
         <p className="committed-float-empty">No funded bookie in this mode.</p>
       ) : (
-        <table className="committed-float-table">
-          <thead>
-            <tr>
-              <th>Bookie</th>
-              <th>Free</th>
-              <th>Committed</th>
-              <th>Settles today</th>
-              <th>Total held</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookies.map((bookie) => (
-              <tr key={bookie.name}>
-                <td>{bookie.name}</td>
-                <td>{formatAmount(bookie.free)}</td>
-                <td>
-                  {formatAmount(bookie.committed)}
-                  {bookie.bets > 0 ? (
-                    <span className="committed-float-bets"> · {bookie.bets} leg(s)</span>
-                  ) : null}
-                </td>
-                <td>{bookie.today > 0 ? formatAmount(bookie.today) : "—"}</td>
-                <td>{formatAmount(bookie.exposure)}</td>
+        <div className="committed-float-table-wrap">
+          <table className="committed-float-table">
+            <thead>
+              <tr>
+                <th>Bookie</th>
+                <th>Free</th>
+                <th>Committed</th>
+                <th>Settles today</th>
+                <th>Total held</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {bookies.map((bookie) => (
+                <tr key={bookie.name}>
+                  <td className="committed-float-name">{bookie.name}</td>
+                  <td>{formatAmount(bookie.free)}</td>
+                  <td>
+                    {formatAmount(bookie.committed)}
+                    {bookie.bets > 0 ? (
+                      <span className="committed-float-muted"> · {bookie.bets} leg(s)</span>
+                    ) : null}
+                  </td>
+                  <td className={bookie.today > 0 ? undefined : "committed-float-muted"}>
+                    {bookie.today > 0 ? formatAmount(bookie.today) : "—"}
+                  </td>
+                  <td>{formatAmount(bookie.exposure)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="committed-float-schedule">
-        <h4>Coming back</h4>
+        <h3>Coming back</h3>
         {schedule.length === 0 ? (
           <p className="committed-float-empty">
             Nothing in play — the whole bankroll is free to bet with.
