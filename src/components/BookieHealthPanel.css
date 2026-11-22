@@ -60,13 +60,13 @@
 .bookie-health-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
 }
 .bookie-health-table thead th {
-  padding: 8px 7px;
+  padding: 8px 6px;
   text-align: right;
   background: var(--color-neutral-2);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -76,7 +76,7 @@
 }
 .bookie-health-table tbody th,
 .bookie-health-table tbody td {
-  padding: 8px 7px;
+  padding: 8px 6px;
   border-bottom: 1px solid var(--color-neutral-3);
   vertical-align: top;
 }
@@ -96,10 +96,11 @@
 .bookie-health-sub {
   display: block;
   margin-top: 2px;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 600;
   color: var(--color-neutral-6);
 }
+.bookie-health-in { display: block; }
 
 .bookie-health-pnl {
   text-align: right;
@@ -126,7 +127,7 @@
 
 .bookie-health-table tfoot th,
 .bookie-health-table tfoot td {
-  padding: 10px;
+  padding: 9px 6px;
   background: var(--color-neutral-3);
   border-top: 2px solid var(--color-neutral-5);
   font-weight: 800;
@@ -143,5 +144,5 @@
 
 @media (max-width: 900px) {
   .bookie-health { padding: 16px; }
-  .bookie-health-table { min-width: 620px; }
+  .bookie-health-table { min-width: 560px; }
 }

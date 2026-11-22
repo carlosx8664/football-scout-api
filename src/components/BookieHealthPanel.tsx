@@ -50,8 +50,10 @@ const StatCells = ({ row }: { row: StatValues }) => {
           <span className="bookie-health-sub">{formatAmount(row.openStaked)} in play</span>
         )}
       </td>
-      <td className="bookie-health-money">{formatAmount(row.deposited)}</td>
-      <td className="bookie-health-money">{formatAmount(row.withdrawn)}</td>
+      <td className="bookie-health-money" title="Deposited / withdrawn">
+        <span className="bookie-health-in">+{formatAmount(row.deposited)}</span>
+        <span className="bookie-health-sub">−{formatAmount(row.withdrawn)}</span>
+      </td>
       <td className="bookie-health-money">{row.muggyBets}</td>
       <td className={`bookie-health-cover${coverClass(cover)}`} title="Mug cost ÷ arb profit">
         {coverLabel(cover)}
@@ -123,10 +125,9 @@ const BookieHealthPanel = ({ simulation, refreshToken }: BookieHealthPanelProps)
               <tr>
                 <th scope="col">Bookie</th>
                 <th scope="col">Balance</th>
-                <th scope="col">Deposited</th>
-                <th scope="col">Withdrawn</th>
-                <th scope="col">Mug bets</th>
-                <th scope="col">Mug cover</th>
+                <th scope="col">In / out</th>
+                <th scope="col">Mugs</th>
+                <th scope="col">Cover</th>
                 <th scope="col">Muggy P/L</th>
                 <th scope="col">Arb P/L</th>
                 <th scope="col">Account P/L</th>
@@ -144,7 +145,7 @@ const BookieHealthPanel = ({ simulation, refreshToken }: BookieHealthPanelProps)
             </tbody>
             <tfoot>
               <tr>
-                <th scope="row">All bookies</th>
+                <th scope="row">Total</th>
                 <StatCells row={payload.totals} />
               </tr>
             </tfoot>
