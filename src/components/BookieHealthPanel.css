@@ -59,12 +59,11 @@
 
 .bookie-health-table {
   width: 100%;
-  min-width: 720px;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 .bookie-health-table thead th {
-  padding: 9px 10px;
+  padding: 8px 7px;
   text-align: right;
   background: var(--color-neutral-2);
   font-size: 0.64rem;
@@ -77,7 +76,7 @@
 }
 .bookie-health-table tbody th,
 .bookie-health-table tbody td {
-  padding: 9px 10px;
+  padding: 8px 7px;
   border-bottom: 1px solid var(--color-neutral-3);
   vertical-align: top;
 }
@@ -112,6 +111,19 @@
 .bookie-health-pnl.positive { color: #15803d; }
 .bookie-health-pnl.negative { color: #c20a0a; }
 
+/* Mug cover: the share of arb profit given back as camouflage. */
+.bookie-health-cover {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bookie-health-cover.low { color: #b45309; }
+.bookie-health-cover.good { color: #15803d; }
+.bookie-health-cover.high,
+.bookie-health-cover.none { color: var(--color-neutral-6); }
+.bookie-health-cover.none { font-weight: 600; }
+
 .bookie-health-table tfoot th,
 .bookie-health-table tfoot td {
   padding: 10px;
@@ -131,5 +143,5 @@
 
 @media (max-width: 900px) {
   .bookie-health { padding: 16px; }
-  .bookie-health-table { min-width: 680px; }
+  .bookie-health-table { min-width: 620px; }
 }

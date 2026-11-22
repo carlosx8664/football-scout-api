@@ -29,26 +29,39 @@ const signed = (amount: number) =>
 const pnlClass = (amount: number) =>
   `bookie-health-pnl${amount < 0 ? " negative" : amount > 0 ? " positive" : ""}`;
 
+/** How much of the arb profit the mug bets have given back; null when there is no arb profit. */
+const mugCover = (row: StatValues) =>
+  row.arbPnl > 0 ? (Math.max(0, -row.muggyPnl) / row.arbPnl) * 100 : null;
+
+const coverClass = (cover: number | null) =>
+  cover === null ? " none" : cover < 15 ? " low" : cover <= 35 ? " good" : " high";
+
+const coverLabel = (cover: number | null) => (cover === null ? "—" : `${Math.round(cover)}%`);
+
 /** One row's cells, reused by the body and the totals footer. */
-const StatCells = ({ row }: { row: StatValues }) => (
-  <>
-    <td className="bookie-health-money">
-      {formatAmount(row.balance)}
-      {row.openStaked > 0 && (
-        <span className="bookie-health-sub">{formatAmount(row.openStaked)} in play</span>
-      )}
-    </td>
-    <td className="bookie-health-money">{formatAmount(row.deposited)}</td>
-    <td className="bookie-health-money">{formatAmount(row.withdrawn)}</td>
-    <td className="bookie-health-money">
-      {row.muggyBets}
-      <span className="bookie-health-sub">staked {formatAmount(row.muggyStaked)}</span>
-    </td>
-    <td className={pnlClass(row.muggyPnl)}>{signed(row.muggyPnl)}</td>
-    <td className={pnlClass(row.arbPnl)}>{signed(row.arbPnl)}</td>
-    <td className={pnlClass(row.accountPnl)}>{signed(row.accountPnl)}</td>
-  </>
-);
+const StatCells = ({ row }: { row: StatValues }) => {
+  const cover = mugCover(row);
+
+  return (
+    <>
+      <td className="bookie-health-money">
+        {formatAmount(row.balance)}
+        {row.openStaked > 0 && (
+          <span className="bookie-health-sub">{formatAmount(row.openStaked)} in play</span>
+        )}
+      </td>
+      <td className="bookie-health-money">{formatAmount(row.deposited)}</td>
+      <td className="bookie-health-money">{formatAmount(row.withdrawn)}</td>
+      <td className="bookie-health-money">{row.muggyBets}</td>
+      <td className={`bookie-health-cover${coverClass(cover)}`} title="Mug cost ÷ arb profit">
+        {coverLabel(cover)}
+      </td>
+      <td className={pnlClass(row.muggyPnl)}>{signed(row.muggyPnl)}</td>
+      <td className={pnlClass(row.arbPnl)}>{signed(row.arbPnl)}</td>
+      <td className={pnlClass(row.accountPnl)}>{signed(row.accountPnl)}</td>
+    </>
+  );
+};
 
 /**
  * Per-bookie health: what has gone in and out of each account, what the mug bets cost there, and
@@ -113,6 +126,7 @@ const BookieHealthPanel = ({ simulation, refreshToken }: BookieHealthPanelProps)
                 <th scope="col">Deposited</th>
                 <th scope="col">Withdrawn</th>
                 <th scope="col">Mug bets</th>
+                <th scope="col">Mug cover</th>
                 <th scope="col">Muggy P/L</th>
                 <th scope="col">Arb P/L</th>
                 <th scope="col">Account P/L</th>
@@ -139,8 +153,8 @@ const BookieHealthPanel = ({ simulation, refreshToken }: BookieHealthPanelProps)
       )}
 
       <p className="bookie-health-hint">
-        A negative <strong>Muggy P/L</strong> is the expected camouflage cost. A large positive{" "}
-        <strong>Arb P/L</strong> means the bookie is paying you — worth spreading the volume out.
+        <strong>Mug cover</strong> is the mug cost as a share of arb profit — aim for 20–35%. Under
+        15% looks sharp to a bookie; over 35% is more camouflage than you need.
       </p>
     </section>
   );
