@@ -125,7 +125,11 @@ jobs:
             echo " -> wrote ${key}"
           }
           upload "feed-matches" "public/matches.json"
-          upload "feed-arbs" "public/arbs.json"
+          # find-arbs.js already published feed-arbs before alerting; only retry if it failed.
+          if [ -f data/.arbs-kv-pending ]; then
+            upload "feed-arbs" "public/arbs.json"
+            rm -f data/.arbs-kv-pending
+          fi
           upload "feed-arbs-history" "data/arbs-history.json"
           # Bet Builder coverage pool: best effort, so a problem here can never block the odds feed.
           if [ -s public/matches-pool.json ]; then

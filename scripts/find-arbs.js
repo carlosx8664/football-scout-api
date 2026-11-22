@@ -32,6 +32,8 @@ const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
+/** Set when the early KV publish did not happen, so the workflow re-uploads `feed-arbs` once. */
+const KV_PENDING_MARKER = path.join(DATA_DIR, '.arbs-kv-pending');
 
 /**
  * Publishes the arb feed to KV before any alert is sent. The dashboard and the browser
@@ -39,10 +41,19 @@ const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'))
  * A local run without Cloudflare credentials simply skips this step.
  */
 async function publishArbsToKv() {
+  const marker = (value) => {
+    if (value) fs.writeFileSync(KV_PENDING_MARKER, new Date().toISOString());
+    else fs.rmSync(KV_PENDING_MARKER, { force: true });
+  };
+
   const account = process.env.CF_ACCOUNT_ID?.trim();
   const namespace = process.env.CF_KV_NAMESPACE_ID?.trim();
   const token = process.env.CF_API_TOKEN?.trim();
-  if (!account || !namespace || !token) return false;
+  if (!account || !namespace || !token) {
+    // In CI a missing credential must not silently skip publishing; let the workflow retry.
+    marker(Boolean(process.env.CI));
+    return false;
+  }
 
   try {
     const response = await fetch(
@@ -55,12 +66,15 @@ async function publishArbsToKv() {
     );
     if (!response.ok) {
       console.warn(`[oddtor] feed-arbs KV publish failed: HTTP ${response.status}`);
+      marker(true);
       return false;
     }
     console.log('Published feed-arbs to KV (before alerts)');
+    marker(false);
     return true;
   } catch (error) {
     console.warn('[oddtor] feed-arbs KV publish failed:', error?.message || error);
+    marker(true);
     return false;
   }
 }

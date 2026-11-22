@@ -40,7 +40,8 @@ const LEGS_PER_MATCH = 2;
 const PAST_LIMIT = 50;
 /** 90 minutes plus half-time and stoppage; used to label a kicked-off match. */
 const MATCH_DURATION_MS = 120 * 60_000;
-const REFRESH_MS = 60_000;
+/** KV-backed read-only poll: cheap enough to run well under the scanner's 15-minute cadence. */
+const REFRESH_MS = 20_000;
 const STALE_AFTER_MS = 30 * 60_000;
 /** Above this the scanner itself treats the arb as a suspected palpable error (void). */
 const HIGH_PROFIT_PCT = 7;
