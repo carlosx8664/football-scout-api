@@ -29,7 +29,8 @@ export async function createArbShare(
 }
 
 async function readJson<T>(url: string, signal?: AbortSignal): Promise<T | null> {
-  const response = await fetch(url, { signal });
+  // `no-store` keeps the browser's HTTP cache from answering with an older snapshot.
+  const response = await fetch(url, { cache: "no-store", signal });
   if (!response.ok) return null;
   return (await response.json().catch(() => null)) as T | null;
 }

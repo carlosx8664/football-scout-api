@@ -10,7 +10,7 @@ import SimulationBanner from "./components/SimulationBanner";
 import WalletsDashboard from "./components/WalletsDashboard";
 import WalletsHistory from "./components/WalletsHistory";
 import { fetchSnapshot } from "./lib/api";
-import { SNAPSHOT_REFRESH_INTERVAL_MS, hasMatchStartingSoon } from "./lib/schedule";
+import { SNAPSHOT_REFRESH_INTERVAL_MS } from "./lib/schedule";
 import type { Match, SnapshotData } from "./types";
 
 const ARBS_ROUTE = /^\/arbs\/?$/;
@@ -81,21 +81,34 @@ function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Near kickoff, pull the freshest snapshot from KV (no API-Football requests involved).
+  // Keep the feed fresh without a manual reload: poll on the backend's 15-minute cadence and
+  // pull again whenever the tab becomes visible, regains focus, or comes back online.
   useEffect(() => {
-    const timer = setInterval(() => {
-      const current = dataRef.current;
-      if (!current || current.status !== "success") return;
-      if (!hasMatchStartingSoon(current.matches, Date.now())) return;
+    let cancelled = false;
 
+    const refresh = () => {
+      if (cancelled || document.visibilityState === "hidden" || !dataRef.current) return;
       fetchSnapshot()
-        .then(applySnapshot)
+        .then((snapshot) => {
+          if (!cancelled) applySnapshot(snapshot);
+        })
         .catch(() => {
           // A failed refresh keeps the last good snapshot on screen.
         });
-    }, SNAPSHOT_REFRESH_INTERVAL_MS);
+    };
 
-    return () => clearInterval(timer);
+    const timer = setInterval(refresh, SNAPSHOT_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+    };
   }, [applySnapshot]);
 
   // The arbs page only reads /arbs.json, so it must not wait on (or break with) the

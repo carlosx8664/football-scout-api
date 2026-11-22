@@ -329,7 +329,7 @@ a fine-grained PAT.
 
 - **New feature.** The odds refresh workflow always publishes the latest match, arb, and arb-history feeds to Cloudflare KV; the match-count circuit breaker was removed so a smaller scrape cannot freeze the website on stale data. Cloudflare API tokens are whitespace-trimmed before authenticated requests, and failed uploads stop the workflow.
 - **Files created/modified.** No new files. Modified: `.github/workflows/odds-refresh.yml` (always uploads `feed-matches`, `feed-arbs`, and `feed-arbs-history`, cleans `CF_API_TOKEN`, and fails on upload errors), `functions/api/arbs.js` (reads the published `feed-arbs` key directly), and `ARCHITECTURE.md`.
-- **How it connects.** GitHub Actions generates the feeds, uploads them to KV, and the Pages `/api/arbs` endpoint reads `feed-arbs` for the React website. Telegram alerts continue to use the fresh in-memory scan, while reliable KV publishing keeps the website synchronized with the same refresh run.
+- **How it connects.** GitHub Actions generates the feeds, uploads them to KV, and the Pages `/api/arbs` endpoint reads `feed-arbs` for the React website. `find-arbs.js` now writes `public/arbs.json` and PUTs `feed-arbs` to KV **before** sending the Telegram/Web Push alert, so the dashboard and the browser extension learn about an arb no later than the phone does; `build-match-feed.js` and the workflow's later publish step then refresh `feed-matches` and `feed-arbs-history`.
 
 ## 14. Live Scores and the Settlement Queue
 

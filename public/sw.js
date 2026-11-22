@@ -15,7 +15,7 @@ const ICON = '/favicon.png';
 
 /* --- App-shell caching (installable / instant reloads) -------------------- */
 
-const CACHE_NAME = 'oddtor-shell-v1';
+const CACHE_NAME = 'oddtor-shell-v2';
 const SHELL_URLS = [
   '/',
   '/manifest.json',
@@ -24,7 +24,9 @@ const SHELL_URLS = [
   '/icon-192.png',
   '/icon-512.png',
 ];
-const CACHEABLE = /\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|css|js|json)$/i;
+// JSON is deliberately excluded: the feeds change independently of the shell, so they must
+// always come from the network (Cache Storage ignores fetch's `cache: 'no-store'`).
+const CACHEABLE = /\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|css|js)$/i;
 const cachingAvailable = 'caches' in self;
 
 function cachePut(request, response) {
@@ -63,8 +65,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // API responses and dev-server module URLs must always hit the network.
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/src/') || url.pathname.startsWith('/@')) return;
+  // API responses, JSON snapshots and dev-server module URLs must always hit the network.
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/@') ||
+    url.pathname.endsWith('.json')
+  ) {
+    return;
+  }
 
   if (request.mode === 'navigate') {
     // Network-first: fresh HTML when online, cached shell when offline.

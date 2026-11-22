@@ -32,6 +32,38 @@ const BOLTBET_FILE = path.join(DATA_DIR, `boltbet${FILE_SUFFIX}.json`);
 const OUT_FILE = path.resolve(__dirname, '..', 'public', opt('out', `arbs${FILE_SUFFIX}.json`));
 
 const HISTORY_FILE = path.resolve(DATA_DIR, opt('history', 'arbs-history.json'));
+
+/**
+ * Publishes the arb feed to KV before any alert is sent. The dashboard and the browser
+ * extension both read `/api/arbs`, so they must never learn about an arb from Telegram first.
+ * A local run without Cloudflare credentials simply skips this step.
+ */
+async function publishArbsToKv() {
+  const account = process.env.CF_ACCOUNT_ID?.trim();
+  const namespace = process.env.CF_KV_NAMESPACE_ID?.trim();
+  const token = process.env.CF_API_TOKEN?.trim();
+  if (!account || !namespace || !token) return false;
+
+  try {
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${account}/storage/kv/namespaces/${namespace}/values/feed-arbs`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: fs.readFileSync(OUT_FILE),
+      },
+    );
+    if (!response.ok) {
+      console.warn(`[oddtor] feed-arbs KV publish failed: HTTP ${response.status}`);
+      return false;
+    }
+    console.log('Published feed-arbs to KV (before alerts)');
+    return true;
+  } catch (error) {
+    console.warn('[oddtor] feed-arbs KV publish failed:', error?.message || error);
+    return false;
+  }
+}
 const HISTORY_DAYS = Number(opt('history-days', '0'));
 const HISTORY_LIMIT = Number(opt('history-limit', '500'));
 
@@ -1525,9 +1557,6 @@ async function main() {
 
   const nowMs = Date.now();
   const previousHistory = loadHistory(HISTORY_FILE);
-  await sendTelegramAlert(arbs, previousHistory, nowMs);
-  // Same gates, separate channel: the phone ping is what opens the arb card.
-  await sendPushAlert(arbs, previousHistory, nowMs);
 
   console.log(`\nFixtures matched:            ${matched}`);
   console.log(`Cross-bookie pairs checked:  ${pairsChecked}`);
@@ -1577,6 +1606,12 @@ async function main() {
 
   fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
   fs.writeFileSync(HISTORY_FILE, JSON.stringify({ history }, null, 2));
+
+  // Site + extension first: the feed is live in KV before the phone pings.
+  await publishArbsToKv();
+  await sendTelegramAlert(arbs, previousHistory, nowMs);
+  // Same gates, separate channel: the phone ping is what opens the arb card.
+  await sendPushAlert(arbs, previousHistory, nowMs);
 
   const started = history.filter((row) => nowMs >= row.kickoff).length;
   console.log(`\nWrote ${OUT_FILE}`);

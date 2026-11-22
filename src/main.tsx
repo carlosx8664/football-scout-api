@@ -11,9 +11,13 @@ import BankrollProvider from './components/BankrollProvider.tsx'
 // lazily as well (`src/lib/push.ts`); re-registering an existing worker is a no-op.
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
-      // Offline caching is a progressive enhancement; the app still works without it.
-    })
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/', updateViaCache: 'none' })
+      // Ask for an update on every load so a deploy reaches this tab without a hard refresh.
+      .then((registration) => registration.update())
+      .catch(() => {
+        // Offline caching is a progressive enhancement; the app still works without it.
+      })
   })
 }
 
