@@ -59,11 +59,15 @@ Scans show an indeterminate progress bar with elapsed seconds while the vision r
 SmartACCA scrapes today's SportyTrader 1X2 predictions — the editorial cards' result tips plus the
 "1X2 model" probability table — asks the dashboard server's Groq key to rank four supported picks,
 and uses the matching live SportyBet prices to calculate combined odds and the GHS 22.50 default
-stake's potential return. The 🔃 button pulls a fresh batch. It can open a SportyBet share slip or
-log the acca as a Muggy Bet; either action records those four, so the next refresh ranks the next
-strongest picks instead of repeating them. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages
-secret (or in local `.dev.vars`) to enable it; the key is never sent to the extension. Picks without
-a matching fixture and price are excluded.
+stake's potential return. Fixtures that have already kicked off are dropped. Each pick shows a
+red→green confidence bar with its percentage.
+
+The 🔃 button pulls a fresh batch. **Add to SportyBet** opens the share slip and logs the acca;
+**Add to BetBoro** only logs it. Either action records those four, so the next refresh ranks the
+next strongest picks instead of repeating them. The **Log to** selector chooses the real wallet or
+Simulation. When fewer than four unused picks are left, the panel says so and offers **Start today
+over**. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local `.dev.vars`) to
+enable it; the key is never sent to the extension.
 
 Groq ranks on the SportyTrader tip or model probability, the live SportyBet price (with implied
 probability), and — where `FOOTBALL_DATA_ORG_TOKEN` covers the competition — both teams' league

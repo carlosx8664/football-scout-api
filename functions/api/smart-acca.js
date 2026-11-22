@@ -450,7 +450,7 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
         "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
         "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
         "Do not change a match's outcome or invent facts. Return JSON only: " +
-        '{"picks":[{"index":0,"confidence":0,"reason":"brief evidence-based reason"}]}. ' +
+        '{"picks":[{"index":0,"confidence":0}]}. ' +
         "Confidence is your comparative assessment between these candidates, not a probability " +
         "or a guarantee.",
     },
@@ -552,11 +552,7 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
     }
     seen.add(index);
     seenFixtures.add(fixtureKey);
-    return {
-      ...matches[index],
-      confidence,
-      reason: typeof pick.reason === "string" ? pick.reason.slice(0, 240) : "",
-    };
+    return { ...matches[index], confidence };
   });
 }
 
@@ -580,7 +576,7 @@ export async function onRequestPost({ request, env }) {
   }
   const excluded = new Set(
     Array.isArray(body?.exclude)
-      ? body.exclude.filter((item) => typeof item === "string").slice(0, 12)
+      ? body.exclude.filter((item) => typeof item === "string").slice(0, 40)
       : [],
   );
 
@@ -588,6 +584,17 @@ export async function onRequestPost({ request, env }) {
     ? body.mark.filter((item) => typeof item === "string").slice(0, 8)
     : [];
   const kv = env?.[KV_BINDING];
+
+  if (body?.reset === true) {
+    if (kv) {
+      try {
+        await kv.delete(`${USED_PREFIX}${day}`);
+      } catch {
+        return json({ error: "Could not reset today's used picks." }, 502);
+      }
+    }
+    return json({ day, reset: true });
+  }
 
   // The panel reports the batch it just slipped or logged, so refreshing moves on to the next
   // strongest picks instead of offering the same four again.
@@ -611,6 +618,7 @@ export async function onRequestPost({ request, env }) {
     const html = await response.text();
     const scrapedMatches = parsePredictions(html, day);
     const fixtures = uniqueFixtures([await loadFixtures({ request, env })]);
+    const now = Date.now();
     const matches = scrapedMatches.flatMap((pick) => {
       const leg = {
         home: pick.home,
@@ -621,6 +629,10 @@ export async function onRequestPost({ request, env }) {
       const result = matchBetslipLegs([leg], fixtures);
       const entry = result.matched[0];
       if (!entry) return [];
+
+      // A fixture that has kicked off can no longer be booked, so it never reaches the slip.
+      const kickoffAt = Date.parse(entry.match?.fixture?.date ?? "");
+      if (Number.isFinite(kickoffAt) && kickoffAt <= now) return [];
 
       const side =
         pick.selection === "Home Win" ? "home" : pick.selection === "Away Win" ? "away" : "draw";
@@ -653,20 +665,34 @@ export async function onRequestPost({ request, env }) {
               ? `SportyTrader's page had no readable 1X2 result tips for ${day}. ` +
                 "Most cards still use other markets, so try again later in the day."
               : `SportyTrader has ${scrapedMatches.length} readable 1X2 tips for ${day}, but only ` +
-                `${matches.length} also have matching SportyBet fixtures and prices.`,
+                `${matches.length} are still unstarted with matching SportyBet prices.`,
         },
         422,
       );
     }
 
     const used = await readUsed(kv, day);
-    const fresh = matches.filter(
+    const unused = matches.filter(
       (match) => !excluded.has(pickKey(match)) && !used.has(pickKey(match)),
     );
-    // Never shrink the pool below four: fall back to the panel's own exclusion, then to all.
-    const candidates = fresh.length >= 4 ? fresh : matches.filter((match) => !excluded.has(pickKey(match)));
-    const pool = candidates.length >= 4 ? candidates : matches;
-    const enriched = await addStandingsContext(env, pool);
+
+    // Never repeat a batch that was already slipped or logged: report exhaustion instead, so the
+    // panel can offer to reset the day's list rather than silently re-serving the same four.
+    if (unused.length < 4) {
+      return json(
+        {
+          error:
+            `Only ${unused.length} fresh pick(s) left for ${day} — ${used.size} already slipped or logged. ` +
+            "Refreshing later picks up newly published tips, or reset today's list to start over.",
+          exhausted: true,
+          usedCount: used.size,
+          availableCount: unused.length,
+        },
+        409,
+      );
+    }
+
+    const enriched = await addStandingsContext(env, unused);
     const picks = (
       await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY, env.SMART_ACCA_GROQ_MODEL)
     ).map(({ standings, ...pick }) => pick);
@@ -675,7 +701,7 @@ export async function onRequestPost({ request, env }) {
       day,
       source: SPORTYTRADER_URL,
       scrapedCount: scrapedMatches.length,
-      analyzedCount: pool.length,
+      analyzedCount: unused.length,
       usedCount: used.size,
       matches: picks,
     });

@@ -338,6 +338,7 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 .smart-acca { display: flex; flex-direction: column; gap: 8px; }
 .smart-acca-stake { margin-top: 5px; }
+.smart-acca-mode { margin-top: 2px; }
 .icon-btn {
   padding: 4px 9px;
   font-size: 15px;
@@ -353,7 +354,45 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
   border-left: 3px solid var(--good);
 }
 .smart-acca-pick + .smart-acca-pick { margin-top: 6px; }
-.smart-acca-unmatched { color: var(--warn-text); }
+.smart-acca-confidence {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.confidence-track {
+  position: relative;
+  flex: 1;
+  height: 9px;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    #d7301f 0%,
+    #ef6c1c 30%,
+    #f2c31d 55%,
+    #7bc043 78%,
+    #2f9e44 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+.confidence-knob {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.confidence-value {
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
 .smart-acca-totals {
   display: flex;
   justify-content: space-between;

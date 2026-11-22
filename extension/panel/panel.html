@@ -135,6 +135,13 @@
           <span>Stake (GHS)</span>
           <input id="smartAccaStake" type="number" min="0.01" step="0.01" value="22.50" />
         </label>
+        <label class="field smart-acca-mode">
+          <span>Log to</span>
+          <select id="smartAccaMode">
+            <option value="real">Real wallet</option>
+            <option value="simulation">Simulation</option>
+          </select>
+        </label>
         <p id="smartAccaStatus" class="hint" hidden></p>
         <div id="smartAccaResult"></div>
         <div class="smart-acca-totals">
@@ -143,9 +150,9 @@
         </div>
         <div class="row bb-actions">
           <button id="smartAccaAddBtn" type="button" disabled>Add to SportyBet</button>
-          <button id="smartAccaLogBtn" class="ghost" type="button" disabled>Log Muggy Bet</button>
+          <button id="smartAccaBetboroBtn" class="ghost" type="button" disabled>Add to BetBoro</button>
         </div>
-        <p class="hint">AI confidence is not a win probability or guarantee. Review the SportyBet slip before placing a bet.</p>
+        <p class="hint">Add to SportyBet opens the slip and logs it; Add to BetBoro only logs. AI confidence is not a win probability or guarantee.</p>
       </section>
     </div>
 
