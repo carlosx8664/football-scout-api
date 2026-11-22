@@ -202,6 +202,30 @@ function parsePredictions(html, day) {
   return matches;
 }
 
+function hasPrice(match) {
+  return Boolean(match?.book_odds) || (Array.isArray(match?.odds) && match.odds.length > 0);
+}
+
+const squashName = (value) => String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * The hot/horizon feed and the booking pool can describe the same fixture. Feeding both to the
+ * matcher makes every duplicate pair score identically, which the matcher rejects as ambiguous —
+ * so collapse them, keeping the copy that actually carries odds.
+ */
+function uniqueFixtures(lists) {
+  const byKey = new Map();
+  for (const match of lists.flat()) {
+    const key =
+      `${squashName(match?.teams?.home?.name)}|${squashName(match?.teams?.away?.name)}` ||
+      String(match?.fixture?.id ?? "");
+    if (!key) continue;
+    const existing = byKey.get(key);
+    if (!existing || (!hasPrice(existing) && hasPrice(match))) byKey.set(key, match);
+  }
+  return [...byKey.values()];
+}
+
 async function kvMatches(kv, key) {
   try {
     const raw = await kv.get(key);
@@ -387,7 +411,7 @@ export async function onRequestPost({ request, env }) {
     if (!response.ok) throw new Error(`SportyTrader returned HTTP ${response.status}.`);
     const html = await response.text();
     const scrapedMatches = parsePredictions(html, day);
-    const fixtures = [...(await loadFixtures({ request, env })), ...(await loadPool(env))];
+    const fixtures = uniqueFixtures([await loadFixtures({ request, env }), await loadPool(env)]);
     const matches = scrapedMatches.flatMap((pick) => {
       const leg = {
         home: pick.home,
