@@ -31,8 +31,8 @@ use it after you have seen why the first attempt stopped.
 
 ## Scan a tipster image
 
-The side panel has two tabs: **Autobet** (feed, stakes, job progress) and **Bet Builder**. The
-builder is not mixed into the arb list.
+The side panel has two tabs: **Autobet** (feed, stakes, job progress) and **Bet Builder**. Bet
+Builder contains the slip-image scanner and **SmartACCA**.
 
 Three ways to get a slip in, all on the **Bet Builder** tab:
 
@@ -56,6 +56,12 @@ uses, then lists the matched fixtures with SportyBet/BetBoro links, the SportyBe
 
 Scans show an indeterminate progress bar with elapsed seconds while the vision request runs.
 
+SmartACCA scrapes today's public FootyStats 1X2 predictions, asks the dashboard server's Groq
+free-tier key to rank four, calculates combined odds and the GHS 22.50 default stake's potential
+return, and can open a SportyBet share slip or log it as a Muggy Bet. Set `SMART_ACCA_GROQ_API_KEY` as a
+Cloudflare Pages secret (or in local `.dev.vars`) to enable it; the key is never sent to the
+extension. Add-to-SportyBet is disabled for any pick that cannot be matched to a live fixture.
+
 Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
 the fixture-matching confidence (team-name similarity, blended with a 1X2 price comparison when one
 exists) — a sign of how well the leg matched the feed, not a probability of the bet winning.
@@ -66,7 +72,8 @@ STRONG ≥ 0.90, GOOD ≥ 0.80, WEAK ≥ the 0.72 acceptance floor.
 - Markets missing from the translation dictionary — or whose SportyBet card header does not match
   the dictionary's `section` — are reported as `manual only` rather than guessed.
 - Sign in, deposit, accept an "odds changed" modal, or click Place Bet.
-- Read or store credentials. Nothing leaves the browser except `GET /api/arbs`.
+- Read or store credentials. Requests go to the configured dashboard API; the Groq key stays on
+  that server.
 
 ## Market dictionaries
 

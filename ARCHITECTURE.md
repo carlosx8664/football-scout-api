@@ -388,4 +388,10 @@ a fine-grained PAT.
 - **Files created/modified.** Deleted: `src/components/BetBuilder.tsx`, `src/components/BetBuilder.css`, `src/lib/betBuilder.ts`. Modified: `src/components/RightSidebar.tsx` (import + section removed), `src/components/RightSidebar.css`, `README.md`, `ARCHITECTURE.md`.
 - **How it connects.** Nothing server-side changes: `/api/bet-builder/extract` and `/api/bet-builder/share` stay, and the extension is now their only caller. `src/types.ts` keeps the response interfaces as the endpoint contract, and no dashboard module imports either the component or its client, so `tsc -b` has no orphaned module to resolve. The extension's `AUTOBET_SLIP` bridge message stays valid but the dashboard no longer triggers it.
 
+## 23. SmartACCA in the Extension
+
+- **New feature.** Bet Builder has a second panel, SmartACCA. `/api/smart-acca` scrapes the day's FootyStats 1X2 predictions, asks Groq to rank four picks, and matches those picks to SportyBet fixture ids from the existing feed. The panel calculates combined odds and defaults to a GHS 22.50 stake, can mint a SportyBet share slip through `/api/bet-builder/share`, or log the acca as a `muggy` active bet through `/api/active-bets`.
+- **Files created/modified.** New: `functions/api/smart-acca.js`. Modified: `extension/panel/panel.html`, `extension/panel/panel.js`, `extension/panel/panel.css`, `extension/README.md`, `.dev.vars.example`, `ARCHITECTURE.md`.
+- **How it connects.** SmartACCA uses its separate `SMART_ACCA_GROQ_API_KEY`; the existing `GROQ_API_KEY` stays unchanged for Bet Builder. Both remain server secrets, never sent to the extension. SmartACCA reuses `matchBetslipLegs` / `toSportyBetSelections` and the existing SportyBet share endpoint. Picks that do not match a live feed fixture cannot be added to the slip. Refresh excludes the current four when enough alternatives exist. AI confidence is comparative guidance, not a win probability or guarantee.
+
 

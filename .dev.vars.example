@@ -8,8 +8,10 @@ GEMINI_API_KEY=
 # Optional second free provider, used when Gemini errors, times out or is rate-limited
 # (OpenRouter `:free`). Worth setting: it is the only real fallback for a slow Gemini call.
 # OPENROUTER_API_KEY=
-# Groq's free tier serves no vision model, so it is ignored unless named in VISION_PROVIDER.
+# Existing Groq key used by Bet Builder vision when VISION_PROVIDER=groq.
 # GROQ_API_KEY=
+# Separate Groq text key for SmartACCA; never reuse the Bet Builder key here.
+# SMART_ACCA_GROQ_API_KEY=
 # VISION_PROVIDER=gemini
 # VISION_MODEL=gemma-4-26b-a4b-it
 

@@ -20,6 +20,18 @@ const ui = {
   tabBuilder: $('tabBuilder'),
   viewAutobet: $('viewAutobet'),
   viewBuilder: $('viewBuilder'),
+  tabSlipBuilder: $('tabSlipBuilder'),
+  tabSmartAcca: $('tabSmartAcca'),
+  slipBuilderPanel: $('slipBuilderPanel'),
+  smartAccaPanel: $('smartAccaPanel'),
+  smartAccaRefreshBtn: $('smartAccaRefreshBtn'),
+  smartAccaStake: $('smartAccaStake'),
+  smartAccaStatus: $('smartAccaStatus'),
+  smartAccaResult: $('smartAccaResult'),
+  smartAccaOdds: $('smartAccaOdds'),
+  smartAccaWin: $('smartAccaWin'),
+  smartAccaAddBtn: $('smartAccaAddBtn'),
+  smartAccaLogBtn: $('smartAccaLogBtn'),
   builderProgress: $('builderProgress'),
   setup: $('setup'),
   apiBaseInput: $('apiBaseInput'),
@@ -63,6 +75,9 @@ const state = {
   aborter: null,
   builder: null,
   builderBusy: false,
+  smartAcca: null,
+  smartAccaBusy: false,
+  smartAccaLogged: false,
   tab: 'autobet',
 };
 
@@ -540,6 +555,19 @@ function setTab(name) {
 ui.tabAutobet.addEventListener('click', () => setTab('autobet'));
 ui.tabBuilder.addEventListener('click', () => setTab('builder'));
 
+function setBuilderPanel(name) {
+  const smartAcca = name === 'smart-acca';
+  ui.tabSlipBuilder.classList.toggle('active', !smartAcca);
+  ui.tabSmartAcca.classList.toggle('active', smartAcca);
+  ui.tabSlipBuilder.setAttribute('aria-selected', String(!smartAcca));
+  ui.tabSmartAcca.setAttribute('aria-selected', String(smartAcca));
+  ui.slipBuilderPanel.hidden = smartAcca;
+  ui.smartAccaPanel.hidden = !smartAcca;
+}
+
+ui.tabSlipBuilder.addEventListener('click', () => setBuilderPanel('slip'));
+ui.tabSmartAcca.addEventListener('click', () => setBuilderPanel('smart-acca'));
+
 // ---------------------------------------------------------------- bet builder
 
 /** Longest edge after downscaling; matches the web client's limits. */
@@ -917,6 +945,194 @@ function renderBuilder() {
 
   ui.builderResult.append(...parts.filter(Boolean));
 }
+
+function smartAccaSay(message, tone = '') {
+  ui.smartAccaStatus.hidden = !message;
+  ui.smartAccaStatus.textContent = message || '';
+  if (message) ui.smartAccaStatus.dataset.tone = tone;
+  else delete ui.smartAccaStatus.dataset.tone;
+}
+
+function smartAccaCombinedOdds() {
+  return (state.smartAcca?.matches ?? []).reduce((product, match) => product * Number(match.odds), 1);
+}
+
+function updateSmartAccaTotals() {
+  const matches = state.smartAcca?.matches ?? [];
+  const odds = Number(smartAccaCombinedOdds().toFixed(2));
+  const stake = Number(ui.smartAccaStake.value);
+  ui.smartAccaOdds.textContent = matches.length === 4 ? odds.toFixed(2) : '—';
+  ui.smartAccaWin.textContent =
+    matches.length === 4 && Number.isFinite(stake) && stake > 0
+      ? `GHS ${(stake * odds).toFixed(2)}`
+      : '—';
+}
+
+function renderSmartAcca() {
+  const matches = state.smartAcca?.matches ?? [];
+  ui.smartAccaResult.replaceChildren();
+  ui.smartAccaResult.append(
+    ...matches.map((match) =>
+      node('article', { class: 'smart-acca-pick' }, [
+        node('div', { class: 'bb-row-top' }, [
+          node('strong', { class: 'bb-teams', text: `${match.home} vs ${match.away}` }),
+          node('span', { class: 'bb-odds', text: Number(match.odds).toFixed(2) }),
+        ]),
+        node('div', {
+          class: 'bb-meta muted',
+          text: `${match.league || 'Football'} · ${match.market} · ${match.kickoff || ''}`,
+        }),
+        node('div', {
+          class: 'bb-meta',
+          text: `AI confidence ${Number(match.confidence).toFixed(0)}% · ${match.reason || 'No explanation supplied.'}`,
+        }),
+        match.booking
+          ? null
+          : node('div', { class: 'bb-meta smart-acca-unmatched', text: 'Not matched to a SportyBet fixture; cannot add to slip.' }),
+      ]),
+    ),
+  );
+  ui.smartAccaAddBtn.disabled =
+    state.smartAccaBusy || matches.length !== 4 || matches.some((match) => !match.booking);
+  ui.smartAccaLogBtn.disabled =
+    state.smartAccaBusy || state.smartAccaLogged || matches.length !== 4;
+  ui.smartAccaLogBtn.textContent = state.smartAccaLogged ? 'Logged Muggy Bet' : 'Log Muggy Bet';
+  ui.smartAccaRefreshBtn.disabled = state.smartAccaBusy;
+  updateSmartAccaTotals();
+}
+
+function localDay() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+async function refreshSmartAcca() {
+  if (state.smartAccaBusy) return;
+  if (!state.settings.apiBase) {
+    smartAccaSay('Set your dashboard URL in Settings before refreshing SmartACCA.', 'bad');
+    return;
+  }
+
+  const exclude = (state.smartAcca?.matches ?? []).map(
+    (match) => `${match.home}|${match.away}|${match.market}`,
+  );
+  state.smartAccaBusy = true;
+  state.smartAcca = null;
+  state.smartAccaLogged = false;
+  renderSmartAcca();
+  smartAccaSay('Scraping today’s predictions and asking Groq to rank four…');
+  try {
+    const response = await fetch(`${state.settings.apiBase}/api/smart-acca`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        day: localDay(),
+        exclude,
+      }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !Array.isArray(payload?.matches)) {
+      throw new Error(payload?.error || `SmartACCA failed with HTTP ${response.status}.`);
+    }
+    state.smartAcca = payload;
+    renderSmartAcca();
+    const mapped = payload.matches.filter((match) => match.booking).length;
+    smartAccaSay(
+      `${payload.matches.length} picks · analyzed ${payload.analyzedCount} of ${payload.scrapedCount} predictions today · ${mapped}/4 matched to SportyBet.`,
+      mapped === 4 ? 'good' : 'warn',
+    );
+  } catch (error) {
+    const message = String(error?.message || error);
+    smartAccaSay(
+      /failed to fetch/i.test(message)
+        ? 'Could not reach the dashboard. Check its URL in Settings and allow that host.'
+        : message,
+      'bad',
+    );
+  } finally {
+    state.smartAccaBusy = false;
+    renderSmartAcca();
+  }
+}
+
+async function addSmartAccaToSportyBet() {
+  const matches = state.smartAcca?.matches ?? [];
+  if (matches.length !== 4 || matches.some((match) => !match.booking) || state.smartAccaBusy) return;
+  state.smartAccaBusy = true;
+  renderSmartAcca();
+  smartAccaSay('Creating the SportyBet slip…');
+  try {
+    const response = await fetch(`${state.settings.apiBase}/api/bet-builder/share`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selections: matches.map((match) => match.booking) }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.shareURL) {
+      throw new Error(payload?.error || `Could not create the SportyBet slip (HTTP ${response.status}).`);
+    }
+    await chrome.tabs.create({ url: payload.shareURL });
+    const skipped = Array.isArray(payload.skipped) ? payload.skipped.length : 0;
+    smartAccaSay(
+      skipped ? `Opened SportyBet with ${payload.booked}/4 picks; ${skipped} unavailable pick(s) were omitted.` : 'Opened all four picks on SportyBet. Verify the slip before placing your bet.',
+      skipped ? 'warn' : 'good',
+    );
+  } catch (error) {
+    smartAccaSay(String(error?.message || error), 'bad');
+  } finally {
+    state.smartAccaBusy = false;
+    renderSmartAcca();
+  }
+}
+
+async function logSmartAccaMuggy() {
+  const matches = state.smartAcca?.matches ?? [];
+  const stake = Number(ui.smartAccaStake.value);
+  if (matches.length !== 4 || !Number.isFinite(stake) || stake <= 0 || state.smartAccaBusy) {
+    smartAccaSay('Enter a stake greater than GHS 0 to log this Muggy Bet.', 'bad');
+    return;
+  }
+
+  state.smartAccaBusy = true;
+  renderSmartAcca();
+  smartAccaSay('Logging SmartACCA as a Muggy Bet…');
+  try {
+    const selection = matches
+      .map((match) => `${match.home} ${match.market}`)
+      .join(' · ')
+      .slice(0, 200);
+    const response = await fetch(`${state.settings.apiBase}/api/active-bets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        eventName: 'SmartACCA - SportyBet',
+        kind: 'muggy',
+        sport: 'football',
+        simulation: false,
+        legs: [
+          { name: 'SportyBet', selection, odds: smartAccaCombinedOdds(), stake },
+          { name: 'SportyBet', selection: '', odds: 1.01, stake: 0 },
+        ],
+      }),
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.id) {
+      throw new Error(payload?.error || `Could not log the Muggy Bet (HTTP ${response.status}).`);
+    }
+    state.smartAccaLogged = true;
+    smartAccaSay(`Logged as a Muggy Bet: GHS ${Number(payload.totalStake).toFixed(2)} on SportyBet.`, 'good');
+  } catch (error) {
+    smartAccaSay(String(error?.message || error), 'bad');
+  } finally {
+    state.smartAccaBusy = false;
+    renderSmartAcca();
+  }
+}
+
+ui.smartAccaRefreshBtn.addEventListener('click', refreshSmartAcca);
+ui.smartAccaStake.addEventListener('input', updateSmartAccaTotals);
+ui.smartAccaAddBtn.addEventListener('click', addSmartAccaToSportyBet);
+ui.smartAccaLogBtn.addEventListener('click', logSmartAccaMuggy);
 
 async function fillBetBoro() {
   const legs = Array.isArray(state.builder?.betboro?.legs) ? state.builder.betboro.legs : [];

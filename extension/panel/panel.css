@@ -261,6 +261,15 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 /* ---------------------------------------------------------------- bet builder */
 
+.builder-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
 .builder-head {
   display: flex;
   justify-content: space-between;
@@ -335,6 +344,31 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 .bb-pick { font-size: 12px; }
 .bb-links { display: flex; gap: 6px; margin-top: 4px; }
 .bb-links button { padding: 3px 8px; font-size: 11px; }
+
+.smart-acca { display: flex; flex-direction: column; gap: 8px; }
+.smart-acca-stake { margin-top: 5px; }
+.smart-acca-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: var(--card-2);
+  border-left: 3px solid var(--good);
+}
+.smart-acca-pick + .smart-acca-pick { margin-top: 6px; }
+.smart-acca-unmatched { color: var(--warn-text); }
+.smart-acca-totals {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.smart-acca-totals strong { font-variant-numeric: tabular-nums; }
+#smartAccaStatus[data-tone="good"] { color: var(--good-text); }
+#smartAccaStatus[data-tone="warn"] { color: var(--warn-text); }
+#smartAccaStatus[data-tone="bad"] { color: var(--bad-text); }
 
 .progress {
   margin-top: 8px;

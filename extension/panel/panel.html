@@ -94,6 +94,11 @@
     </div>
 
     <div id="viewBuilder" class="view" role="tabpanel" aria-labelledby="tabBuilder" hidden>
+      <nav class="builder-tabs" role="tablist" aria-label="Bet Builder panels">
+        <button id="tabSlipBuilder" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="slipBuilderPanel">Slip Builder</button>
+        <button id="tabSmartAcca" class="tab" type="button" role="tab" aria-selected="false" aria-controls="smartAccaPanel">SmartACCA</button>
+      </nav>
+      <div id="slipBuilderPanel" role="tabpanel" aria-labelledby="tabSlipBuilder">
       <section id="builderCard" class="card builder">
         <div class="builder-head">
           <div>
@@ -117,10 +122,35 @@
         <p id="builderStatus" class="hint" hidden></p>
         <div id="builderResult"></div>
       </section>
+      </div>
+      <section id="smartAccaPanel" class="card smart-acca" role="tabpanel" aria-labelledby="tabSmartAcca" hidden>
+        <div class="builder-head">
+          <div>
+            <div class="job-title">SmartACCA</div>
+            <div class="muted">Today's FootyStats 1X2 picks, ranked by Groq</div>
+          </div>
+          <button id="smartAccaRefreshBtn" class="ghost" type="button">Refresh 4</button>
+        </div>
+        <label class="field smart-acca-stake">
+          <span>Stake (GHS)</span>
+          <input id="smartAccaStake" type="number" min="0.01" step="0.01" value="22.50" />
+        </label>
+        <p id="smartAccaStatus" class="hint" hidden></p>
+        <div id="smartAccaResult"></div>
+        <div class="smart-acca-totals">
+          <span>Combined odds <strong id="smartAccaOdds">—</strong></span>
+          <span>Potential win (incl. stake) <strong id="smartAccaWin">—</strong></span>
+        </div>
+        <div class="row bb-actions">
+          <button id="smartAccaAddBtn" type="button" disabled>Add to SportyBet</button>
+          <button id="smartAccaLogBtn" class="ghost" type="button" disabled>Log Muggy Bet</button>
+        </div>
+        <p class="hint">AI confidence is not a win probability or guarantee. Review the SportyBet slip before placing a bet.</p>
+      </section>
     </div>
 
     <footer class="foot muted">
-      <span id="statusLine">Fills betslips only.</span>
+      <span id="statusLine">Loads betslips and logs only when you choose; never places a bet.</span>
       <span id="extVersion" class="muted"></span>
     </footer>
 
