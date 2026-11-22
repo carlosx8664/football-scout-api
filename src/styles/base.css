@@ -77,19 +77,24 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   overscroll-behavior: contain;
 }
 
-/* Only the three dashboard columns hide their scrollbar; full-width pages keep theirs. */
+/* Dashboard columns and the Wallets/History pages scroll without a visible scrollbar. */
 .app-body > .left-sidebar,
 .app-body > .main-feed,
-.app-body > .right-sidebar {
+.app-body > .right-sidebar,
+.app-body > .wallets-page,
+.app-body > .wallets-history-page {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
 .app-body > .left-sidebar::-webkit-scrollbar,
 .app-body > .main-feed::-webkit-scrollbar,
-.app-body > .right-sidebar::-webkit-scrollbar {
+.app-body > .right-sidebar::-webkit-scrollbar,
+.app-body > .wallets-page::-webkit-scrollbar,
+.app-body > .wallets-history-page::-webkit-scrollbar {
   display: none;
   width: 0;
+  height: 0;
 }
 
 /* Two-column variant: the centre content absorbs the right sidebar's space. */
