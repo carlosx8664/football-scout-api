@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { computePlan, useBankroll } from "../lib/bankroll";
+import { useEffect, useState } from "react";
+import { MICRO_MUG_PCT, computePlan, mugStakeFor, useBankroll } from "../lib/bankroll";
 import { logArb } from "../lib/bets";
 import { formatAmount } from "../lib/wallets";
 import type { BetSport, Wallet, WalletsPayload } from "../types";
@@ -65,6 +65,19 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
   const freeBookie = free.bookie || firstBookie;
   const hedgeBookie =
     free.hedgeBookie || wallets.find((wallet) => wallet.name !== freeBookie)?.name || "";
+
+  // The mug tax follows the bookie's own balance, which is what its risk algorithm sees.
+  const muggyWallet = wallets.find((wallet) => wallet.name === muggyBookie);
+  const muggyAnchor =
+    muggyWallet && muggyWallet.balance > 0 ? muggyWallet.balance : plan.perWallet;
+  const dailyMug = mugStakeFor(muggyAnchor, MICRO_MUG_PCT);
+  /** True until the user types their own mug stake, which stops the balance-based auto-fill. */
+  const [mugStakeAuto, setMugStakeAuto] = useState(true);
+
+  useEffect(() => {
+    if (!mugStakeAuto) return;
+    setMuggy((current) => ({ ...current, stake: String(dailyMug) }));
+  }, [dailyMug, mugStakeAuto]);
 
   /** Updates the free-bet form and refreshes the hedge stake unless the user overrode it. */
   const updateFree = (patch: Partial<typeof free>) =>
@@ -218,7 +231,10 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
             <span>Bookie</span>
             <select
               value={muggyBookie}
-              onChange={(event) => setMuggy((c) => ({ ...c, bookie: event.target.value }))}
+              onChange={(event) => {
+                setMugStakeAuto(true);
+                setMuggy((c) => ({ ...c, bookie: event.target.value }));
+              }}
               required
             >
               {wallets.map((wallet) => (
@@ -243,13 +259,18 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
           </label>
 
           <label>
-            <span>Stake (daily {formatAmount(plan.microMug)})</span>
+            <span>
+              Stake ({MICRO_MUG_PCT}% of balance = {formatAmount(dailyMug)})
+            </span>
             <input
               type="number"
               min="0.01"
               step="0.01"
               value={muggy.stake}
-              onChange={(event) => setMuggy((c) => ({ ...c, stake: event.target.value }))}
+              onChange={(event) => {
+                setMugStakeAuto(false);
+                setMuggy((c) => ({ ...c, stake: event.target.value }));
+              }}
               required
             />
           </label>

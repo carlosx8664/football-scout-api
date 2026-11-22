@@ -94,14 +94,14 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `lib/bets.ts` | Log arb, fetch active bets, settle, cancel |
 | `lib/wallets.ts` | Wallets, balances, transfers, cash flow, `refreshWallets`, `formatGhs`/`formatAmount`, 50-GHS step helpers |
 | `lib/history.ts` | Date-range presets + settled-arb fetch |
-| `lib/bankroll.ts` | Bankroll plan math (`computePlan`), floor-to-50 per-bookie split (`splitPerWallet`), selected bookies (`selectedBookies`/`hasSplit`), localStorage persistence |
+| `lib/bankroll.ts` | Bankroll plan math (`computePlan`), floor-to-50 per-bookie split (`splitPerWallet`), balance-anchored mug tax (`mugStakeFor`: 1% daily / 2.5% weekend, snapped to 10), selected bookies (`selectedBookies`/`hasSplit`), localStorage persistence |
 | `lib/notifications.ts` | Alert rule engine, dedupe windows, cool-downs, persistence |
 | `lib/mugBets.ts`, `lib/push.ts`, `lib/cooldown.ts`, `lib/simulation.ts` | Feature clients/state |
 | `components/Header.tsx` | Logo, nav (Arbs · Wallets), install-app button, simulation toggle, notifications bell, best-arb badge |
 | `components/ArbsTable.tsx` | Live + past arb tables, persisted bookmaker filtering, stake scaling/rounding, Ledger checkbox → log arb, rows whose arb is already in Active Bets deepened (`arb-row-bet`) and locked |
 | `components/LogArbModal.tsx` | Pre-filled editable stakes, per-bookie available balance, save to `active_bets` |
 | `components/WalletsDashboard.tsx` | `/wallets` layout + single owner of `GET /api/wallets`; wires all wallet panels |
-| `components/BankrollPlan.tsx` | Bankroll/stake plan split across the selected bookies, per-bookie target, Momo card (plan leftover + net transfers) with **Deposit to MOMO**, float warning, **Reset** (bankroll locks once the cycle has an active bet or settled history) |
+| `components/BankrollPlan.tsx` | Bankroll/stake plan split across the selected bookies, per-bookie target, daily mug tax (1% of a bookie balance, snapped to 10) and weekend anchor (2.5%), Momo card (plan leftover + net transfers) with **Deposit to MOMO**, float warning, **Reset** (bankroll locks once the cycle has an active bet or settled history) |
 | `components/WalletsPanel.tsx` | Live plan split per bookie (bankroll ÷ selected bookies, floored to 100; 0 when unselected), actual-balance portfolio/available cards, selection locked while an arb is in play, Top up / Withdraw prompts validated against Momo |
 | `components/RebalancingHints.tsx` | Per-bookie gauges for the selected bookies: name, % of the plan target, progress bar (red well below target, amber near, green at/above) and live balance |
 | `components/ActiveBetsLedger.tsx` | Right column: 2 bets per page, Settle + Remove |
@@ -110,7 +110,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/BookieHealthPanel.tsx` | Per-bookie account health: deposits, withdrawals, mug bets, mug cover % (mug cost ÷ arb profit; amber <15%, green 20–35%), muggy P/L, arb P/L, in-play stakes and settled Account P/L (balance + open stakes + withdrawn − deposited) from `GET /api/wallets/bookie-stats` |
 | `components/WalletsHistory.tsx` | `/wallets/history` page: settled history full width, no right sidebar |
 | `components/HistoryLedger.tsx` | Settled arbs grouped by day, Today/Yesterday/This Week/This Month presets, 20/50/100 rows per page with Prev/Next paging (the table grows to fit, the page column scrolls), weekly outlay, Void/Cash-Out badges |
-| `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, sport — football or horse racing, daily stake, odds) and **Free Bet** (free-bet leg with odds/stake/outcome, hedge leg with bookie/odds/stake/outcome, plus an outcome note like "Home Win (Free) vs X2 (Hedge)") — both log to `active_bets` |
+| `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, sport — football or horse racing, stake auto-filled at 1% of that bookie's balance, odds) and **Free Bet** (free-bet leg with odds/stake/outcome, hedge leg with bookie/odds/stake/outcome, plus an outcome note like "Home Win (Free) vs X2 (Hedge)") — both log to `active_bets` |
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
 | `components/PushToggle.tsx`, `SimulationToggle.tsx`, `SimulationBanner.tsx` | Small global toggles |

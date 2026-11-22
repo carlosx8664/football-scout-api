@@ -249,22 +249,22 @@ const BankrollPlan = ({
           <span>
             Daily
             <Tip label="Daily">
-              {`Camouflage protocol: a small single most days keeps the account looking like a normal punter. ${MICRO_MUG_PCT}% of your stake.`}
+              {`Camouflage protocol: a small single most days keeps the account looking like a normal punter. ${MICRO_MUG_PCT}% of each bookie's balance, rounded to the nearest 10.`}
             </Tip>
           </span>
           <strong>{formatAmount(plan.microMug)}</strong>
-          <span className="bankroll-stat-hint">{MICRO_MUG_PCT}% of stake</span>
+          <span className="bankroll-stat-hint">{MICRO_MUG_PCT}% of bookie balance</span>
         </div>
 
         <div className="bankroll-stat">
           <span>
             Weekend anchor
             <Tip label="Weekend anchor">
-              {`Camouflage protocol: the bigger Saturday bet on a televised match. ${WEEKEND_ANCHOR_PCT}% of your stake.`}
+              {`Camouflage protocol: the bigger Saturday bet on a televised match. ${WEEKEND_ANCHOR_PCT}% of each bookie's balance, rounded to the nearest 10.`}
             </Tip>
           </span>
           <strong>{formatAmount(plan.weekendAnchor)}</strong>
-          <span className="bankroll-stat-hint">{WEEKEND_ANCHOR_PCT}% of stake</span>
+          <span className="bankroll-stat-hint">{WEEKEND_ANCHOR_PCT}% of bookie balance</span>
         </div>
 
         <div className="bankroll-stat">

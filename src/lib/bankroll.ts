@@ -12,9 +12,18 @@ export const DEFAULT_STAKE = 2_000;
 
 /** Above this share of the bankroll, one arb is too big to recover from. */
 export const HIGH_RISK_PCT = 20;
-/** Camouflage protocol: 1.5% of stake ensures a 30 GHS mug bet on a 2,000 GHS arb. */
-export const MICRO_MUG_PCT = 1.5;
-export const WEEKEND_ANCHOR_PCT = 5;
+/**
+ * Camouflage protocol: a bookie's risk algorithm looks at the account balance, not the arb size,
+ * so the daily mug tax is 1% of a bookie balance and the weekend anchor 2.5%.
+ */
+export const MICRO_MUG_PCT = 1;
+export const WEEKEND_ANCHOR_PCT = 2.5;
+
+/** Mug stake for one bookie balance, snapped to the nearest 10 so it looks hand-picked. */
+export function mugStakeFor(balance: number, pct: number): number {
+  const raw = (Math.max(0, Number(balance) || 0) * Math.max(0, pct)) / 100;
+  return Math.max(10, Math.round(raw / 10) * 10);
+}
 
 /** Both legs of one arb must be covered, so the float is 2× the stake. */
 export const FLOAT_MULTIPLE = 2;
@@ -124,17 +133,18 @@ export function computePlan(settings: BankrollSettings, walletCount = 1): Bankro
   const stake = Math.max(0, Number(settings.stake) || 0);
   const wallets = Math.max(1, walletCount);
   const riskPct = bankroll > 0 ? (stake / bankroll) * 100 : 0;
+  const perWallet = splitPerWallet(bankroll, wallets);
 
   return {
     bankroll,
     stake,
     riskPct,
     highRisk: bankroll > 0 && stake > (bankroll * HIGH_RISK_PCT) / 100,
-    microMug: round2((stake * MICRO_MUG_PCT) / 100),
-    weekendAnchor: round2((stake * WEEKEND_ANCHOR_PCT) / 100),
+    microMug: mugStakeFor(perWallet, MICRO_MUG_PCT),
+    weekendAnchor: mugStakeFor(perWallet, WEEKEND_ANCHOR_PCT),
     concurrency: stake > 0 ? Math.floor(bankroll / stake) : 0,
     minFloat: round2(stake * FLOAT_MULTIPLE),
-    perWallet: splitPerWallet(bankroll, wallets),
+    perWallet,
     arbsPerDay: [2, 5],
     dailyProfit: [
       Math.round(stake * 0.015 * 2),
