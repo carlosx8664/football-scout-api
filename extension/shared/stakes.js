@@ -51,3 +51,16 @@ export function impliedTotal(legs) {
     return sum + (odds > 1 ? 1 / odds : 0);
   }, 0);
 }
+
+/**
+ * Camouflage protocol, mirrored from `src/lib/bankroll.ts`: a bookie's risk algorithm looks at the
+ * account balance, so the daily mug tax is 1% of the balance, snapped to the nearest 10 and never
+ * below 10 so it reads as a hand-picked stake.
+ */
+export const CAMOUFLAGE_MUG_PCT = 1;
+export const CAMOUFLAGE_MIN_STAKE = 10;
+
+export function camouflageStake(balance, pct = CAMOUFLAGE_MUG_PCT) {
+  const raw = (Math.max(0, Number(balance) || 0) * Math.max(0, Number(pct) || 0)) / 100;
+  return Math.max(CAMOUFLAGE_MIN_STAKE, Math.round(raw / 10) * 10);
+}

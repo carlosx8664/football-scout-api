@@ -259,9 +259,7 @@ const MugBetsPanel = ({ simulation, wallets, onChanged }: MugBetsPanelProps) => 
           </label>
 
           <label>
-            <span>
-              Stake ({MICRO_MUG_PCT}% of balance = {formatAmount(dailyMug)})
-            </span>
+            <span>Stake ({formatAmount(dailyMug)})</span>
             <input
               type="number"
               min="0.01"

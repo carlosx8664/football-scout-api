@@ -5,7 +5,7 @@
  * will be typed, and starts a job over the extension message bus. Job state arrives as pushed
  * `AUTOBET_JOB` messages, so the panel never has to poll the worker.
  */
-import { allocateStakes, DEFAULT_SETTINGS } from '../shared/stakes.js';
+import { allocateStakes, CAMOUFLAGE_MUG_PCT, camouflageStake, DEFAULT_SETTINGS } from '../shared/stakes.js';
 import { fetchFeed } from '../shared/feed.js';
 
 const SUPPORTED = new Set(['SportyBet', 'BetBoro']);
@@ -23,6 +23,7 @@ const ui = {
   smartAccaPanel: $('smartAccaPanel'),
   smartAccaRefreshBtn: $('smartAccaRefreshBtn'),
   smartAccaStake: $('smartAccaStake'),
+  smartAccaStakeHint: $('smartAccaStakeHint'),
   smartAccaMode: $('smartAccaMode'),
   smartAccaLegs: $('smartAccaLegs'),
   smartAccaStatus: $('smartAccaStatus'),
@@ -78,6 +79,8 @@ const state = {
   smartAccaBusy: false,
   smartAccaLogged: false,
   smartAccaExhausted: false,
+  // The stake follows the camouflage default until the user types their own number.
+  smartAccaStakeAuto: true,
   tab: 'autobet',
 };
 
@@ -172,6 +175,7 @@ async function saveBase(raw) {
   ui.setup.hidden = true;
   ui.apiBaseEdit.value = apiBase;
   ui.apiBaseInput.value = apiBase;
+  applySmartAccaDefaultStake();
   await refreshFeed();
 }
 
@@ -1033,6 +1037,40 @@ function localDay() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+const SMART_ACCA_BOOKIE = 'sportybet';
+
+/**
+ * Defaults the stake to the camouflage protocol: 1% of the current mode's SportyBet wallet,
+ * snapped to the nearest 10. Left alone once the user types their own stake.
+ */
+async function applySmartAccaDefaultStake() {
+  if (!state.settings.apiBase) return;
+  const simulation = ui.smartAccaMode.value === 'simulation';
+  try {
+    const query = simulation ? '?simulation=1' : '?simulation=0';
+    const response = await fetch(`${state.settings.apiBase}/api/wallets${query}`);
+    if (!response.ok) return;
+    const payload = await response.json().catch(() => null);
+    const wallet = (payload?.wallets ?? []).find((row) =>
+      String(row?.name ?? row?.bookmaker ?? '').toLowerCase().includes(SMART_ACCA_BOOKIE),
+    );
+    if (!wallet) return;
+
+    const balance = Number(wallet.balance);
+    const stake = camouflageStake(balance, CAMOUFLAGE_MUG_PCT);
+    if (state.smartAccaStakeAuto) {
+      ui.smartAccaStake.value = stake.toFixed(2);
+      updateSmartAccaTotals();
+    }
+    ui.smartAccaStakeHint.hidden = false;
+    ui.smartAccaStakeHint.textContent =
+      `Camouflage default: ${CAMOUFLAGE_MUG_PCT}% of the ${simulation ? 'simulation' : 'real'} ` +
+      `SportyBet wallet (GHS ${balance.toFixed(2)}) → GHS ${stake.toFixed(2)}.`;
+  } catch {
+    // No dashboard reachable yet; the typed stake stands.
+  }
+}
+
 const SMART_ACCA_USED_KEY = 'smartAccaUsed';
 const smartAccaPickKey = (match) => `${match.home}|${match.away}|${match.market ?? '1X2'}`;
 
@@ -1194,6 +1232,8 @@ async function logSmartAccaBatch(bookie) {
   }
   state.smartAccaLogged = true;
   await markSmartAccaUsed();
+  // The log debited the wallet, so re-derive the camouflage default.
+  applySmartAccaDefaultStake();
   return { mode: simulation ? 'simulation' : 'real', totalStake: Number(payload.totalStake) };
 }
 
@@ -1251,9 +1291,13 @@ async function addSmartAccaToBetBoro() {
 }
 
 ui.smartAccaRefreshBtn.addEventListener('click', refreshSmartAcca);
-ui.smartAccaStake.addEventListener('input', updateSmartAccaTotals);
+ui.smartAccaStake.addEventListener('input', () => {
+  state.smartAccaStakeAuto = false;
+  updateSmartAccaTotals();
+});
 ui.smartAccaMode.addEventListener('change', () => {
   chrome.storage.local.set({ smartAccaMode: ui.smartAccaMode.value }).catch(() => {});
+  applySmartAccaDefaultStake();
   if (state.smartAccaLogged) {
     state.smartAccaLogged = false;
     renderSmartAcca();
@@ -1521,6 +1565,7 @@ setInterval(refreshLabels, 30_000);
 
   connectPort();
   await loadSettings();
+  applySmartAccaDefaultStake();
 
   const storedTab = await chrome.storage.session.get('panelTab').catch(() => null);
   setTab(storedTab?.panelTab === 'builder' ? 'builder' : 'autobet');
