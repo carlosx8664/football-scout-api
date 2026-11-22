@@ -1039,6 +1039,23 @@ async function refreshSmartAcca() {
   }
 }
 
+async function markSmartAccaUsed() {
+  const matches = state.smartAcca?.matches ?? [];
+  if (!state.settings.apiBase || matches.length === 0) return;
+  try {
+    await fetch(`${state.settings.apiBase}/api/smart-acca`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        day: localDay(),
+        mark: matches.map((match) => `${match.home}|${match.away}|${match.market ?? '1X2'}`),
+      }),
+    });
+  } catch {
+    // Best effort: the server also keeps its own record, and the next refresh still excludes these.
+  }
+}
+
 async function addSmartAccaToSportyBet() {
   const matches = state.smartAcca?.matches ?? [];
   if (matches.length !== 4 || matches.some((match) => !match.booking) || state.smartAccaBusy) return;
@@ -1056,6 +1073,7 @@ async function addSmartAccaToSportyBet() {
       throw new Error(payload?.error || `Could not create the SportyBet slip (HTTP ${response.status}).`);
     }
     await chrome.tabs.create({ url: payload.shareURL });
+    await markSmartAccaUsed();
     const skipped = Array.isArray(payload.skipped) ? payload.skipped.length : 0;
     smartAccaSay(
       skipped ? `Opened SportyBet with ${payload.booked}/4 picks; ${skipped} unavailable pick(s) were omitted.` : 'Opened all four picks on SportyBet. Verify the slip before placing your bet.',
@@ -1104,6 +1122,7 @@ async function logSmartAccaMuggy() {
       throw new Error(payload?.error || `Could not log the Muggy Bet (HTTP ${response.status}).`);
     }
     state.smartAccaLogged = true;
+    await markSmartAccaUsed();
     smartAccaSay(`Logged as a Muggy Bet: GHS ${Number(payload.totalStake).toFixed(2)} on SportyBet.`, 'good');
   } catch (error) {
     smartAccaSay(String(error?.message || error), 'bad');

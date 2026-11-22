@@ -6,7 +6,6 @@ const GROQ_MODEL = "llama-3.3-70b-versatile";
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
 const HORIZON_KEY = "feed-matches-horizon";
-const POOL_KEY = "feed-matches-pool";
 const MONTHS = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
   jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
@@ -140,6 +139,7 @@ function modelTablePredictions(html, day) {
       market: "1X2",
       selection,
       sourceTip: `SportyTrader 1X2 model${probability ? ` (${probability[1]}%)` : ""}`,
+      modelProbability: probability ? Number(probability[1]) : null,
       kickoff: dateText,
     });
   }
@@ -259,29 +259,177 @@ async function loadFixtures({ request, env }) {
   return feed.matches;
 }
 
-async function loadPool(env) {
+/**
+ * The booking pool (`feed-matches-pool`) is deliberately not used here: its rows carry no 1X2
+ * prices, so they could never survive the odds step, and their duplicate team names only made
+ * the matcher reject the priced copy as ambiguous.
+ */
+
+const STANDINGS_COMPETITIONS = {
+  1: "WC",
+  2: "CL",
+  39: "PL",
+  40: "ELC",
+  61: "FL1",
+  71: "BSA",
+  78: "BL1",
+  88: "DED",
+  94: "PPL",
+  135: "SA",
+  140: "PD",
+};
+const STANDINGS_BASE = "https://api.football-data.org/v4";
+const STANDINGS_CACHE_PREFIX = "smartacca-standings-v1-";
+const USED_PREFIX = "smart-acca-used-";
+const STOP_WORDS = new Set([
+  "fc", "cf", "sc", "afc", "club", "the", "city", "town", "united", "utd", "calcio", "ac", "as",
+]);
+const DAY_SECONDS = 24 * 60 * 60;
+
+function nameTokens(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter((token) => token && !STOP_WORDS.has(token));
+}
+
+function nameSimilarity(left, right) {
+  const a = new Set(nameTokens(left));
+  const b = new Set(nameTokens(right));
+  if (a.size === 0 || b.size === 0) return 0;
+  let shared = 0;
+  for (const token of a) if (b.has(token)) shared += 1;
+  return (2 * shared) / (a.size + b.size);
+}
+
+async function loadStandings(env, code) {
   const kv = env?.[KV_BINDING];
-  if (!kv) return [];
+  const cacheKey = `${STANDINGS_CACHE_PREFIX}${code}`;
+  if (kv) {
+    try {
+      const cached = await kv.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+    } catch {
+      // A cache miss or hiccup only costs one request.
+    }
+  }
+
+  const token = String(env?.FOOTBALL_DATA_ORG_TOKEN ?? "").trim();
+  if (!token) return null;
 
   try {
-    const raw = await kv.get(POOL_KEY);
-    const pool = raw ? JSON.parse(raw) : null;
-    if (!Array.isArray(pool?.fixtures)) return [];
-    return pool.fixtures.map((row) => ({
-      fixture: { id: Number(row.id), date: row.kickoff ?? null },
-      sr_id: row.sr_id ?? null,
-      league: { id: null, name: row.league ?? "", logo: null },
-      teams: {
-        home: { name: row.home, logo: null },
-        away: { name: row.away, logo: null },
-      },
-      odds: null,
-      book_odds: null,
+    const response = await fetch(`${STANDINGS_BASE}/competitions/${code}/standings`, {
+      headers: { "X-Auth-Token": token },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    const body = await response.json().catch(() => null);
+    const tables = Array.isArray(body?.standings) ? body.standings : [];
+    const total = tables.find((entry) => entry?.type === "TOTAL") ?? tables[0];
+    const table = (Array.isArray(total?.table) ? total.table : []).map((row) => ({
+      name: String(row?.team?.name ?? ""),
+      shortName: String(row?.team?.shortName ?? row?.team?.name ?? ""),
+      position: Number(row?.position ?? 0),
+      played: Number(row?.playedGames ?? 0),
+      points: Number(row?.points ?? 0),
+      form: String(row?.form ?? ""),
+      goalsFor: Number(row?.goalsFor ?? 0),
+      goalsAgainst: Number(row?.goalsAgainst ?? 0),
     }));
+
+    if (kv && table.length) {
+      try {
+        await kv.put(cacheKey, JSON.stringify(table), { expirationTtl: 1800 });
+      } catch {
+        // Serving the table matters more than caching it.
+      }
+    }
+    return table;
   } catch {
-    return [];
+    return null;
   }
 }
+
+function standingFor(table, name) {
+  if (!Array.isArray(table) || !name) return null;
+  let best = null;
+  let bestScore = 0;
+  for (const row of table) {
+    const score = Math.max(nameSimilarity(name, row.name), nameSimilarity(name, row.shortName));
+    if (score > bestScore) {
+      bestScore = score;
+      best = row;
+    }
+  }
+  return bestScore >= 0.6 ? best : null;
+}
+
+/** League position, points, form and goal record for both sides, when the competition is covered. */
+async function addStandingsContext(env, matches) {
+  const codes = new Set();
+  for (const match of matches) {
+    const code = STANDINGS_COMPETITIONS[Number(match.leagueId)];
+    if (code) codes.add(code);
+  }
+  if (codes.size === 0) return matches;
+
+  const tables = new Map();
+  await Promise.all(
+    [...codes].map(async (code) => {
+      tables.set(code, await loadStandings(env, code));
+    }),
+  );
+
+  return matches.map((match) => {
+    const table = tables.get(STANDINGS_COMPETITIONS[Number(match.leagueId)]);
+    const home = standingFor(table, match.home);
+    const away = standingFor(table, match.away);
+    if (!home && !away) return match;
+    return {
+      ...match,
+      standings: {
+        home: home
+          ? { position: home.position, played: home.played, points: home.points, form: home.form, goalsFor: home.goalsFor, goalsAgainst: home.goalsAgainst }
+          : null,
+        away: away
+          ? { position: away.position, played: away.played, points: away.points, form: away.form, goalsFor: away.goalsFor, goalsAgainst: away.goalsAgainst }
+          : null,
+      },
+    };
+  });
+}
+
+async function readUsed(kv, day) {
+  if (!kv) return new Set();
+  try {
+    const raw = await kv.get(`${USED_PREFIX}${day}`);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return new Set(Array.isArray(parsed?.keys) ? parsed.keys : []);
+  } catch {
+    return new Set();
+  }
+}
+
+async function addUsed(kv, day, keys) {
+  if (!kv || keys.length === 0) return 0;
+  const used = await readUsed(kv, day);
+  const before = used.size;
+  for (const key of keys) used.add(key);
+  try {
+    await kv.put(`${USED_PREFIX}${day}`, JSON.stringify({ keys: [...used] }), {
+      expirationTtl: DAY_SECONDS * 2,
+    });
+  } catch {
+    return 0;
+  }
+  return used.size - before;
+}
+
+const pickKey = (match) => `${match.home}|${match.away}|${match.market ?? "1X2"}`;
 
 async function rankWithGroq(matches, apiKey) {
   const response = await fetch(GROQ_URL, {
@@ -293,36 +441,52 @@ async function rankWithGroq(matches, apiKey) {
     body: JSON.stringify({
       model: GROQ_MODEL,
       temperature: 0.2,
-      max_tokens: 1200,
+      max_tokens: 1600,
       response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content:
-            "Select exactly four distinct football matches from the supplied SportyTrader predictions. " +
-            "Rank the explicit 1X2 selections using the editorial tip and live SportyBet odds. " +
-            "Do not invent facts or change a match's outcome. Prefer evidence-backed selections and " +
-            "reasonable odds, not simply the shortest price. Return JSON only: " +
+            "You are a football betting analyst choosing the four strongest 1X2 picks of the day. " +
+            "For every candidate you receive: the SportyTrader editorial tip or model probability, " +
+            "the live SportyBet price (with implied probability), and, when the competition is " +
+            "covered, both teams' league position, points, points-per-game, recent form string " +
+            "(most recent last) and goal record. " +
+            "Weigh: strength of the tip/probability, price value against the implied probability, " +
+            "league-table gap between the sides, recent form, and goal difference/goals per game. " +
+            "Favour selections where several signals agree; avoid short prices with no edge and " +
+            "avoid coin-flip fixtures merely for a bigger return. " +
+            "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
+            "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
+            "Do not change a match's outcome or invent facts. Return JSON only: " +
             '{"picks":[{"index":0,"confidence":0,"reason":"brief evidence-based reason"}]}. ' +
-            "Confidence is your comparative assessment, not a probability or guarantee.",
+            "Confidence is your comparative assessment between these candidates, not a probability " +
+            "or a guarantee.",
         },
         {
           role: "user",
           content: JSON.stringify(
-            matches.map(({ home, away, league, selection, sourceTip, odds, kickoff }) => ({
-              home,
-              away,
-              league,
-              selection,
-              sourceTip,
-              sportyBetOdds: odds,
-              kickoff,
-            })),
+            matches.map(
+              ({ home, away, league, selection, sourceTip, modelProbability, odds, kickoff, standings }) => ({
+                home,
+                away,
+                league,
+                selection,
+                source: sourceTip,
+                sportyTraderProbability: modelProbability ?? null,
+                sportyBetOdds: odds,
+                impliedProbability: Number.isFinite(Number(odds))
+                  ? Number((100 / Number(odds)).toFixed(1))
+                  : null,
+                kickoff,
+                standings: standings ?? null,
+              }),
+            ),
           ),
         },
       ],
     }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(25_000),
   });
 
   if (!response.ok) throw new Error(`Groq analysis failed (HTTP ${response.status}).`);
@@ -393,9 +557,21 @@ export async function onRequestPost({ request, env }) {
   }
   const excluded = new Set(
     Array.isArray(body?.exclude)
-      ? body.exclude.filter((item) => typeof item === "string").slice(0, 4)
+      ? body.exclude.filter((item) => typeof item === "string").slice(0, 12)
       : [],
   );
+
+  const mark = Array.isArray(body?.mark)
+    ? body.mark.filter((item) => typeof item === "string").slice(0, 8)
+    : [];
+  const kv = env?.[KV_BINDING];
+
+  // The panel reports the batch it just slipped or logged, so refreshing moves on to the next
+  // strongest picks instead of offering the same four again.
+  if (mark.length > 0) {
+    const added = await addUsed(kv, day, mark);
+    return json({ day, marked: mark.length, added });
+  }
 
   try {
     const response = await fetch(SPORTYTRADER_URL, {
@@ -411,7 +587,7 @@ export async function onRequestPost({ request, env }) {
     if (!response.ok) throw new Error(`SportyTrader returned HTTP ${response.status}.`);
     const html = await response.text();
     const scrapedMatches = parsePredictions(html, day);
-    const fixtures = uniqueFixtures([await loadFixtures({ request, env }), await loadPool(env)]);
+    const fixtures = uniqueFixtures([await loadFixtures({ request, env })]);
     const matches = scrapedMatches.flatMap((pick) => {
       const leg = {
         home: pick.home,
@@ -436,7 +612,15 @@ export async function onRequestPost({ request, env }) {
 
       const booking = toSportyBetSelections([entry]).bookings[0];
       if (!booking) return [];
-      return [{ ...pick, odds, booking }];
+      return [
+        {
+          ...pick,
+          league: entry.match?.league?.name || pick.league,
+          leagueId: entry.match?.league?.id ?? null,
+          odds,
+          booking,
+        },
+      ];
     });
     if (matches.length < 4) {
       return json(
@@ -452,17 +636,24 @@ export async function onRequestPost({ request, env }) {
       );
     }
 
-    const alternatives = matches.filter(
-      (match) => !excluded.has(`${match.home}|${match.away}|${match.market}`),
+    const used = await readUsed(kv, day);
+    const fresh = matches.filter(
+      (match) => !excluded.has(pickKey(match)) && !used.has(pickKey(match)),
     );
-    const candidates = alternatives.length >= 4 ? alternatives : matches;
-    const picks = await rankWithGroq(candidates, env.SMART_ACCA_GROQ_API_KEY);
+    // Never shrink the pool below four: fall back to the panel's own exclusion, then to all.
+    const candidates = fresh.length >= 4 ? fresh : matches.filter((match) => !excluded.has(pickKey(match)));
+    const pool = candidates.length >= 4 ? candidates : matches;
+    const enriched = await addStandingsContext(env, pool);
+    const picks = (
+      await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY)
+    ).map(({ standings, ...pick }) => pick);
 
     return json({
       day,
       source: SPORTYTRADER_URL,
       scrapedCount: scrapedMatches.length,
-      analyzedCount: candidates.length,
+      analyzedCount: pool.length,
+      usedCount: used.size,
       matches: picks,
     });
   } catch (error) {
