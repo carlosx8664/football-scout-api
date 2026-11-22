@@ -261,15 +261,6 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 /* ---------------------------------------------------------------- bet builder */
 
-.builder-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
-}
-
 .builder-head {
   display: flex;
   justify-content: space-between;
@@ -347,6 +338,11 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 
 .smart-acca { display: flex; flex-direction: column; gap: 8px; }
 .smart-acca-stake { margin-top: 5px; }
+.icon-btn {
+  padding: 4px 9px;
+  font-size: 15px;
+  line-height: 1;
+}
 .smart-acca-pick {
   display: flex;
   flex-direction: column;

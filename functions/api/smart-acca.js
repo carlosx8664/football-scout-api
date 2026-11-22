@@ -5,6 +5,7 @@ const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
+const HORIZON_KEY = "feed-matches-horizon";
 const POOL_KEY = "feed-matches-pool";
 const MONTHS = {
   jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -98,14 +99,60 @@ function resultSelection(tip, home, away) {
   return null;
 }
 
+function sameDay(dateParts, date) {
+  if (!dateParts || !date) return false;
+  const month = MONTHS[dateParts[2].toLowerCase()];
+  return (
+    Number(dateParts[1]) === Number(date[3]) &&
+    month === Number(date[2]) &&
+    Number(dateParts[3]) === Number(date[1])
+  );
+}
+
+/** The "SportyTrader 1X2 model" table below the cards: many more fixtures, model-derived pick. */
+function modelTablePredictions(html, day) {
+  const start = html.indexOf('id="auto-predictions"');
+  if (start === -1) return [];
+
+  const outcomes = { "1": "Home Win", X: "Draw", "2": "Away Win" };
+  const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  const rows = html
+    .slice(start)
+    .split(/class="[^"]*\bborder-primary-grayborder\b[^"]*"/i)
+    .slice(1);
+  const matches = [];
+
+  for (const row of rows) {
+    const [home, away] = [...row.matchAll(/alt="([^"]+)"/g)].map((match) => text(match[1]));
+    const pickMatch = /class="[^"]*\bbg-primary-green\b[^"]*"[^>]*>\s*([^<]*?)\s*</i.exec(row);
+    const selection = pickMatch ? outcomes[pickMatch[1].toUpperCase()] ?? null : null;
+    const dateText = classTexts(row, "text-xs").find((value) => CARD_DATE.test(value)) ?? "";
+    const league = classTexts(row, "text-sm")[0] ?? "";
+    const probability = /Probability of\s*(\d+)%/i.exec(row);
+
+    if (!home || !away || !selection) continue;
+    if (!sameDay(CARD_DATE.exec(dateText), date)) continue;
+
+    matches.push({
+      home,
+      away,
+      league,
+      market: "1X2",
+      selection,
+      sourceTip: `SportyTrader 1X2 model${probability ? ` (${probability[1]}%)` : ""}`,
+      kickoff: dateText,
+    });
+  }
+
+  return matches;
+}
+
 function parsePredictions(html, day) {
   if (/cf-chl-|Just a moment\.\.\.|Enable JavaScript and cookies/i.test(html)) {
     throw new Error("SportyTrader blocked the server-side page request.");
   }
 
   const predictionList = divBlock(html, "pronostics-wrapper");
-  if (!predictionList) throw new Error("SportyTrader's today's predictions list was not found.");
-
   const cards = predictionList
     .split(/data-navigation-url-value=['"][^'"]*\/en\/betting-tips\//i)
     .slice(1);
@@ -116,7 +163,6 @@ function parsePredictions(html, day) {
   for (const card of cards) {
     const [home, away] = classTexts(card, "font-semibold");
     const dateText = classTexts(card, "font-bold").find((value) => CARD_DATE.test(value)) ?? "";
-    const dateParts = CARD_DATE.exec(dateText);
     const metaText = classTexts(card, "text-sm").find((value) => CARD_DATE.test(value)) ?? "";
     const league = metaText.replace(/^.*?\d{2}:\d{2}\s*/, "").trim();
     const tipMatch =
@@ -125,16 +171,8 @@ function parsePredictions(html, day) {
       );
     const tip = tipMatch ? text(tipMatch[1]) : "";
     const selection = resultSelection(tip, home, away);
-    if (!dateParts || !date || !home || !away || !selection) continue;
-
-    const month = MONTHS[dateParts[2].toLowerCase()];
-    if (
-      Number(dateParts[1]) !== Number(date[3]) ||
-      month !== Number(date[2]) ||
-      Number(dateParts[3]) !== Number(date[1])
-    ) {
-      continue;
-    }
+    if (!home || !away || !selection) continue;
+    if (!sameDay(CARD_DATE.exec(dateText), date)) continue;
 
     const fixtureKey = `${home.toLowerCase()}|${away.toLowerCase()}`;
     if (seenFixtures.has(fixtureKey)) continue;
@@ -151,19 +189,40 @@ function parsePredictions(html, day) {
     });
   }
 
+  for (const pick of modelTablePredictions(html, day)) {
+    const fixtureKey = `${pick.home.toLowerCase()}|${pick.away.toLowerCase()}`;
+    if (seenFixtures.has(fixtureKey)) continue;
+    seenFixtures.add(fixtureKey);
+    matches.push(pick);
+  }
+
+  if (matches.length === 0 && !predictionList) {
+    throw new Error("SportyTrader's today's predictions list was not found.");
+  }
   return matches;
+}
+
+async function kvMatches(kv, key) {
+  try {
+    const raw = await kv.get(key);
+    const feed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(feed?.matches) ? feed.matches : [];
+  } catch {
+    return [];
+  }
 }
 
 async function loadFixtures({ request, env }) {
   const kv = env?.[KV_BINDING];
   if (kv) {
-    try {
-      const raw = await kv.get(MATCHES_KEY);
-      const feed = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(feed?.matches)) return feed.matches;
-    } catch {
-      // The static feed below remains available if KV is empty or malformed.
-    }
+    const [hot, horizon] = await Promise.all([
+      kvMatches(kv, MATCHES_KEY),
+      kvMatches(kv, HORIZON_KEY),
+    ]);
+    const byId = new Map();
+    for (const match of horizon) byId.set(String(match?.fixture?.id ?? `${match?.teams?.home?.name}|${match?.teams?.away?.name}`), match);
+    for (const match of hot) byId.set(String(match?.fixture?.id ?? `${match?.teams?.home?.name}|${match?.teams?.away?.name}`), match);
+    if (byId.size) return [...byId.values()];
   }
 
   const response = await fetch(new URL("/matches.json", request.url), {
@@ -342,7 +401,13 @@ export async function onRequestPost({ request, env }) {
 
       const side =
         pick.selection === "Home Win" ? "home" : pick.selection === "Away Win" ? "away" : "draw";
-      const odds = Number(entry.match?.book_odds?.[side]?.books?.SportyBet);
+      const feedOdds = (entry.match?.odds ?? []).find(
+        (row) => String(row?.value ?? "").toLowerCase() === side,
+      );
+      const odds =
+        Number(entry.match?.book_odds?.[side]?.books?.SportyBet) ||
+        Number(entry.match?.book_odds?.[side]?.best) ||
+        Number(feedOdds?.odd);
       if (!Number.isFinite(odds) || odds <= 1) return [];
 
       const booking = toSportyBetSelections([entry]).bookings[0];

@@ -20,9 +20,6 @@ const ui = {
   tabBuilder: $('tabBuilder'),
   viewAutobet: $('viewAutobet'),
   viewBuilder: $('viewBuilder'),
-  tabSlipBuilder: $('tabSlipBuilder'),
-  tabSmartAcca: $('tabSmartAcca'),
-  slipBuilderPanel: $('slipBuilderPanel'),
   smartAccaPanel: $('smartAccaPanel'),
   smartAccaRefreshBtn: $('smartAccaRefreshBtn'),
   smartAccaStake: $('smartAccaStake'),
@@ -554,19 +551,6 @@ function setTab(name) {
 
 ui.tabAutobet.addEventListener('click', () => setTab('autobet'));
 ui.tabBuilder.addEventListener('click', () => setTab('builder'));
-
-function setBuilderPanel(name) {
-  const smartAcca = name === 'smart-acca';
-  ui.tabSlipBuilder.classList.toggle('active', !smartAcca);
-  ui.tabSmartAcca.classList.toggle('active', smartAcca);
-  ui.tabSlipBuilder.setAttribute('aria-selected', String(!smartAcca));
-  ui.tabSmartAcca.setAttribute('aria-selected', String(smartAcca));
-  ui.slipBuilderPanel.hidden = smartAcca;
-  ui.smartAccaPanel.hidden = !smartAcca;
-}
-
-ui.tabSlipBuilder.addEventListener('click', () => setBuilderPanel('slip'));
-ui.tabSmartAcca.addEventListener('click', () => setBuilderPanel('smart-acca'));
 
 // ---------------------------------------------------------------- bet builder
 

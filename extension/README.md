@@ -32,7 +32,7 @@ use it after you have seen why the first attempt stopped.
 ## Scan a tipster image
 
 The side panel has two tabs: **Autobet** (feed, stakes, job progress) and **Bet Builder**. Bet
-Builder contains the slip-image scanner and **SmartACCA**.
+Builder holds the slip-image scanner and, directly below it, the **SmartACCA** card.
 
 Three ways to get a slip in, all on the **Bet Builder** tab:
 
@@ -56,12 +56,13 @@ uses, then lists the matched fixtures with SportyBet/BetBoro links, the SportyBe
 
 Scans show an indeterminate progress bar with elapsed seconds while the vision request runs.
 
-SmartACCA scrapes today's SportyTrader result tips, asks the dashboard server's Groq key to rank
-four supported 1X2 picks, and uses the matching live SportyBet prices to calculate combined odds
-and the GHS 22.50 default stake's potential return. It can open a SportyBet share slip or log the
-acca as a Muggy Bet. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local
-`.dev.vars`) to enable it; the key is never sent to the extension. Picks without a matching fixture
-and SportyBet price are excluded.
+SmartACCA scrapes today's SportyTrader 1X2 predictions — the editorial cards' result tips plus the
+"1X2 model" probability table — asks the dashboard server's Groq key to rank four supported picks,
+and uses the matching live SportyBet prices to calculate combined odds and the GHS 22.50 default
+stake's potential return. The 🔃 button pulls a fresh batch. It can open a SportyBet share slip or
+log the acca as a Muggy Bet. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in
+local `.dev.vars`) to enable it; the key is never sent to the extension. Picks without a matching
+fixture and price are excluded.
 
 Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
 the fixture-matching confidence (team-name similarity, blended with a 1X2 price comparison when one
