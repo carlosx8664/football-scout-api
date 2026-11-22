@@ -1,4 +1,9 @@
-import { matchBetslipLegs, toSportyBetSelections } from "../../shared/betslip-match.js";
+import {
+  matchBetslipLegs,
+  selectionSide,
+  teamSimilarity,
+  toSportyBetSelections,
+} from "../../shared/betslip-match.js";
 
 const SPORTYTRADER_URL = "https://www.sportytrader.com/en/betting-tips/football/today/";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -100,6 +105,51 @@ function resultSelection(tip, home, away) {
   return null;
 }
 
+const OU_LINE = /^(over|under)\s+(\d+(?:\.\d+)?)/;
+
+/**
+ * A SportyTrader tip -> the SportyBet market/selection that books it.
+ *
+ * Only single markets are accepted: "BTTS & over 2.5 goals" needs a same-game multi, which the
+ * share endpoint cannot book, so those cards are skipped rather than guessed.
+ */
+function tipMarket(tip, home, away) {
+  const raw = text(tip);
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (/\s(?:&|and)\s/.test(lower) || /\bbtts\b.*\bover\b/.test(lower)) return null;
+
+  if (/\bbtts\b|both teams to score/.test(lower)) {
+    return { market: "Both Teams to Score", selection: /\bno\b/.test(lower) ? "No" : "Yes" };
+  }
+
+  const ou = OU_LINE.exec(lower);
+  if (ou) {
+    const market = /corner/.test(lower)
+      ? "Corners"
+      : /\bcard|booking/.test(lower)
+        ? "Bookings"
+        : "Over/Under";
+    const side = ou[1] === "over" ? "Over" : "Under";
+    return { market, selection: `${side} ${ou[2]}` };
+  }
+
+  const teamOrDraw = /^(.*\S)\s+or\s+draw$/i.exec(raw) ?? /^draw\s+or\s+(.+)$/i.exec(raw);
+  if (teamOrDraw) {
+    const team = teamOrDraw[1].trim();
+    const homeScore = teamSimilarity(team, home);
+    const awayScore = teamSimilarity(team, away);
+    if (Math.max(homeScore, awayScore) < 0.6) return null;
+    return {
+      market: "Double Chance",
+      selection: homeScore >= awayScore ? "Home or Draw" : "Draw or Away",
+    };
+  }
+
+  const side = resultSelection(raw, home, away);
+  return side ? { market: "1X2", selection: side } : null;
+}
+
 function sameDay(dateParts, date) {
   if (!dateParts || !date) return false;
   const month = MONTHS[dateParts[2].toLowerCase()];
@@ -160,7 +210,9 @@ function parsePredictions(html, day) {
     .slice(1);
   const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   const matches = [];
-  const seenFixtures = new Set();
+  // One card per fixture, but a fixture can offer several markets, and the same market can
+  // appear twice; keep the fixture+market+selection triple unique instead.
+  const seen = new Set();
 
   for (const card of cards) {
     const [home, away] = classTexts(card, "font-semibold");
@@ -172,29 +224,29 @@ function parsePredictions(html, day) {
         card,
       );
     const tip = tipMatch ? text(tipMatch[1]) : "";
-    const selection = resultSelection(tip, home, away);
-    if (!home || !away || !selection) continue;
+    const market = tipMarket(tip, home, away);
+    if (!home || !away || !market) continue;
     if (!sameDay(CARD_DATE.exec(dateText), date)) continue;
 
-    const fixtureKey = `${home.toLowerCase()}|${away.toLowerCase()}`;
-    if (seenFixtures.has(fixtureKey)) continue;
-    seenFixtures.add(fixtureKey);
+    const key = `${home.toLowerCase()}|${away.toLowerCase()}|${market.market}|${market.selection}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
 
     matches.push({
       home,
       away,
       league,
-      market: "1X2",
-      selection,
+      market: market.market,
+      selection: market.selection,
       sourceTip: tip,
       kickoff: dateText,
     });
   }
 
   for (const pick of modelTablePredictions(html, day)) {
-    const fixtureKey = `${pick.home.toLowerCase()}|${pick.away.toLowerCase()}`;
-    if (seenFixtures.has(fixtureKey)) continue;
-    seenFixtures.add(fixtureKey);
+    const key = `${pick.home.toLowerCase()}|${pick.away.toLowerCase()}|${pick.market}|${pick.selection}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     matches.push(pick);
   }
 
@@ -283,6 +335,104 @@ const STANDINGS_COMPETITIONS = {
 const STANDINGS_BASE = "https://api.football-data.org/v4";
 const STANDINGS_CACHE_PREFIX = "smartacca-standings-v1-";
 const USED_PREFIX = "smart-acca-used-";
+
+/* ---------------------------------------------------------------- SportyBet prices
+ *
+ * `book_odds` in the match feed is 1X2 only, so goals/corners/bookings/BTTS/double-chance tips
+ * had no price. SportyBet's event endpoint lists every market this panel can book, so only the
+ * fixtures with a non-1X2 tip are fetched, and only the bookable outcomes are cached.
+ */
+const SPORTYBET_EVENT_URL = "https://www.sportybet.com/api/gh/factsCenter/event";
+const EVENT_CACHE_PREFIX = "sb-event-odds-v1-";
+const EVENT_CACHE_TTL = 300;
+const EVENT_HEADERS = {
+  Accept: "*/*",
+  "Accept-Language": "en",
+  Clientid: "web",
+  Operid: "3",
+  Platform: "web",
+  Cookie: "sb_country=gh; locale=en;",
+  Referer: "https://www.sportybet.com/gh/sport/football",
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+};
+
+const priceKey = (marketId, outcomeId, specifier) =>
+  `${marketId}|${outcomeId}|${specifier || ""}`;
+
+/** Every outcome the panel can book, keyed by market/outcome/specifier, with the book's own price. */
+function indexEventOdds(body) {
+  const markets = Array.isArray(body?.data?.markets) ? body.data.markets : [];
+  const prices = {};
+  for (const market of markets) {
+    const marketId = String(market?.id ?? "");
+    if (!marketId) continue;
+    const specifier = String(market?.specifier ?? "");
+    for (const outcome of market?.outcomes ?? []) {
+      const odds = Number(outcome?.odds);
+      if (!Number.isFinite(odds) || odds <= 1) continue;
+      const key = priceKey(marketId, String(outcome?.id ?? ""), specifier);
+      if (!prices[key]) prices[key] = odds;
+    }
+  }
+  return prices;
+}
+
+async function loadEventOdds(env, eventIds) {
+  const kv = env?.[KV_BINDING];
+  const prices = new Map();
+  const pending = [];
+
+  for (const eventId of eventIds) {
+    const cacheKey = `${EVENT_CACHE_PREFIX}${eventId}`;
+    if (kv) {
+      try {
+        const cached = await kv.get(cacheKey);
+        if (cached) {
+          prices.set(eventId, JSON.parse(cached));
+          continue;
+        }
+      } catch {
+        // Fall through to the network.
+      }
+    }
+    pending.push(eventId);
+  }
+
+  const CONCURRENCY = 4;
+  for (let index = 0; index < pending.length; index += CONCURRENCY) {
+    const batch = pending.slice(index, index + CONCURRENCY);
+    await Promise.all(
+      batch.map(async (eventId) => {
+        try {
+          const response = await fetch(
+            `${SPORTYBET_EVENT_URL}?eventId=${encodeURIComponent(eventId)}&productId=3`,
+            { headers: EVENT_HEADERS, signal: AbortSignal.timeout(12_000) },
+          );
+          if (!response.ok) return;
+          const body = await response.json().catch(() => null);
+          const indexed = indexEventOdds(body);
+          if (Object.keys(indexed).length === 0) return;
+          prices.set(eventId, indexed);
+          if (kv) {
+            try {
+              await kv.put(`${EVENT_CACHE_PREFIX}${eventId}`, JSON.stringify(indexed), {
+                expirationTtl: EVENT_CACHE_TTL,
+              });
+            } catch {
+              // A cache miss next time only costs one request.
+            }
+          }
+        } catch {
+          // An unpriced candidate is dropped later; the rest of the batch still prices.
+        }
+      }),
+    );
+  }
+
+  return prices;
+}
+
 const STOP_WORDS = new Set([
   "fc", "cf", "sc", "afc", "club", "the", "city", "town", "united", "utd", "calcio", "ac", "as",
 ]);
@@ -438,38 +588,41 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
     {
       role: "system",
       content:
-        "You are a football betting analyst choosing the four strongest 1X2 picks of the day. " +
-        "For every candidate you receive: the SportyTrader editorial tip or model probability, " +
-        "the live SportyBet price (with implied probability), and, when the competition is " +
-        "covered, both teams' league position, points, points-per-game, recent form string " +
-        "(most recent last) and goal record. " +
-        "Weigh: strength of the tip/probability, price value against the implied probability, " +
-        "league-table gap between the sides, recent form, and goal difference/goals per game. " +
-        "Favour selections where several signals agree; avoid short prices with no edge and " +
-        "avoid coin-flip fixtures merely for a bigger return. " +
+        "You are a football betting analyst picking the four best bets of the day, which are " +
+        "combined into one accumulator. Candidates span several markets: 1X2, double chance, " +
+        "both teams to score, and over/under on goals, corners and bookings. " +
+        "For every candidate you receive the market and selection, the SportyTrader editorial tip " +
+        "or model probability, the live SportyBet price, and — when the competition is covered — " +
+        "both teams' league position, points, points-per-game, recent form string (most recent " +
+        "last) and goal record. " +
+        "Judge each selection independently and estimate its TRUE probability of winning, from 1 " +
+        "to 99 percent. Weigh the tip, price, table gap, recent form, goals scored and conceded, " +
+        "and how that fixture's profile fits the market (a leaky pair of defences lifts overs and " +
+        "both-teams-to-score; a lopsided table gap lifts the favourite's result and double chance). " +
+        "Then choose the four with the best combination of high win probability and value against " +
+        "the price, one leg per fixture. Do not spread probabilities into a tidy sequence and do " +
+        "not copy the example number. " +
         "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
         "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
-        "Do not change a match's outcome or invent facts. Return JSON only in this exact shape: " +
-        '{"picks":[{"index":0,"confidence":88}]}. ' +
-        "Use each candidate's position in the input array as index. Confidence is an integer from " +
-        "50 to 99 scoring how strong that pick is relative to the other candidates — never 0, 1 or " +
-        "a 0-1 fraction. Do not copy the example number; score each pick on its own merits. " +
-        "Confidence is your comparative assessment between these candidates, not a probability " +
-        "or a guarantee.",
+        "Do not invent facts or change a selection. Return JSON only in this exact shape: " +
+        '{"picks":[{"index":0,"probability":64}]}. ' +
+        "Use each candidate's position in the input array as index, and probability as that " +
+        "selection's estimated chance of winning in whole percent (never 0, 1 or a 0-1 fraction).",
     },
     {
       role: "user",
       content: JSON.stringify(
         matches.map(
-          ({ home, away, league, selection, sourceTip, modelProbability, odds, kickoff, standings }) => ({
+          ({ home, away, league, market, selection, sourceTip, modelProbability, odds, kickoff, standings }) => ({
             home,
             away,
             league,
+            market,
             selection,
             source: sourceTip,
             sportyTraderProbability: modelProbability ?? null,
             sportyBetOdds: odds,
-            impliedProbability: Number.isFinite(Number(odds))
+            bookImpliedProbability: Number.isFinite(Number(odds))
               ? Number((100 / Number(odds)).toFixed(1))
               : null,
             kickoff,
@@ -534,20 +687,21 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
 
   let result = await callGroq(null);
   let picks = toPicks(result);
-  if (picks.every((pick) => pick.confidence === picks[0].confidence)) {
-    // A model that scores all four identically has not done the comparison; ask once more.
+  if (picks.every((pick) => pick.probability === picks[0].probability)) {
+    // Four identical probabilities means the model ranked by position instead of judging each
+    // selection; ask once more before showing a flat bar.
     try {
       const retried = toPicks(
         await callGroq([
           {
             role: "user",
             content:
-              "Every pick was given the same confidence. Score each of the four separately on its " +
-              "own merits using the data supplied, integers 50-99, and return the JSON again.",
+              "Every pick was given the same probability. Estimate each selection's own chance of " +
+              "winning separately from the data supplied, whole percent 1-99, and return the JSON again.",
           },
         ]),
       );
-      if (!retried.every((pick) => pick.confidence === retried[0].confidence)) picks = retried;
+      if (!retried.every((pick) => pick.probability === retried[0].probability)) picks = retried;
     } catch {
       // Keep the first answer rather than failing the refresh.
     }
@@ -561,7 +715,7 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
 
     const seen = new Set();
     const seenFixtures = new Set();
-    const normalizeConfidence = (value) => {
+    const normalizeProbability = (value) => {
       const raw = Number(value);
       if (!Number.isFinite(raw)) return null;
       // Models sometimes answer on a 0-1 scale (or copy the example literally), so widen those.
@@ -571,13 +725,13 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
 
     return body.picks.map((pick) => {
       const index = Number(pick?.index);
-      const confidence = normalizeConfidence(pick?.confidence);
+      const probability = normalizeProbability(pick?.probability ?? pick?.confidence);
       if (
         !Number.isInteger(index) ||
         index < 0 ||
         index >= matches.length ||
         seen.has(index) ||
-        confidence === null
+        probability === null
       ) {
         throw new Error("Groq returned invalid or duplicate prediction indexes.");
       }
@@ -587,7 +741,7 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
       }
       seen.add(index);
       seenFixtures.add(fixtureKey);
-      return { ...matches[index], confidence };
+      return { ...matches[index], probability };
     });
   }
 }
@@ -655,53 +809,79 @@ export async function onRequestPost({ request, env }) {
     const scrapedMatches = parsePredictions(html, day);
     const fixtures = uniqueFixtures([await loadFixtures({ request, env })]);
     const now = Date.now();
-    const matches = scrapedMatches.flatMap((pick) => {
+
+    // 1. Book each tip against a feed fixture: this decides the SportyBet market/outcome pair.
+    const booked = scrapedMatches.flatMap((pick) => {
       const leg = {
         home: pick.home,
         away: pick.away,
-        market: "1X2",
+        market: pick.market,
         selection: pick.selection,
       };
-      const result = matchBetslipLegs([leg], fixtures);
-      const entry = result.matched[0];
+      const entry = matchBetslipLegs([leg], fixtures).matched[0];
       if (!entry) return [];
 
       // A fixture that has kicked off can no longer be booked, so it never reaches the slip.
       const kickoffAt = Date.parse(entry.match?.fixture?.date ?? "");
       if (Number.isFinite(kickoffAt) && kickoffAt <= now) return [];
 
-      const side =
-        pick.selection === "Home Win" ? "home" : pick.selection === "Away Win" ? "away" : "draw";
-      const feedOdds = (entry.match?.odds ?? []).find(
-        (row) => String(row?.value ?? "").toLowerCase() === side,
-      );
-      const odds =
-        Number(entry.match?.book_odds?.[side]?.books?.SportyBet) ||
-        Number(entry.match?.book_odds?.[side]?.best) ||
-        Number(feedOdds?.odd);
-      if (!Number.isFinite(odds) || odds <= 1) return [];
-
       const booking = toSportyBetSelections([entry]).bookings[0];
       if (!booking) return [];
+
       return [
         {
           ...pick,
           league: entry.match?.league?.name || pick.league,
           leagueId: entry.match?.league?.id ?? null,
-          odds,
           booking,
+          kickoffAt,
+          feedMatch: entry.match,
         },
       ];
     });
+
+    // 2. Price them. 1X2 comes from the feed; deeper markets need SportyBet's own event book.
+    const deeperEvents = [
+      ...new Set(
+        booked.filter((pick) => pick.booking.marketId !== "1").map((pick) => pick.booking.eventId),
+      ),
+    ];
+    const eventOdds = await loadEventOdds(env, deeperEvents);
+
+    const matches = booked.flatMap((pick) => {
+      let odds = NaN;
+      if (pick.booking.marketId === "1") {
+        const side = selectionSide({ market: pick.market, selection: pick.selection }, pick.feedMatch);
+        const feedOdds = (pick.feedMatch?.odds ?? []).find(
+          (row) => String(row?.value ?? "").toLowerCase() === side,
+        );
+        odds =
+          Number(pick.feedMatch?.book_odds?.[side]?.books?.SportyBet) ||
+          Number(pick.feedMatch?.book_odds?.[side]?.best) ||
+          Number(feedOdds?.odd);
+      } else {
+        const prices = eventOdds.get(pick.booking.eventId);
+        odds = Number(
+          prices?.[
+            priceKey(pick.booking.marketId, pick.booking.outcomeId, pick.booking.specifier)
+          ],
+        );
+      }
+      if (!Number.isFinite(odds) || odds <= 1) return [];
+
+      const { feedMatch, ...rest } = pick;
+      return [{ ...rest, odds }];
+    });
+
     if (matches.length < 4) {
       return json(
         {
           error:
             scrapedMatches.length === 0
-              ? `SportyTrader's page had no readable 1X2 result tips for ${day}. ` +
+              ? `SportyTrader's page had no readable predictions for ${day}. ` +
                 "Most cards still use other markets, so try again later in the day."
-              : `SportyTrader has ${scrapedMatches.length} readable 1X2 tips for ${day}, but only ` +
-                `${matches.length} are still unstarted with matching SportyBet prices.`,
+              : `SportyTrader has ${scrapedMatches.length} readable tips for ${day}, but only ` +
+                `${matches.length} are still unstarted and priced by SportyBet.`,
         },
         422,
       );

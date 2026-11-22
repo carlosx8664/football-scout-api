@@ -955,11 +955,11 @@ function updateSmartAccaTotals() {
       : '—';
 }
 
-function confidenceBar(confidence) {
-  const raw = Number(confidence);
-  // Groq answers on a 0-1 scale (0.9 = 90%), so widen fractions before drawing the bar.
+function confidenceBar(probability) {
+  const raw = Number(probability);
+  // Groq answers on a 0-1 scale sometimes (0.9 = 90%), so widen fractions before drawing the bar.
   const pct = Math.max(0, Math.min(100, Number.isFinite(raw) ? (raw > 0 && raw <= 1 ? raw * 100 : raw) : 0));
-  return node('div', { class: 'smart-acca-confidence' }, [
+  return node('div', { class: 'smart-acca-confidence', title: 'Groq win-chance estimate' }, [
     node('div', { class: 'confidence-track' }, [
       node('span', { class: 'confidence-knob', style: `left: ${pct}%` }),
     ]),
@@ -979,9 +979,9 @@ function renderSmartAcca() {
         ]),
         node('div', {
           class: 'bb-meta muted',
-          text: `${match.league || 'Football'} · ${match.selection} · ${match.kickoff || ''}`,
+          text: `${match.league || 'Football'} · ${match.market || '1X2'} · ${match.selection} · ${match.kickoff || ''}`,
         }),
-        confidenceBar(match.confidence),
+        confidenceBar(match.probability),
       ]),
     ),
   );

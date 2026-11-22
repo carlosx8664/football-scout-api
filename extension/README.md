@@ -56,11 +56,14 @@ uses, then lists the matched fixtures with SportyBet/BetBoro links, the SportyBe
 
 Scans show an indeterminate progress bar with elapsed seconds while the vision request runs.
 
-SmartACCA scrapes today's SportyTrader 1X2 predictions — the editorial cards' result tips plus the
-"1X2 model" probability table — asks the dashboard server's Groq key to rank four supported picks,
-and uses the matching live SportyBet prices to calculate combined odds and the GHS 22.50 default
-stake's potential return. Fixtures that have already kicked off are dropped. Each pick shows a
-red→green confidence bar with its percentage.
+SmartACCA scrapes today's SportyTrader tips — editorial cards plus the "1X2 model" table — across
+1X2, double chance, both teams to score and over/under on goals, corners and bookings. Same-game
+combos are skipped because they cannot be booked as one leg. It asks the dashboard server's Groq
+key for each candidate's estimated win chance and the four best picks, and prices every leg from
+SportyBet (the feed for 1X2, SportyBet's own event book for the deeper markets), so the combined
+odds and the GHS 22.50 default stake's potential return are real bookable numbers. Fixtures that
+have already kicked off are dropped. Each pick shows a red→green bar with Groq's win-chance
+percentage beside it.
 
 The 🔃 button pulls a fresh batch. **Add to SportyBet** opens the share slip and logs the acca;
 **Add to BetBoro** only logs it. Either action records those four, so the next refresh ranks the
@@ -69,11 +72,11 @@ Simulation. When fewer than four unused picks are left, the panel says so and of
 over**. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local `.dev.vars`) to
 enable it; the key is never sent to the extension.
 
-Groq ranks on the SportyTrader tip or model probability, the live SportyBet price (with implied
-probability), and — where `FOOTBALL_DATA_ORG_TOKEN` covers the competition — both teams' league
-position, points, recent form and goal record. Injuries, team news and head-to-head are not
-available to the dashboard, so the prompt forbids Groq from claiming them. The model is
-`openai/gpt-oss-120b` (Groq retired `llama-3.3-70b-versatile` on 2026-08-16); set
+Groq judges each selection on the SportyTrader tip or model probability, the live SportyBet price
+(with the book's implied probability), the market, and — where `FOOTBALL_DATA_ORG_TOKEN` covers the
+competition — both teams' league position, points, recent form and goal record. Injuries, team news
+and head-to-head are not available to the dashboard, so the prompt forbids Groq from claiming them.
+The model is `openai/gpt-oss-120b` (Groq retired `llama-3.3-70b-versatile` on 2026-08-16); set
 `SMART_ACCA_GROQ_MODEL` as a Pages secret to pin a different one.
 
 Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
