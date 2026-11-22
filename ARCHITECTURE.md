@@ -108,7 +108,7 @@ KV feed and skips the `feed-matches` upload if the new run has less than half as
 | `components/SettleBetModal.tsx` | Settlement wizard: Normal Win / Void / Cash Out |
 | `components/CashFlowPanel.tsx` | Deposit/withdrawal ledger (incl. each bookie's opening deposit) with deposited/withdrawn totals and the live planned-deposit figure |
 | `components/WalletsHistory.tsx` | `/wallets/history` page: settled history full width, no right sidebar |
-| `components/HistoryLedger.tsx` | Settled arbs grouped by day, date filter, 20/50/100 rows per page with Prev/Next paging (the table grows to fit, the page column scrolls), weekly outlay, Void/Cash-Out badges |
+| `components/HistoryLedger.tsx` | Settled arbs grouped by day, Today/Yesterday/This Week/This Month presets, 20/50/100 rows per page with Prev/Next paging (the table grows to fit, the page column scrolls), weekly outlay, Void/Cash-Out badges |
 | `components/MugBetsPanel.tsx` | Tabbed mug-bet entry: **Muggy Acca** (bookie, sport — football or horse racing, daily stake, odds) and **Free Bet** (free-bet leg with odds/stake/outcome, hedge leg with bookie/odds/stake/outcome, plus an outcome note like "Home Win (Free) vs X2 (Hedge)") — both log to `active_bets` |
 | `components/ArbCalculator.tsx` | Standalone stake calculator |
 | `components/NotificationBell.tsx` + `NotificationProvider.tsx` | Inbox UI + alert engine |
@@ -221,8 +221,9 @@ a fine-grained PAT.
 - Notification inbox with rules: live arbs from the arbitrage feed, withdrawal >35%, top-up <15%
   after a 4-hour cool-down and past 08:00, daily profit >100 GHS; per-mode localStorage inboxes
   pruned to the current day (earlier notifications are deleted).
-- Settlement wizard (win/void/cash-out), Remove-and-refund with audit row, history with date
-  presets, day grouping, 20/50/100-row pages with Prev/Next, and weekly outlay.
+- Settlement wizard (win/void/cash-out), Remove-and-refund with audit row, history with
+  Today/Yesterday/This Week/This Month presets, day grouping, 20/50/100-row pages with Prev/Next,
+  and weekly outlay.
 - Automatic wallet provisioning for every bookmaker in `BOOKMAKERS`.
 
 **Backend:** all endpoints above deployed and functioning; D1 at migration 0006.
@@ -340,7 +341,7 @@ a fine-grained PAT.
 
 ## 15. History Grouped by Match Day
 
-- **New feature.** The History ledger buckets profit by the day the match kicked off, so settling a Wednesday match on Thursday morning keeps the money in Wednesday's bucket. Settlement time is still shown in the **Date Settled** column, but the day header, the per-day net total and the Today / Yesterday / This Week / Custom filters all key off kickoff. `history.kickoff` (migration `0012`) is copied from `active_bets.kickoff` at settlement and at cancellation; mug bets carry no fixture, so they are always grouped by the day they were placed (`history.logged_at`, itself copied from `active_bets.created_at`), and only then by `settled_at`. A running **Total Profit/Loss** footer sums the filtered window.
+- **New feature.** The History ledger buckets profit by the day the match kicked off, so settling a Wednesday match on Thursday morning keeps the money in Wednesday's bucket. Settlement time is still shown in the **Date Settled** column, but the day header, the per-day net total and the Today / Yesterday / This Week / This Month filters all key off kickoff. `history.kickoff` (migration `0012`) is copied from `active_bets.kickoff` at settlement and at cancellation; mug bets carry no fixture, so they are always grouped by the day they were placed (`history.logged_at`, itself copied from `active_bets.created_at`), and only then by `settled_at`. A running **Total Profit/Loss** footer sums the filtered window.
 - **Files created/modified.** New: `migrations/0012_history_kickoff.sql`. Modified: `functions/api/active-bets/[id]/settle.js` and `functions/api/active-bets/[id].js` (persist `kickoff` + `logged_at`), `functions/api/history.js` (match-day `PLACED_TIME` / `MATCH_TIME_MS` / `MATCH_DAY` expressions used for the range filter, ordering and the `kickoff` field), `src/types.ts` (`HistoryEntry.kickoff`), `src/components/HistoryLedger.tsx` + `.css` (match-day grouping, settlement date column, total row), `src/components/ActiveBetsLedger.tsx` (kickoff shown for any bet kind, else placed date/time), `ARCHITECTURE.md`.
 - **How it connects.** `GET /api/history?from&to` filters and sorts on `MATCH_TIME_MS` — `COALESCE(NULLIF(kickoff,0), logged_at, settled_at)` for arbs, the placed time for every other kind — `HistoryLedger` groups rows on the returned `kickoff` epoch, and the same value feeds the day header and daily profit total - so the API window, the group headers and the visible totals can never disagree.
 

@@ -1,11 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import {
-  fetchHistory,
-  rangeForPreset,
-  toDateInput,
-  type HistoryPreset,
-  type HistoryRange,
-} from "../lib/history";
+import { fetchHistory, rangeForPreset, type HistoryPreset } from "../lib/history";
 import { formatAmount } from "../lib/wallets";
 import type { HistoryEntry, HistoryPayload } from "../types";
 import "./HistoryLedger.css";
@@ -20,7 +14,7 @@ const PRESETS: Array<{ value: HistoryPreset; label: string }> = [
   { value: "yesterday", label: "Yesterday" },
   { value: "today", label: "Today" },
   { value: "week", label: "This Week" },
-  { value: "custom", label: "Custom" },
+  { value: "month", label: "This Month" },
 ];
 
 const PAGE_SIZES = [20, 50, 100] as const;
@@ -73,15 +67,13 @@ function groupByDay(entries: HistoryEntry[]): DayGroup[] {
 
 /** Scrollable settled-arb ledger with a date filter, daily grouping and weekly outlay. */
 const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
-  const today = toDateInput(new Date());
   const [preset, setPreset] = useState<HistoryPreset>("week");
-  const [custom, setCustom] = useState<HistoryRange>({ from: today, to: today });
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<{ key: string; payload: HistoryPayload } | null>(null);
   const [problem, setProblem] = useState<{ key: string; message: string } | null>(null);
 
-  const range = rangeForPreset(preset, custom);
+  const range = rangeForPreset(preset);
   const key = `${simulation ? "sim" : "real"}|${range.from}|${range.to}`;
 
   useEffect(() => {
@@ -153,30 +145,6 @@ const HistoryLedger = ({ simulation, refreshToken }: HistoryLedgerProps) => {
         </div>
 
         <div className="history-controls">
-          {preset === "custom" && (
-            <div className="history-custom">
-              <input
-                type="date"
-                aria-label="From match date"
-                value={custom.from}
-                max={custom.to}
-                onChange={(event) =>
-                  setCustom((current) => ({ ...current, from: event.target.value }))
-                }
-              />
-              <span>→</span>
-              <input
-                type="date"
-                aria-label="To match date"
-                value={custom.to}
-                min={custom.from}
-                onChange={(event) =>
-                  setCustom((current) => ({ ...current, to: event.target.value }))
-                }
-              />
-            </div>
-          )}
-
           <label className="history-page-size">
             <span>Show</span>
             <select

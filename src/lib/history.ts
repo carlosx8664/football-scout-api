@@ -1,6 +1,6 @@
 import type { HistoryPayload } from "../types";
 
-export type HistoryPreset = "today" | "yesterday" | "week" | "custom";
+export type HistoryPreset = "today" | "yesterday" | "week" | "month";
 
 export interface HistoryRange {
   /** Inclusive YYYY-MM-DD bounds, in the user's local calendar. */
@@ -16,12 +16,8 @@ export function toDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function rangeForPreset(preset: HistoryPreset, custom: HistoryRange): HistoryRange {
+export function rangeForPreset(preset: HistoryPreset): HistoryRange {
   const today = new Date();
-
-  if (preset === "custom") {
-    return custom.from <= custom.to ? custom : { from: custom.to, to: custom.from };
-  }
 
   if (preset === "today") {
     const value = toDateInput(today);
@@ -33,6 +29,12 @@ export function rangeForPreset(preset: HistoryPreset, custom: HistoryRange): His
     yesterday.setDate(yesterday.getDate() - 1);
     const value = toDateInput(yesterday);
     return { from: value, to: value };
+  }
+
+  if (preset === "month") {
+    // "This Month": the 1st through today, so every bet placed this month is in range.
+    const first = new Date(today.getFullYear(), today.getMonth(), 1);
+    return { from: toDateInput(first), to: toDateInput(today) };
   }
 
   // "This Week": Monday through today, matching the server's weekly outlay window.

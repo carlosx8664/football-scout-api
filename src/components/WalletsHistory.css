@@ -12,9 +12,9 @@
   min-height: auto;
 }
 
+/* The ledger grows with its page size, so the page column (not the panel) scrolls. */
 .wallets-history-page > .history-panel {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
 }
 
 .wallets-history-header {

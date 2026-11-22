@@ -1,6 +1,6 @@
 /*
- * Fixed frame: the header, tabs, Show control and the outlay banner never move. Only the ledger
- * rows scroll (`.history-table-wrap`), with the total row parked outside that scrollport.
+ * The whole panel grows with the chosen page size (20/50/100); the page column scrolls instead of
+ * clamping the rows inside a short inner scrollport.
  */
 .history-panel {
   background: var(--color-neutral-1);
@@ -8,21 +8,6 @@
   border-radius: 12px;
   padding: 24px;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* Every block is static and keeps its natural height; only the table wrap flexes. */
-.history-panel > * {
-  flex: 0 0 auto;
-  min-height: auto;
-}
-
-/* Enough to stay usable when the toolbar + footer are tall; past that the page scrolls. */
-.history-panel > .history-table-wrap {
-  flex: 1 1 auto;
-  min-height: 220px;
 }
 
 .history-header {
@@ -84,14 +69,6 @@
   gap: 12px;
 }
 
-.history-custom {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: var(--color-neutral-6);
-}
-
 .history-page-size {
   display: inline-flex;
   align-items: center;
@@ -108,15 +85,6 @@
   font-size: 0.78rem;
   color: var(--color-neutral-7);
 }
-.history-custom input {
-  padding: 6px 8px;
-  border: 1px solid var(--color-neutral-4);
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.78rem;
-  color: var(--color-neutral-7);
-}
-
 .history-metrics { margin-bottom: 16px; }
 .history-metric {
   display: flex;
@@ -154,21 +122,11 @@
   line-height: 1.5;
 }
 
-/* The scrollport: only the rows move. The total row below closes the card off. */
+/* The table keeps its natural height so every chosen row is visible. */
 .history-table-wrap {
   border: 1px solid var(--color-neutral-3);
   border-bottom: none;
   border-radius: 10px 10px 0 0;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-.history-table-wrap::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
 }
 .history-table {
   width: 100%;
@@ -176,10 +134,6 @@
   font-size: 0.8rem;
 }
 .history-table thead th {
-  /* Sticks to the top of `.history-table-wrap`, which is now the scrollport. */
-  position: sticky;
-  top: 0;
-  z-index: 2;
   padding: 10px 12px;
   text-align: left;
   background: var(--color-neutral-1);
@@ -411,8 +365,6 @@
   .history-header { flex-direction: column; gap: 8px; }
   .history-toolbar { gap: 8px; }
   .history-controls { width: 100%; justify-content: space-between; }
-  .history-custom { flex-wrap: wrap; }
-  .history-custom input { flex: 1 1 auto; min-width: 0; }
 
   /* Keep every column legible by scrolling the ledger sideways on phones. */
   .history-table-wrap {
