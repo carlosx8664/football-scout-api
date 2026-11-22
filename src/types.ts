@@ -217,6 +217,35 @@ export interface TransfersPayload {
   };
 }
 
+/** One bookie's account health: cash in/out and the betting result behind the balance. */
+export interface BookieStat {
+  bookie: string;
+  /** Cash currently in the bookie account. */
+  balance: number;
+  deposited: number;
+  withdrawn: number;
+  /** Deposited minus withdrawn. */
+  netFunding: number;
+  /** Mug bets placed (settled plus still open). */
+  muggyBets: number;
+  muggyStaked: number;
+  /** Settled mug-bet net profit; negative is the normal camouflage cost. */
+  muggyPnl: number;
+  /** Settled arb/free-bet result earned from this bookie. */
+  arbPnl: number;
+  /** Settled bookie result: balance + open stakes + withdrawn - deposited. */
+  accountPnl: number;
+  /** Stakes debited but not settled yet (arbs and mug bets alike). */
+  openStaked: number;
+}
+
+export interface BookieStatsPayload {
+  simulation: boolean;
+  currency: string;
+  bookies: BookieStat[];
+  totals: Omit<BookieStat, "bookie" | "netFunding">;
+}
+
 export interface WalletsPayload {
   /** True when these rows came from `is_simulation = 1`. */
   simulation: boolean;

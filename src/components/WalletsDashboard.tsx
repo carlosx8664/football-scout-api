@@ -26,6 +26,7 @@ import type {
 } from "../types";
 import ActiveBetsLedger from "./ActiveBetsLedger";
 import BankrollPlan from "./BankrollPlan";
+import BookieHealthPanel from "./BookieHealthPanel";
 import CashFlowPanel from "./CashFlowPanel";
 import MugBetsPanel from "./MugBetsPanel";
 import RebalancingHints from "./RebalancingHints";
@@ -257,6 +258,7 @@ const WalletsDashboard = () => {
           onError={reportError}
         />
         <RebalancingHints payload={payload} error={error} loading={loading} />
+        <BookieHealthPanel simulation={enabled} refreshToken={refreshToken} />
       </div>
       <aside className="right-sidebar wallets-aside">
         <ActiveBetsLedger

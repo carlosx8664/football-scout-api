@@ -1,0 +1,135 @@
+/* Per-bookie health table: the account picture each bookmaker sees. */
+.bookie-health {
+  background: var(--color-neutral-1);
+  border: 1px solid var(--color-neutral-4);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.bookie-health-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.bookie-health-header h2 { font-size: 1.15rem; font-weight: 700; }
+.bookie-health-subtitle {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-neutral-6);
+}
+.bookie-health-count {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-neutral-3);
+  color: var(--color-neutral-6);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bookie-health-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #c20a0a;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.bookie-health-empty {
+  padding: 16px 0;
+  color: var(--color-neutral-6);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.bookie-health-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-neutral-3);
+  border-radius: 10px;
+}
+
+.bookie-health-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.bookie-health-table thead th {
+  padding: 9px 10px;
+  text-align: right;
+  background: var(--color-neutral-2);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-neutral-6);
+  white-space: nowrap;
+  box-shadow: inset 0 -1px 0 var(--color-neutral-4);
+}
+.bookie-health-table tbody th,
+.bookie-health-table tbody td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-neutral-3);
+  vertical-align: top;
+}
+.bookie-health-table tbody tr:last-child th,
+.bookie-health-table tbody tr:last-child td { border-bottom: none; }
+.bookie-health-table tbody tr:hover { background: var(--color-neutral-2); }
+
+.bookie-health-table th:first-child { text-align: left; }
+.bookie-health-name { font-weight: 700; white-space: nowrap; }
+
+.bookie-health-money {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-7);
+}
+.bookie-health-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--color-neutral-6);
+}
+
+.bookie-health-pnl {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-neutral-7);
+}
+.bookie-health-pnl.positive { color: #15803d; }
+.bookie-health-pnl.negative { color: #c20a0a; }
+
+.bookie-health-table tfoot th,
+.bookie-health-table tfoot td {
+  padding: 10px;
+  background: var(--color-neutral-3);
+  border-top: 2px solid var(--color-neutral-5);
+  font-weight: 800;
+}
+.bookie-health-table tfoot th { text-align: left; }
+
+.bookie-health-hint {
+  margin-top: 12px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--color-neutral-6);
+}
+.bookie-health-hint strong { color: var(--color-neutral-7); }
+
+@media (max-width: 900px) {
+  .bookie-health { padding: 16px; }
+  .bookie-health-table { min-width: 680px; }
+}
