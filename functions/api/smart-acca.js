@@ -40,24 +40,44 @@ function classTexts(markup, className) {
   return [...markup.matchAll(pattern)].map((match) => text(match[2]));
 }
 
+const DIV_TAG = /<\/?div\b(?:"[^"]*"|'[^']*'|[^>])*>/gi;
+const CARD_DATE = /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s*(\d{2}:\d{2})/;
+
+function tagEnd(markup, index) {
+  let quote = null;
+  for (let cursor = index; cursor < markup.length; cursor += 1) {
+    const char = markup[cursor];
+    if (quote) {
+      if (char === quote) quote = null;
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === ">") {
+      return cursor + 1;
+    }
+  }
+  return -1;
+}
+
 function divBlock(markup, className) {
   const escaped = className.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const open = new RegExp(
-    `<div\\b(?=[^>]*class=['"][^'"]*\\b${escaped}\\b[^'"]*['"])[^>]*>`,
-    "gi",
-  ).exec(markup);
-  if (!open) return "";
+  const marker = new RegExp(`class=['"][^'"]*\\b${escaped}\\b[^'"]*['"]`, "i").exec(markup);
+  if (!marker) return "";
 
-  const tags = /<\/?div\b[^>]*>/gi;
-  tags.lastIndex = open.index;
+  const open = markup.lastIndexOf("<div", marker.index);
+  if (open === -1) return "";
+  const openEnd = tagEnd(markup, open);
+  if (openEnd === -1) return "";
+
+  const tags = new RegExp(DIV_TAG.source, "gi");
+  tags.lastIndex = open;
   let depth = 0;
   let tag;
   while ((tag = tags.exec(markup))) {
     if (/^<\/div/i.test(tag[0])) depth -= 1;
     else depth += 1;
-    if (depth === 0) return markup.slice(open.index, tags.lastIndex);
+    if (depth === 0) return markup.slice(open, tags.lastIndex);
   }
-  return "";
+  return markup.slice(open, openEnd);
 }
 
 function resultSelection(tip, home, away) {
@@ -86,22 +106,19 @@ function parsePredictions(html, day) {
   const predictionList = divBlock(html, "pronostics-wrapper");
   if (!predictionList) throw new Error("SportyTrader's today's predictions list was not found.");
 
-  const starts = [
-    ...predictionList.matchAll(
-      /<div\b(?=[^>]*data-navigation-url-value=['"][^'"]*\/en\/betting-tips\/[^'"]+['"])(?=[^>]*class=['"][^'"]*\bcard\b[^'"]*['"])[^>]*>/gi,
-    ),
-  ].map((match) => match.index);
+  const cards = predictionList
+    .split(/data-navigation-url-value=['"][^'"]*\/en\/betting-tips\//i)
+    .slice(1);
   const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   const matches = [];
   const seenFixtures = new Set();
 
-  for (const [index, start] of starts.entries()) {
-    const card = predictionList.slice(start, starts[index + 1] ?? predictionList.length);
-    const teamNames = classTexts(card, "font-semibold");
-    const [home, away] = teamNames;
-    const dateText = classTexts(card, "font-bold")[0] ?? "";
-    const dateParts = /(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4}),\s*(\d{2}:\d{2})/.exec(dateText);
-    const league = classTexts(card, "text-sm")[0] ?? "";
+  for (const card of cards) {
+    const [home, away] = classTexts(card, "font-semibold");
+    const dateText = classTexts(card, "font-bold").find((value) => CARD_DATE.test(value)) ?? "";
+    const dateParts = CARD_DATE.exec(dateText);
+    const metaText = classTexts(card, "text-sm").find((value) => CARD_DATE.test(value)) ?? "";
+    const league = metaText.replace(/^.*?\d{2}:\d{2}\s*/, "").trim();
     const tipMatch =
       /<a\b[^>]*data-trans=['"]tips\.our\.tip\.card[^'"]*['"][^>]*>[\s\S]*?<\/a>\s*<p\b[^>]*>([\s\S]*?)<\/p>/i.exec(
         card,
@@ -336,8 +353,11 @@ export async function onRequestPost({ request, env }) {
       return json(
         {
           error:
-            `SportyTrader has ${scrapedMatches.length} readable 1X2 tips for ${day}, but only ` +
-            `${matches.length} also have matching SportyBet fixtures and prices.`,
+            scrapedMatches.length === 0
+              ? `SportyTrader's page had no readable 1X2 result tips for ${day}. ` +
+                "Most cards still use other markets, so try again later in the day."
+              : `SportyTrader has ${scrapedMatches.length} readable 1X2 tips for ${day}, but only ` +
+                `${matches.length} also have matching SportyBet fixtures and prices.`,
         },
         422,
       );
