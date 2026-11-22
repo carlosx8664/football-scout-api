@@ -12,6 +12,9 @@ GEMINI_API_KEY=
 # GROQ_API_KEY=
 # Separate Groq text key for SmartACCA; never reuse the Bet Builder key here.
 # SMART_ACCA_GROQ_API_KEY=
+# Optional model override for SmartACCA's analysis (default openai/gpt-oss-120b, because Groq
+# retired llama-3.3-70b-versatile on 2026-08-16). The endpoint falls back through a known-good list.
+# SMART_ACCA_GROQ_MODEL=
 # VISION_PROVIDER=gemini
 # VISION_MODEL=gemma-4-26b-a4b-it
 

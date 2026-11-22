@@ -68,7 +68,9 @@ a matching fixture and price are excluded.
 Groq ranks on the SportyTrader tip or model probability, the live SportyBet price (with implied
 probability), and — where `FOOTBALL_DATA_ORG_TOKEN` covers the competition — both teams' league
 position, points, recent form and goal record. Injuries, team news and head-to-head are not
-available to the dashboard, so the prompt forbids Groq from claiming them.
+available to the dashboard, so the prompt forbids Groq from claiming them. The model is
+`openai/gpt-oss-120b` (Groq retired `llama-3.3-70b-versatile` on 2026-08-16); set
+`SMART_ACCA_GROQ_MODEL` as a Pages secret to pin a different one.
 
 Each matched row shows **STRONG / GOOD / WEAK** instead of the matcher's raw score. That score is
 the fixture-matching confidence (team-name similarity, blended with a 1X2 price comparison when one

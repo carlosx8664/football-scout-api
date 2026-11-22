@@ -2,7 +2,9 @@ import { matchBetslipLegs, toSportyBetSelections } from "../../shared/betslip-ma
 
 const SPORTYTRADER_URL = "https://www.sportytrader.com/en/betting-tips/football/today/";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+// Groq shut down llama-3.3-70b-versatile on 2026-08-16 (404 model_not_found); gpt-oss-120b is its
+// documented replacement. SMART_ACCA_GROQ_MODEL overrides it without a deploy.
+const GROQ_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
 const KV_BINDING = "FOOTBALL_DATA";
 const MATCHES_KEY = "feed-matches";
 const HORIZON_KEY = "feed-matches-horizon";
@@ -431,65 +433,86 @@ async function addUsed(kv, day, keys) {
 
 const pickKey = (match) => `${match.home}|${match.away}|${match.market ?? "1X2"}`;
 
-async function rankWithGroq(matches, apiKey) {
-  const response = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+async function rankWithGroq(matches, apiKey, preferredModel) {
+  const messages = [
+    {
+      role: "system",
+      content:
+        "You are a football betting analyst choosing the four strongest 1X2 picks of the day. " +
+        "For every candidate you receive: the SportyTrader editorial tip or model probability, " +
+        "the live SportyBet price (with implied probability), and, when the competition is " +
+        "covered, both teams' league position, points, points-per-game, recent form string " +
+        "(most recent last) and goal record. " +
+        "Weigh: strength of the tip/probability, price value against the implied probability, " +
+        "league-table gap between the sides, recent form, and goal difference/goals per game. " +
+        "Favour selections where several signals agree; avoid short prices with no edge and " +
+        "avoid coin-flip fixtures merely for a bigger return. " +
+        "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
+        "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
+        "Do not change a match's outcome or invent facts. Return JSON only: " +
+        '{"picks":[{"index":0,"confidence":0,"reason":"brief evidence-based reason"}]}. ' +
+        "Confidence is your comparative assessment between these candidates, not a probability " +
+        "or a guarantee.",
     },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      temperature: 0.2,
-      max_tokens: 1600,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a football betting analyst choosing the four strongest 1X2 picks of the day. " +
-            "For every candidate you receive: the SportyTrader editorial tip or model probability, " +
-            "the live SportyBet price (with implied probability), and, when the competition is " +
-            "covered, both teams' league position, points, points-per-game, recent form string " +
-            "(most recent last) and goal record. " +
-            "Weigh: strength of the tip/probability, price value against the implied probability, " +
-            "league-table gap between the sides, recent form, and goal difference/goals per game. " +
-            "Favour selections where several signals agree; avoid short prices with no edge and " +
-            "avoid coin-flip fixtures merely for a bigger return. " +
-            "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
-            "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
-            "Do not change a match's outcome or invent facts. Return JSON only: " +
-            '{"picks":[{"index":0,"confidence":0,"reason":"brief evidence-based reason"}]}. ' +
-            "Confidence is your comparative assessment between these candidates, not a probability " +
-            "or a guarantee.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            matches.map(
-              ({ home, away, league, selection, sourceTip, modelProbability, odds, kickoff, standings }) => ({
-                home,
-                away,
-                league,
-                selection,
-                source: sourceTip,
-                sportyTraderProbability: modelProbability ?? null,
-                sportyBetOdds: odds,
-                impliedProbability: Number.isFinite(Number(odds))
-                  ? Number((100 / Number(odds)).toFixed(1))
-                  : null,
-                kickoff,
-                standings: standings ?? null,
-              }),
-            ),
-          ),
-        },
-      ],
-    }),
-    signal: AbortSignal.timeout(25_000),
-  });
+    {
+      role: "user",
+      content: JSON.stringify(
+        matches.map(
+          ({ home, away, league, selection, sourceTip, modelProbability, odds, kickoff, standings }) => ({
+            home,
+            away,
+            league,
+            selection,
+            source: sourceTip,
+            sportyTraderProbability: modelProbability ?? null,
+            sportyBetOdds: odds,
+            impliedProbability: Number.isFinite(Number(odds))
+              ? Number((100 / Number(odds)).toFixed(1))
+              : null,
+            kickoff,
+            standings: standings ?? null,
+          }),
+        ),
+      ),
+    },
+  ];
 
-  if (!response.ok) throw new Error(`Groq analysis failed (HTTP ${response.status}).`);
+  const models = [...new Set([preferredModel, ...GROQ_MODELS].filter(Boolean))];
+  let response = null;
+  let lastError = "";
+
+  // Groq retires model ids (404/400 model_not_found), so fall through the known-good list
+  // instead of failing the whole refresh.
+  for (const model of models) {
+    response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        max_tokens: 1600,
+        response_format: { type: "json_object" },
+        messages,
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (response.ok) break;
+
+    const detail = await response.text().catch(() => "");
+    lastError = detail.slice(0, 240);
+    const modelProblem =
+      (response.status === 404 || response.status === 400) && /model/i.test(detail);
+    if (!modelProblem) break;
+  }
+
+  if (!response?.ok) {
+    throw new Error(
+      `Groq analysis failed (HTTP ${response?.status ?? 0})${lastError ? `: ${lastError}` : "."}`,
+    );
+  }
   const payload = await response.json().catch(() => null);
   const content = payload?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) {
@@ -645,7 +668,7 @@ export async function onRequestPost({ request, env }) {
     const pool = candidates.length >= 4 ? candidates : matches;
     const enriched = await addStandingsContext(env, pool);
     const picks = (
-      await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY)
+      await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY, env.SMART_ACCA_GROQ_MODEL)
     ).map(({ standings, ...pick }) => pick);
 
     return json({
