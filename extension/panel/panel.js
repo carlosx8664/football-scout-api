@@ -24,6 +24,7 @@ const ui = {
   smartAccaRefreshBtn: $('smartAccaRefreshBtn'),
   smartAccaStake: $('smartAccaStake'),
   smartAccaMode: $('smartAccaMode'),
+  smartAccaLegs: $('smartAccaLegs'),
   smartAccaStatus: $('smartAccaStatus'),
   smartAccaResult: $('smartAccaResult'),
   smartAccaOdds: $('smartAccaOdds'),
@@ -126,7 +127,11 @@ ui.themeBtn?.addEventListener('click', () => {
 // ---------------------------------------------------------------- settings
 
 async function loadSettings() {
-  const stored = await chrome.storage.local.get({ ...DEFAULT_SETTINGS, smartAccaMode: 'real' });
+  const stored = await chrome.storage.local.get({
+    ...DEFAULT_SETTINGS,
+    smartAccaMode: 'real',
+    smartAccaLegs: '4',
+  });
   state.settings = { ...DEFAULT_SETTINGS, ...stored };
   ui.stakeInput.value = state.settings.totalStake;
   ui.stepInput.value = String(state.settings.roundStep);
@@ -135,6 +140,9 @@ async function loadSettings() {
   ui.apiBaseEdit.value = state.settings.apiBase;
   ui.apiBaseInput.value = state.settings.apiBase;
   ui.smartAccaMode.value = state.settings.smartAccaMode === 'simulation' ? 'simulation' : 'real';
+  ui.smartAccaLegs.value = ['2', '3', '4'].includes(String(state.settings.smartAccaLegs))
+    ? String(state.settings.smartAccaLegs)
+    : '4';
   ui.setup.hidden = Boolean(state.settings.apiBase);
 }
 
@@ -944,13 +952,24 @@ function smartAccaCombinedOdds() {
   return (state.smartAcca?.matches ?? []).reduce((product, match) => product * Number(match.odds), 1);
 }
 
+/** How many legs the user asked for: 2 = double, 3 = treble, 4 = 4-fold. */
+function smartAccaLegCount() {
+  const value = Number(ui.smartAccaLegs.value);
+  return [2, 3, 4].includes(value) ? value : 4;
+}
+
+function smartAccaSlipName(count = smartAccaLegCount()) {
+  return count === 2 ? 'double' : count === 3 ? 'treble' : `${count}-fold`;
+}
+
 function updateSmartAccaTotals() {
   const matches = state.smartAcca?.matches ?? [];
+  const legs = smartAccaLegCount();
   const odds = Number(smartAccaCombinedOdds().toFixed(2));
   const stake = Number(ui.smartAccaStake.value);
-  ui.smartAccaOdds.textContent = matches.length === 4 ? odds.toFixed(2) : '—';
+  ui.smartAccaOdds.textContent = matches.length === legs ? odds.toFixed(2) : '—';
   ui.smartAccaWin.textContent =
-    matches.length === 4 && Number.isFinite(stake) && stake > 0
+    matches.length === legs && Number.isFinite(stake) && stake > 0
       ? `GHS ${(stake * odds).toFixed(2)}`
       : '—';
 }
@@ -1000,7 +1019,8 @@ function renderSmartAcca() {
       }),
     );
   }
-  const ready = matches.length === 4 && !state.smartAccaLogged;
+  const legs = smartAccaLegCount();
+  const ready = matches.length === legs && !state.smartAccaLogged;
   ui.smartAccaAddBtn.disabled =
     state.smartAccaBusy || !ready || matches.some((match) => !match.booking);
   ui.smartAccaBetboroBtn.disabled = state.smartAccaBusy || !ready;
@@ -1076,14 +1096,16 @@ async function refreshSmartAcca() {
   state.smartAccaBusy = true;
   state.smartAcca = null;
   state.smartAccaLogged = false;
+  const legs = smartAccaLegCount();
   renderSmartAcca();
-  smartAccaSay('Scraping today’s predictions and asking Groq to rank four…');
+  smartAccaSay(`Scraping today’s predictions and asking Groq for the best ${smartAccaSlipName(legs)}…`);
   try {
     const response = await fetch(`${state.settings.apiBase}/api/smart-acca`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         day: localDay(),
+        legs,
         exclude,
       }),
     });
@@ -1102,8 +1124,8 @@ async function refreshSmartAcca() {
     renderSmartAcca();
     const mapped = payload.matches.filter((match) => match.booking).length;
     smartAccaSay(
-      `${payload.matches.length} picks · analyzed ${payload.analyzedCount} of ${payload.scrapedCount} predictions today · ${mapped}/4 matched to SportyBet.`,
-      mapped === 4 ? 'good' : 'warn',
+      `${payload.matches.length}-leg ${smartAccaSlipName(payload.matches.length)} · analyzed ${payload.analyzedCount} of ${payload.scrapedCount} predictions today · ${mapped}/${payload.matches.length} matched to SportyBet.`,
+      mapped === payload.matches.length ? 'good' : 'warn',
     );
   } catch (error) {
     const message = String(error?.message || error);
@@ -1137,14 +1159,14 @@ async function markSmartAccaUsed() {
 }
 
 /**
- * Logs the current four as a `muggy` active bet on the given book. The pre-created hedge leg is a
- * zero-stake placeholder so the DB row keeps its two-leg shape; only the acca stake is debited.
+ * Logs the current slip as a `muggy` active bet on the given book. The pre-created hedge leg is a
+ * zero-stake placeholder so the DB row keeps its two-leg shape; only the slip stake is debited.
  */
 async function logSmartAccaBatch(bookie) {
   const matches = state.smartAcca?.matches ?? [];
   const stake = Number(ui.smartAccaStake.value);
-  if (matches.length !== 4 || !Number.isFinite(stake) || stake <= 0) {
-    throw new Error('Enter a stake greater than GHS 0 to log this acca.');
+  if (matches.length !== smartAccaLegCount() || !Number.isFinite(stake) || stake <= 0) {
+    throw new Error('Enter a stake greater than GHS 0 to log this slip.');
   }
 
   const simulation = ui.smartAccaMode.value === 'simulation';
@@ -1177,7 +1199,7 @@ async function logSmartAccaBatch(bookie) {
 
 async function addSmartAccaToSportyBet() {
   const matches = state.smartAcca?.matches ?? [];
-  if (matches.length !== 4 || matches.some((match) => !match.booking) || state.smartAccaBusy) return;
+  if (matches.length !== smartAccaLegCount() || matches.some((match) => !match.booking) || state.smartAccaBusy) return;
   state.smartAccaBusy = true;
   renderSmartAcca();
   smartAccaSay('Creating the SportyBet slip and logging it…');
@@ -1194,10 +1216,11 @@ async function addSmartAccaToSportyBet() {
     await chrome.tabs.create({ url: payload.shareURL });
     const logged = await logSmartAccaBatch('SportyBet');
     const skipped = Array.isArray(payload.skipped) ? payload.skipped.length : 0;
+    const total = matches.length;
     smartAccaSay(
       skipped
-        ? `Opened SportyBet with ${payload.booked}/4 picks and logged GHS ${logged.totalStake.toFixed(2)} (${logged.mode}). ${skipped} unavailable pick(s) were omitted.`
-        : `Opened all four picks on SportyBet and logged GHS ${logged.totalStake.toFixed(2)} (${logged.mode}). Verify the slip before placing your bet.`,
+        ? `Opened SportyBet with ${payload.booked}/${total} legs and logged GHS ${logged.totalStake.toFixed(2)} (${logged.mode}). ${skipped} unavailable leg(s) were omitted.`
+        : `Opened the ${smartAccaSlipName(total)} on SportyBet and logged GHS ${logged.totalStake.toFixed(2)} (${logged.mode}). Verify the slip before placing your bet.`,
       skipped ? 'warn' : 'good',
     );
   } catch (error) {
@@ -1235,6 +1258,16 @@ ui.smartAccaMode.addEventListener('change', () => {
     state.smartAccaLogged = false;
     renderSmartAcca();
   }
+});
+ui.smartAccaLegs.addEventListener('change', () => {
+  chrome.storage.local.set({ smartAccaLegs: ui.smartAccaLegs.value }).catch(() => {});
+  // The current batch was sized for the old slip type, so fetch a fresh one at the new size.
+  state.smartAccaLogged = false;
+  if (state.smartAcca?.matches?.length && state.smartAcca.matches.length !== smartAccaLegCount()) {
+    refreshSmartAcca();
+    return;
+  }
+  renderSmartAcca();
 });
 ui.smartAccaAddBtn.addEventListener('click', addSmartAccaToSportyBet);
 ui.smartAccaBetboroBtn.addEventListener('click', addSmartAccaToBetBoro);

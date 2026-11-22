@@ -65,12 +65,13 @@ odds and the GHS 22.50 default stake's potential return are real bookable number
 have already kicked off are dropped. Each pick shows a red→green bar with Groq's win-chance
 percentage beside it.
 
-The 🔃 button pulls a fresh batch. **Add to SportyBet** opens the share slip and logs the acca;
-**Add to BetBoro** only logs it. Either action records those four, so the next refresh ranks the
-next strongest picks instead of repeating them. The **Log to** selector chooses the real wallet or
-Simulation. When fewer than four unused picks are left, the panel says so and offers **Start today
-over**. Set `SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local `.dev.vars`) to
-enable it; the key is never sent to the extension.
+The 🔃 button pulls a fresh batch. The **Slip** selector sizes it as a double, treble or 4-fold.
+**Add to SportyBet** opens the share slip and logs it; **Add to BetBoro** only logs it. Either
+action records those legs, so the next refresh ranks the next strongest picks instead of repeating
+them. The **Log to** selector chooses the real wallet or Simulation. When fewer than the chosen
+number of unused picks are left, the panel says so and offers **Start today over**. Set
+`SMART_ACCA_GROQ_API_KEY` as a Cloudflare Pages secret (or in local `.dev.vars`) to enable it; the
+key is never sent to the extension.
 
 Groq judges each selection on the SportyTrader tip or model probability, the live SportyBet price
 (with the book's implied probability), the market, and — where `FOOTBALL_DATA_ORG_TOKEN` covers the

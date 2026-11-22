@@ -339,6 +339,7 @@ input:focus, select:focus { outline: 1px solid var(--accent); }
 .smart-acca { display: flex; flex-direction: column; gap: 8px; }
 .smart-acca-stake { margin-top: 5px; }
 .smart-acca-mode { margin-top: 2px; }
+.smart-acca-legs { margin-top: 2px; }
 .icon-btn {
   padding: 4px 9px;
   font-size: 15px;

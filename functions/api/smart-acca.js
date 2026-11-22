@@ -583,13 +583,15 @@ async function addUsed(kv, day, keys) {
 
 const pickKey = (match) => `${match.home}|${match.away}|${match.market ?? "1X2"}`;
 
-async function rankWithGroq(matches, apiKey, preferredModel) {
+async function rankWithGroq(matches, apiKey, preferredModel, legCount) {
+  const slipName = legCount === 2 ? "double" : legCount === 3 ? "treble" : `${legCount}-fold`;
   const messages = [
     {
       role: "system",
       content:
-        "You are a football betting analyst picking the four best bets of the day, which are " +
-        "combined into one accumulator. Candidates span several markets: 1X2, double chance, " +
+        `You are a football betting analyst building a ${legCount}-leg ${slipName} ` +
+        `(a ${legCount}-selection accumulator) from the day's best bets. ` +
+        "Candidates span several markets: 1X2, double chance, " +
         "both teams to score, and over/under on goals, corners and bookings. " +
         "For every candidate you receive the market and selection, the SportyTrader editorial tip " +
         "or model probability, the live SportyBet price, and — when the competition is covered — " +
@@ -599,13 +601,14 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
         "to 99 percent. Weigh the tip, price, table gap, recent form, goals scored and conceded, " +
         "and how that fixture's profile fits the market (a leaky pair of defences lifts overs and " +
         "both-teams-to-score; a lopsided table gap lifts the favourite's result and double chance). " +
-        "Then choose the four with the best combination of high win probability and value against " +
-        "the price, one leg per fixture. Do not spread probabilities into a tidy sequence and do " +
-        "not copy the example number. " +
+        `Then choose exactly ${legCount} with the best combination of high win probability and ` +
+        "value against the price, one leg per fixture. Do not spread probabilities into a tidy " +
+        "sequence and do not copy the example number. " +
         "You have no injury, suspension, team-news or head-to-head feed, so never claim to know " +
         "line-ups, injuries, transfers or past meetings — reason only from the data supplied. " +
         "Do not invent facts or change a selection. Return JSON only in this exact shape: " +
         '{"picks":[{"index":0,"probability":64}]}. ' +
+        `Return exactly ${legCount} picks. ` +
         "Use each candidate's position in the input array as index, and probability as that " +
         "selection's estimated chance of winning in whole percent (never 0, 1 or a 0-1 fraction).",
     },
@@ -709,8 +712,10 @@ async function rankWithGroq(matches, apiKey, preferredModel) {
   return picks;
 
   function toPicks(body) {
-    if (!Array.isArray(body?.picks) || body.picks.length !== 4) {
-      throw new Error("Groq did not return exactly four predictions. Refresh to try again.");
+    if (!Array.isArray(body?.picks) || body.picks.length !== legCount) {
+      throw new Error(
+        `Groq did not return exactly ${legCount} predictions. Refresh to try again.`,
+      );
     }
 
     const seen = new Set();
@@ -773,6 +778,9 @@ export async function onRequestPost({ request, env }) {
   const mark = Array.isArray(body?.mark)
     ? body.mark.filter((item) => typeof item === "string").slice(0, 8)
     : [];
+  // 2 = double, 3 = treble, 4 = 4-fold.
+  const requestedLegs = Number(body?.legs);
+  const legCount = [2, 3, 4].includes(requestedLegs) ? requestedLegs : 4;
   const kv = env?.[KV_BINDING];
 
   if (body?.reset === true) {
@@ -873,7 +881,7 @@ export async function onRequestPost({ request, env }) {
       return [{ ...rest, odds }];
     });
 
-    if (matches.length < 4) {
+    if (matches.length < legCount) {
       return json(
         {
           error:
@@ -881,7 +889,8 @@ export async function onRequestPost({ request, env }) {
               ? `SportyTrader's page had no readable predictions for ${day}. ` +
                 "Most cards still use other markets, so try again later in the day."
               : `SportyTrader has ${scrapedMatches.length} readable tips for ${day}, but only ` +
-                `${matches.length} are still unstarted and priced by SportyBet.`,
+                `${matches.length} are still unstarted and priced by SportyBet ` +
+                `(a ${legCount}-leg slip needs ${legCount}).`,
         },
         422,
       );
@@ -893,16 +902,18 @@ export async function onRequestPost({ request, env }) {
     );
 
     // Never repeat a batch that was already slipped or logged: report exhaustion instead, so the
-    // panel can offer to reset the day's list rather than silently re-serving the same four.
-    if (unused.length < 4) {
+    // panel can offer to reset the day's list rather than silently re-serving the same legs.
+    if (unused.length < legCount) {
       return json(
         {
           error:
             `Only ${unused.length} fresh pick(s) left for ${day} — ${used.size} already slipped or logged. ` +
-            "Refreshing later picks up newly published tips, or reset today's list to start over.",
+            `A ${legCount}-leg slip needs ${legCount}. Refreshing later picks up newly published tips, ` +
+            "or reset today's list to start over.",
           exhausted: true,
           usedCount: used.size,
           availableCount: unused.length,
+          legs: legCount,
         },
         409,
       );
@@ -910,12 +921,13 @@ export async function onRequestPost({ request, env }) {
 
     const enriched = await addStandingsContext(env, unused);
     const picks = (
-      await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY, env.SMART_ACCA_GROQ_MODEL)
+      await rankWithGroq(enriched, env.SMART_ACCA_GROQ_API_KEY, env.SMART_ACCA_GROQ_MODEL, legCount)
     ).map(({ standings, ...pick }) => pick);
 
     return json({
       day,
       source: SPORTYTRADER_URL,
+      legs: legCount,
       scrapedCount: scrapedMatches.length,
       analyzedCount: unused.length,
       usedCount: used.size,
